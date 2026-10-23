@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only people whose email has a document in /allow/<email> can read or write the books.
+    // Create those documents by hand in the Firebase console; clients can never write them.
+    function allowed() {
+      return request.auth != null
+        && request.auth.token.email_verified in [true, false]
+        && exists(/databases/$(database)/documents/allow/$(request.auth.token.email));
+    }
+    match /rec/{id} {
+      allow read: if allowed();
+      allow create, update: if allowed()
+        && request.resource.data.keys().hasOnly(['rev', 'data', 'by', 'at'])
+        && request.resource.data.rev is int
+        && (request.resource.data.data == null || request.resource.data.data is string);
+      allow delete: if false;
+    }
+    match /allow/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false;
+    }
+  }
+}
