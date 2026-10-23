@@ -9,10 +9,11 @@ const target = process.env.E2E_URL || process.argv.find((a) => /^(https?:|file:)
 assert.ok(target, 'set E2E_URL to the app address')
 
 import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { buildPdf } from '../../src/lib/pdf.js'
 
 // PDF.js is fetched from cdnjs by the app; tests serve a local copy (override with PDFJS_DIR).
-const PDFJS_DIR = process.env.PDFJS_DIR || '/opt/npm-tools/node_modules/pdfjs-dist/build'
+const PDFJS_DIR = process.env.PDFJS_DIR || fileURLToPath(new URL('../../node_modules/pdfjs-dist/build', import.meta.url))
 const pdfFile = (name, lines) => ({ name, mimeType: 'application/pdf', buffer: Buffer.from(buildPdf({ title: 'TAX INVOICE', blocks: lines.map((p) => ({ p })) })) })
 
 let browser
