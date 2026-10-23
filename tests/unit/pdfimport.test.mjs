@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { pathToFileURL } from 'node:url'
 import {
   parseDocument, buildDraft, autoSaveIssues, addInvoice, addPurchases, findDate, matchItem, matchParty, extractLines, itemsToLines, exclGst,
 } from '../../src/lib/pdfimport.js'
@@ -223,7 +222,7 @@ test('itemsToLines groups by baseline and orders left to right', () => {
 })
 
 // ---- the real thing: build a PDF, read it back with PDF.js, parse it ----
-const pdfjs = await import(pathToFileURL('/opt/npm-tools/node_modules/pdfjs-dist/legacy/build/pdf.mjs').href).catch(() => null)
+const pdfjs = await import(new URL('../../node_modules/pdfjs-dist/legacy/build/pdf.mjs', import.meta.url).href).catch(() => null)
 const asFile = (u8) => ({ size: u8.length, arrayBuffer: async () => u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) })
 
 test('end to end through PDF.js: Ashok PDF -> filled draft', { skip: !pdfjs && 'pdfjs-dist not installed' }, async () => {
