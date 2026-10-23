@@ -120,7 +120,9 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01'; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { overflow-x: clip; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01'; }
 /* aurora + engineering grid */
 body::before { content: ""; position: fixed; inset: -6%; z-index: 0; pointer-events: none;
   background: radial-gradient(640px 420px at 8% -5%, var(--blob2), transparent 70%), radial-gradient(700px 480px at 100% 8%, var(--blob1), transparent 70%), radial-gradient(760px 520px at 55% 112%, var(--blob3), transparent 70%); }
@@ -184,6 +186,8 @@ main { display: flex; flex-direction: column; gap: 16px; }
 input, select { font: inherit; color: var(--ink); background: var(--input); border: 1px solid var(--edge); border-radius: 12px; padding: 9px 12px; min-width: 0; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
 select option { color: #111; background: #fff; }
 input::placeholder { color: var(--faint); }
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-height: 40px; text-align: left; max-width: 100%; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
 input:hover, select:hover { border-color: var(--edge-strong); }
 input:focus, select:focus { outline: none; border-color: var(--a); box-shadow: 0 0 0 3px var(--blob1); }
 input.mini { width: 96px; text-align: right; padding: 5px 9px; font-variant-numeric: tabular-nums; }
@@ -286,28 +290,61 @@ tr.neg td { color: var(--bad); }
 
 /* ---------- phones ---------- */
 @media (max-width: 760px) {
-  .app { gap: 18px; padding-block: 14px 40px; }
-  .top { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
-  .brand { order: 1; }
-  .right { order: 2; margin-left: auto; }
-  nav { order: 3; flex: none; width: 100%; }
-  .bsel select { max-width: 170px; min-width: 150px; }
-  .live .lt { display: none; }
-  h1 { font-size: 27px; }
+  .app { gap: 16px; padding-block: max(12px, env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)); }
+  /* header scrolls away with the page: a 3-row sticky bar covered a third of the screen and let content show through */
+  .top { position: static; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px 8px; padding: 12px; border-radius: 20px; }
+  .brand { grid-column: 1; grid-row: 1; min-width: 0; font-size: 15px; }
+  .logo { width: 26px; height: 26px; }
+  .right { display: contents; }
+  .live { grid-column: 2; grid-row: 1; justify-self: end; }
+  .bsel { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .bsel select { width: 100%; max-width: none; min-width: 0; }
+  nav { grid-column: 1 / -1; grid-row: 3; width: 100%; margin: 0 -4px; padding: 0 4px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  nav button { padding: 10px 12px; scroll-snap-align: start; }
+  h1 { font-size: 26px; }
   .head .r { display: none; }
   .stats { grid-template-columns: 1fr 1fr; gap: 12px; }
   .stat { padding: 15px 15px 14px; border-radius: 20px; }
-  .stat .v { font-size: 21px; margin: 8px 0 10px; }
+  .stat .v { font-size: 21px; margin: 8px 0 10px; overflow-wrap: anywhere; }
   .stat .s { font-size: 11px; }
   .stat .l { font-size: 10px; }
   .two { grid-template-columns: 1fr; }
   .card { padding: 18px 16px 14px; border-radius: 22px; }
+  .grid { grid-template-columns: 1fr; }
   .donut { flex-direction: column; align-items: stretch; }
   .wrap { align-self: center; }
   .rt th:nth-child(2), .rt td:nth-child(2) { display: none; }
   td, th { padding-left: 6px; padding-right: 6px; }
-  .lrow { grid-template-columns: 1fr 1fr; }
+  .tw { -webkit-overflow-scrolling: touch; }
+  .tw td, .tw th { white-space: nowrap; }
+
+  /* 16px inputs stop iOS Safari zooming the page on focus, which is what pushed the layout sideways */
+  input, select { font-size: 16px; min-height: 44px; padding: 10px 12px; }
+  input.mini { width: 88px; min-height: 40px; }
+  .btn { min-height: 44px; padding: 10px 16px; }
+  .btn.ghost { padding: 8px 14px; }
+  .seg button { padding: 10px 14px; }
+  .chk input { min-height: 0; }
+
+  /* item row: item on its own line, then qty | rate | remove */
+  .lrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; }
   .lrow select { grid-column: 1 / -1; }
+  .lrow .btn { width: 44px; padding: 0; margin: 0; }
+  .lrow + .lrow { padding-top: 10px; border-top: 1px dashed var(--edge); }
+
+  .pdfbar { gap: 10px; }
+  .pdfnote { flex-direction: column; }
+  .drow { flex-wrap: wrap; }
+  .drow .btn { flex: 1 1 auto; }
+  .ov { padding: 16px 10px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .modal { max-width: 100%; }
+  .paper { padding: 16px; }
+  .ph { flex-direction: column; }
+  .toasts { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 380px) {
+  .stats { grid-template-columns: 1fr; }
+  .stat .v { font-size: 24px; }
 }
 
 /* ================= motion ================= */
@@ -358,7 +395,7 @@ nav button.on::after { animation: barIn 0.3s ease both; }
 .toast span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .toast button { flex: none; margin: 0; padding: 2px 6px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 12px; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
-@media (max-width: 760px) { .toasts { left: 16px; right: 16px; width: auto; bottom: 12px; } }
+@media (max-width: 760px) { .toasts { left: 16px; right: 16px; width: auto; } }
 
 /* ---- reports extras ---- */
 .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; border: 1px solid var(--edge); background: var(--glass); width: fit-content; max-width: 100%; margin-bottom: 14px; }
