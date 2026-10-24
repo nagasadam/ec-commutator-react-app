@@ -111,6 +111,7 @@ export default function Invoices() {
   const [newCust, setNewCust] = useState(null)
   const [note, setNote] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState('') // progress text while a scanned PDF is being read
   const [auto, setAuto] = usePdfAuto()
   const v = useMemo(() => valuation(b), [b])
 
@@ -125,7 +126,14 @@ export default function Invoices() {
     setNote(null)
     try {
       const useAuto = opts.auto ?? auto
-      const r = await importFile(file, { mode: 'sale', getB, updB, auto: useAuto, mark: opts.mark })
+      const r = await importFile(file, {
+        mode: 'sale',
+        getB,
+        updB,
+        auto: useAuto,
+        mark: opts.mark,
+        onProgress: (p) => setStatus(`Reading scanned PDF, page ${p.page} of ${p.pages}${p.pct ? ' (' + Math.round(p.pct * 100) + '%)' : ''}…`),
+      })
       if (r.status === 'saved') {
         setNote({ kind: 'ok', title: `Saved ${r.nos[0]} for ${r.who}${r.isNew ? ' (new customer added)' : ''}.`, lines: [] })
         toast.push(`Invoice ${r.nos[0]} created from PDF`, 'ok')
@@ -160,6 +168,7 @@ export default function Invoices() {
       toast.push(e.message, 'err')
     } finally {
       setBusy(false)
+      setStatus('')
     }
   }
 
@@ -196,7 +205,7 @@ export default function Invoices() {
     <>
       <form className="card" onSubmit={submit}>
         <h3>New invoice / bill</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={(file) => onPdf(file)} />
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
         <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
         <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
         {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}

@@ -56,6 +56,8 @@ async function open({ drive, driveState, ...opts } = {}) {
     const file = /worker/.test(r.request().url()) ? 'pdf.worker.min.mjs' : 'pdf.min.mjs'
     r.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(`${PDFJS_DIR}/${file}`) })
   })
+  // the OCR engine is not served in tests: a scan then fails with the "could not be loaded" message
+  await ctx.route(/cdn\.jsdelivr\.net\/npm\/tesseract/, (r) => r.abort())
   const p = await ctx.newPage()
   const errs = []
   p.on('pageerror', (e) => errs.push(e.message))
