@@ -36,6 +36,14 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     if (first.current) {
       first.current = false
+      // A brand-new business gets a random id. Persist it right away: if it only reached storage on the
+      // first edit, every reload before that minted a new id, which the cloud sync then uploaded as a new
+      // business (with the old one deleted) and announced with a "Saved to cloud" toast.
+      try {
+        if (localStorage.getItem(KEY) == null) localStorage.setItem(KEY, JSON.stringify(S))
+      } catch {
+        /* storage unavailable: the save error shows on the first edit */
+      }
       return
     }
     try {
