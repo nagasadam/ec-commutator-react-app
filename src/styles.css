@@ -150,6 +150,8 @@ h4 { margin: 20px 0 8px; font-size: 14px; font-weight: 650; }
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 
 .top { display: flex; align-items: center; gap: 20px; border-radius: 20px; padding: 10px 14px 10px 16px; position: sticky; top: max(10px, env(safe-area-inset-top, 0px)); z-index: 20; }
+.top { background: var(--solid); background: color-mix(in srgb, var(--solid) 94%, transparent); } /* nearly opaque: content scrolling underneath must not show through the sticky bar */
+html { scroll-padding-top: 96px; } /* a field focused by Tab or a link lands below the sticky header, not under it */
 .brand { display: flex; gap: 11px; align-items: center; font-weight: 650; letter-spacing: 0.01em; white-space: nowrap; line-height: 1.2; }
 .brand small { display: block; font-weight: 500; font-size: 10.5px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.2; }
 .logo { width: 30px; height: 30px; flex: none; border-radius: 50%; animation: spin 48s linear infinite;
@@ -226,7 +228,7 @@ tr.neg td { color: var(--bad); }
 
 .empty { color: var(--muted); padding: 8px 0; }
 .err { background: var(--err-bg); color: var(--bad); padding: 9px 13px; border-radius: 12px; margin: 8px 0; border: 1px solid var(--bad); }
-.err.sticky { position: sticky; top: 0; z-index: 30; }
+.err.sticky { position: sticky; top: 84px; z-index: 19; } /* sits just under the sticky header instead of on top of it */
 
 /* ---------- KPI tiles ---------- */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
@@ -292,6 +294,8 @@ tr.neg td { color: var(--bad); }
 @media (max-width: 760px) {
   .app { gap: 16px; padding-block: max(12px, env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)); }
   /* header scrolls away with the page: a 3-row sticky bar covered a third of the screen and let content show through */
+  html { scroll-padding-top: 12px; }
+  .err.sticky { top: 0; }
   .top { position: static; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px 8px; padding: 12px; border-radius: 20px; }
   .brand { grid-column: 1; grid-row: 1; min-width: 0; font-size: 15px; }
   .logo { width: 26px; height: 26px; }
