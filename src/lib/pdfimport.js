@@ -196,7 +196,7 @@ function readBlock(lines, i, first, max = 8) {
   for (let k = i + 1; k < lines.length && out.length < max; k++) {
     const l = lines[k]
     if (!l || isDeliv(l) || STOP_RE.test(l) || (SALE_LABEL.test(l) && /^(to|buyer|customer|sold|consignee|bill)/i.test(l) && out.length)) break
-    const c = noDeliv(l).replace(RIGHT_COL, '').trim()
+    const c = noDeliv(l).replace(RIGHT_COL, '').replace(/\s+billed\s+address\.?$/i, '').trim() // end of a wrapped "...Same as billed address" note
     if (c) out.push(c)
   }
   return out
@@ -230,7 +230,7 @@ function partyFromBlock(block) {
   const gIdx = block.findIndex(hasGst)
   const addr = block
     .slice(1, gIdx > 0 ? gIdx : undefined)
-    .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan|udyam|cin|e-?mail|www|terms\s*of|ex-)\b/i.test(l) && !/same\s*as\b/i.test(l))
+    .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan|udyam|cin|e-?mail|www|terms\s*of|ex-|billed\s*address)\b/i.test(l) && !/same\s*as\b/i.test(l))
     .filter((l) => !/\b\d{1,2}-[A-Za-z]{3}-\d{2,4}\b|\b\d{9,}\b/.test(l)) // an invoice number / date from the next column
     .join(', ')
     .replace(/,\s*,/g, ',')
@@ -288,7 +288,7 @@ export function parseDocument(rawLines, mode = 'sale') {
   for (let i = 0; i < lines.length && !date; i++) {
     const l = lines[i]
     if (/(supply|due|order|p\.?o\.?\b|lr\b|l\.r|lorry|dispatch|ack)/i.test(l) && !/invoice\s*date/i.test(l)) continue
-    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\s*[:\-]|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:\-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
+    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\b|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:\-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
   }
 
   // party

@@ -430,3 +430,37 @@ test('importFile: a scanned sale invoice fills the draft for review and never sa
   assert.equal(r.draft.lr, '51944717694')
   assert.equal(r.draft.transporter, 'Blue Dart Express Ltd.')
 })
+
+// Konica invoice (same layout as the Ashok one): "date 14.05.2025" has no colon, and the delivery note
+// "BUYER DELIVERED ADDRESS: Same as" wraps onto a "billed address" line.
+const KONICA = [
+  'TAX INVOICE Original copy for customer',
+  'V4 INDUSTRIES',
+  'GSTIN: 36AALFV9329A1ZZ Mode of transport : By road',
+  'INVOICE NO : 008, date 14.05.2025 Name of transport : sadananda carriers',
+  'Date of supply :14.05.2025 Place of supply :vasai, MUMBAI',
+  'To,(BUYER BILLED ADDRESS)',
+  'KONICA APPLIANCES BUYER DELIVERED ADDRESS: Same as',
+  'Squre inds park , siddhi bldg no-2 billed address',
+  'Gala no -4 , Tungareswar phata , nh-9,',
+  'VASAI (EAST) DIST PALGHAR 401 208 .',
+  'GSTIN: 27ACFPJ4330H1ZU',
+  'State: MAHARASTRA',
+  'state code:27 ph no : 9867601409',
+  "s.no Description of goods HSN Code Qty Unit Rate Taxable value 18 IGST % Total value",
+  "1 slot type commutators 8503 4000 no's 29 116000 20880 136880",
+  '136880',
+  'Invoice total (in words) Total value 136880',
+]
+
+test('Konica invoice: customer, date without a colon, transporter and the item row', () => {
+  const p = parseDocument(KONICA, 'sale')
+  assert.equal(p.party.name, 'KONICA APPLIANCES')
+  assert.equal(p.party.gstin, '27ACFPJ4330H1ZU')
+  assert.equal(p.party.phone, '9867601409')
+  assert.equal(p.party.address, 'Squre inds park , siddhi bldg no-2, Gala no -4 , Tungareswar phata , nh-9, VASAI (EAST) DIST PALGHAR 401 208 .')
+  assert.equal(p.date, '2025-05-14') // the invoice date, not the date of supply
+  assert.equal(p.supply, 'inter')
+  assert.equal(p.transporter, 'sadananda carriers')
+  assert.deepEqual(p.rows.map((r) => [r.desc, r.qty, r.rate, r.taxable]), [['slot type commutators', 4000, 29, 116000]])
+})
