@@ -71,6 +71,7 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
     let saved = 0
     let review = 0
     let failed = 0
+    let reviewFile = null
     try {
       for (const f of list2) {
         if (done(f.id) || getB().dimp.some((m) => m.id === f.id)) continue
@@ -82,6 +83,7 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
             setRes((o) => ({ ...o, [f.id]: { kind: 'ok', text: `Saved ${r.nos.join(', ')}` } }))
           } else {
             review++
+            reviewFile = { file, mark: { id: f.id, name: f.name } }
             setRes((o) => ({ ...o, [f.id]: { kind: 'warn', text: 'Needs review: ' + r.issues.join(' ') } }))
           }
         } catch (e) {
@@ -91,6 +93,8 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
         }
       }
       toast.push(`${saved} saved, ${review} need review${failed ? `, ${failed} unreadable` : ''}`, saved || !review ? 'ok' : 'info', { ms: 5000 })
+      // A single file that needs a check goes straight into the form, filled with what was read from it.
+      if (list2.length === 1 && review === 1 && reviewFile) await onOpen(reviewFile.file, reviewFile.mark)
     } catch (e) {
       fail(e)
     } finally {
@@ -149,7 +153,7 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
                         <tr>
                           <th />
                           <th>File</th>
-                          <th>Modified</th>
+                          <th className="hidem">Modified</th>
                           <th>Status</th>
                           <th />
                         </tr>
@@ -162,7 +166,7 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
                             <tr key={f.id}>
                               <td>{!m && <input type="checkbox" aria-label={`Select ${f.name}`} checked={!!pick[f.id]} onChange={(e) => setPick({ ...pick, [f.id]: e.target.checked })} />}</td>
                               <td>{f.name}</td>
-                              <td className="nw dim">{dmy(f.modified)}</td>
+                              <td className="nw dim hidem">{dmy(f.modified)}</td>
                               <td>
                                 {m ? <span className="pill ok">Imported{m.ref ? ' · ' + m.ref : ''}</span> : r ? <span className={'pill ' + (r.kind === 'ok' ? 'ok' : 'warn')} title={r.text}>{r.text.length > 60 ? r.text.slice(0, 58) + '…' : r.text}</span> : <span className="pill warn">New</span>}
                               </td>
