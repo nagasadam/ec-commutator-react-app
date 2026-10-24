@@ -6,15 +6,18 @@ import { inr, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, blankLine, cleanLines, useDialog } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
-import { addPurchases, autoSaveIssues, buildDraft, ensureParty, exclGst, extractLines, parseDocument } from '../lib/pdfimport.js'
+import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
+import DriveImport from '../driveui.jsx'
 import { partyError } from '../lib/rules.js'
 
 const blank = () => ({ sup: '', date: today(), pay: 'later', incl: 'excl', lines: [blankLine()] })
 
 export default function Purchases() {
-  const { b, updB } = useStore()
+  const { b, updB, getS } = useStore()
+  const getB = () => getS().biz.find((x) => x.id === getS().cur)
   const { ask, tell } = useDialog()
   const toast = useToast()
+  const [src, setSrc] = useState(null) // Drive file the form was opened from
   const [f, setF] = useState(blank)
   const [err, setErr] = useState('')
   const [newSup, setNewSup] = useState(null)
@@ -27,33 +30,34 @@ export default function Purchases() {
   const asLine = (r) => ({ item: r.item || '', qty: r.qty ?? '', rate: r.rate ?? '' })
 
   const clearImport = () => {
+    setSrc(null)
     setNewSup(null)
     setQueue({ rows: [], total: 0 })
     setNote(null)
   }
 
-  const onPdf = async (file) => {
+  const onPdf = async (file, opts = {}) => {
     setBusy(true)
     setNote(null)
     try {
-      const d = buildDraft(b, parseDocument(await extractLines(file), 'purchase'), 'purchase')
-      const issues = autoSaveIssues(b, d)
-      if (auto && !issues.length) {
-        let made
-        updB((x) => (made = addPurchases(x, d, d.rows)))
-        setNote({ kind: 'ok', title: `Saved ${made.map((p) => p.no).join(', ')} as Pay later${d.party === '__new__' ? ' (new supplier added)' : ''}.`, lines: [] })
-        toast.push(`${made.length} purchase${made.length === 1 ? '' : 's'} created from PDF`, 'ok')
+      const useAuto = opts.auto ?? auto
+      const r = await importFile(file, { mode: 'purchase', getB, updB, auto: useAuto, mark: opts.mark })
+      if (r.status === 'saved') {
+        setNote({ kind: 'ok', title: `Saved ${r.nos.join(', ')} as Pay later${r.isNew ? ' (new supplier added)' : ''}.`, lines: [] })
+        toast.push(`${r.nos.length} purchase${r.nos.length === 1 ? '' : 's'} created from PDF`, 'ok')
         return
       }
+      const { draft: d, issues } = r
       const [first, ...rest] = d.rows
       setF({ sup: d.party, date: d.date || today(), pay: 'later', incl: 'excl', lines: [first ? asLine(first) : blankLine()] })
       setNewSup(d.newParty)
       setQueue({ rows: rest, total: d.rows.length })
-      const lines = auto ? [...issues] : []
+      setSrc(opts.mark || null)
+      const lines = useAuto ? [...issues] : []
       if (first && !first.item) lines.push(`"${first.desc || 'Item'}" did not match a raw material. Pick one on the row.`)
       if (d.rows.length > 1) lines.push(`${d.rows.length} item rows found. Item 1 of ${d.rows.length} is loaded; the next loads after you record it.`)
       lines.push('The rate is filled as excluding GST. Change "Rate includes" if the supplier rate includes GST.')
-      setNote({ kind: 'warn', title: auto ? 'Not saved automatically.' : 'Form filled from the PDF. Check it, then click Record purchase.', lines })
+      setNote({ kind: 'warn', title: useAuto ? 'Not saved automatically.' : 'Form filled from the PDF. Check it, then click Record purchase.', lines })
     } catch (e) {
       setNote({ kind: 'err', title: e.message, lines: [] })
       toast.push(e.message, 'err')
@@ -80,9 +84,11 @@ export default function Purchases() {
       const id = uid()
       const p = { id, no: nextNo(x.pur, 'PUR-'), date: f.date, sup: supId, lines: priced }
       x.pur.push(p)
+      if (src) markImported(x, src, 'purchase', p.no)
       if (f.pay !== 'later') x.tx.push({ id: uid(), date: f.date, kind: 'pay', party: supId, amt: purTot(x, p).total, acct: f.pay, ref: id })
     })
     setNewSup(null)
+    setSrc(null)
     if (queue.rows.length) {
       const [next, ...rest] = queue.rows
       setF({ ...f, sup: supId, pay: 'later', lines: [asLine(next)] })
@@ -111,7 +117,8 @@ export default function Purchases() {
     <>
       <form className="card" onSubmit={submit}>
         <h3>New purchase</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={onPdf} />
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={(file) => onPdf(file)} />
+        <DriveImport mode="purchase" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
         <PdfNote note={note} onDismiss={() => (clearImport(), setF(blank()))} />
         {newSup && <NewParty title="New supplier" p={newSup} setP={setNewSup} forceFirm={b.kind === 'firm'} />}
         <div className="grid">

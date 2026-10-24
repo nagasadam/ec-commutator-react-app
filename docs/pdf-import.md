@@ -114,3 +114,16 @@ The PDF does not set payment. Choose the payment account, or Pay later, in the f
 - Bank details, terms, totals and tax amounts. These are recalculated by the app from quantity, rate and supply type.
 - Invoice and bill numbers. The app assigns the next number itself.
 - Payment status. Purchases saved from a PDF are recorded as Pay later.
+
+---
+
+## 4. Importing from Google Drive folders
+
+Each of the Invoices and Purchases screens has a **Google Drive folder** panel with its own folder (invoices and purchases are never mixed).
+
+- Paste a folder link once; it is saved with the business. **Change** replaces it.
+- **Connect Google Drive & list PDFs** asks for read-only access and lists the PDFs directly inside the folder, newest first. Google access lasts about an hour.
+- Each file shows **New** or **Imported · <number>**. Imported files are remembered with the business, so a file is never imported twice.
+- **Import selected / Import all new** (needs Save automatically on) saves every complete PDF using the same rules as section "Automatic saving". Files that are incomplete, duplicates or short of stock stay as "Needs review" with the reason and are not marked imported.
+- **Open in form** loads one file into the form for checking (no automatic saving); creating the invoice or purchase from it marks the file imported.
+- Files are downloaded into the browser, read, and discarded. Nothing is stored from Drive except the file's id and name in the imported list.

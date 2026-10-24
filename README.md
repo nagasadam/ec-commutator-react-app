@@ -19,7 +19,7 @@ Invoices (INV-/BILL-, CGST+SGST or IGST, LR number), Inventory (derived stock, m
 cost, editable BOM), Production, Purchases, Expenses, Returns & rejects, Customers & suppliers,
 Banking (bank / cash / GPay), Ledgers with PDF statements, Reports (overview, monthly chart,
 daybook, balance sheet, trial balance), Cash & GPay people (view + pins), firm/person business
-rules, JSON export/import, PDF import for invoices and purchases (see `docs/pdf-import.md`), a save toaster, and optional Firebase sign-in with cloud sync.
+rules, JSON export/import, PDF import for invoices and purchases, from a file or from separate Google Drive folders (see `docs/pdf-import.md`, `DEPLOY.md`), a save toaster, and optional Firebase sign-in with cloud sync.
 
 See `DEPLOY.md` for GitHub Pages + Firebase setup and `npm test` / `npm run test:e2e` for tests.
 

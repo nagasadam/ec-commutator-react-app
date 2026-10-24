@@ -386,3 +386,24 @@ export function addPurchases(x, d, rows) {
 
 // "Rate includes GST" -> rate before GST (firms only; persons carry no GST).
 export const exclGst = (rate, company) => (company ? Math.round((+rate / 1.18) * 10000) / 10000 : +rate)
+
+// One PDF, start to finish. getB() must return the CURRENT business (fresh after earlier saves),
+// updB(fn) applies a change. With auto on and nothing blocking, the records are created and the
+// result is { status: 'saved', nos, who, isNew }. Otherwise { status: 'review', draft, issues }
+// so the caller can fill the form. `mark` ({ id, name }) records a Drive file as imported in the
+// same change that saves it, so a crash can never leave one without the other.
+export async function importFile(file, { mode, getB, updB, auto, mark, pdfjs }) {
+  const d = buildDraft(getB(), parseDocument(await extractLines(file, pdfjs), mode), mode)
+  const issues = autoSaveIssues(getB(), d)
+  if (!(auto && !issues.length)) return { status: 'review', draft: d, issues }
+  let made
+  updB((x) => {
+    made = mode === 'sale' ? [addInvoice(x, { ...d, lines: d.rows.map((r) => ({ item: r.item, qty: r.qty, rate: r.rate })) })] : addPurchases(x, d, d.rows)
+    if (mark) markImported(x, mark, mode, made.map((m) => m.no).join(', '))
+  })
+  return { status: 'saved', nos: made.map((m) => m.no), who: d.party === '__new__' ? d.newParty.name : (mode === 'sale' ? getB().cust : getB().sup).find((p) => p.id === d.party)?.name, isNew: d.party === '__new__' }
+}
+
+export function markImported(x, mark, mode, ref = '') {
+  if (!x.dimp.some((m) => m.id === mark.id)) x.dimp.push({ id: mark.id, kind: mode, name: mark.name, at: new Date().toISOString().slice(0, 10), ref })
+}

@@ -57,9 +57,32 @@ Never commit a service-account key.
 ## 6. PDF import
 The PDF reader (PDF.js 4.4.168) loads from cdnjs the first time someone uploads a PDF, so that needs internet. PDFs are read in the browser and never uploaded or stored.
 
-## 7. Tests
+## 7. Importing PDFs from Google Drive (optional)
+Invoices and Purchases each have a "Google Drive folder" panel: paste the link of a Drive folder, click
+**Connect Google Drive & list PDFs**, then import selected or all new files (or open one in the form to
+check it). Use one folder for invoices and a different one for purchases. Files already imported are
+marked, so the same PDF is never imported twice. The app only reads (read-only permission) and keeps
+nothing from Drive.
+
+One-time setup in your Google account (free):
+1. console.cloud.google.com > create a project.
+2. **APIs & Services > Library** > enable **Google Drive API**.
+3. **APIs & Services > OAuth consent screen** > User type **External** > fill the app name and your email > on the
+   **Test users** page add every Google account that will use it (up to 100). Leave the app in **Testing**.
+   Google shows an "unverified app" warning at sign-in; that is expected for a private app: choose
+   **Advanced > Go to <app> (unsafe)** once.
+4. **Credentials > Create credentials > OAuth client ID** > type **Web application** > under
+   **Authorized JavaScript origins** add `https://<your-github-user>.github.io` (and `http://localhost:5173` for local runs).
+5. Copy the **Client ID** (ends in `.apps.googleusercontent.com`) into a GitHub repository **Variable** named
+   `VITE_GOOGLE_CLIENT_ID`, then re-run the deploy workflow. The client id is public by design; it is not a secret.
+6. Share the Drive folders with the Google account you sign in with if they belong to someone else.
+
+Notes: Google sign-in lasts about an hour, then you click Connect again. Without the variable the panel just
+says Drive import is not set up.
+
+## 8. Tests
 ```
-npm test            # 62 unit tests (money, GST, stock, ledgers, balance sheet, PDF out/in, backup, sync)
+npm test            # 75 unit tests (money, GST, stock, ledgers, balance sheet, PDF out/in, backup, sync)
 npm run test:e2e    # browser tests against the production build (needs: npx playwright install chromium)
 npm run check       # demo business vs the 10 figures in the notes
 ```

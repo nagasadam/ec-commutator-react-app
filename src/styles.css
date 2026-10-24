@@ -437,3 +437,12 @@ tr.tot td { font-weight: 700; border-top: 1px solid var(--edge); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---- Drive import ---- */
+.drive { margin-bottom: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--edge); background: var(--glass); }
+.drive summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+.drive[open] summary { margin-bottom: 10px; }
+.drivef { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.drivef input { flex: 1 1 240px; min-width: 0; }
+.drivef .btn, .drive .btn { margin: 0; }
+.drive code { font-size: 12px; }
