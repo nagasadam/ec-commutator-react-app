@@ -450,3 +450,8 @@ tr.tot td { font-weight: 700; border-top: 1px solid var(--edge); }
 .drivef input { flex: 1 1 240px; min-width: 0; }
 .drivef .btn, .drive .btn { margin: 0; }
 .drive code { font-size: 12px; }
+@media (max-width: 760px) {
+  .drive .tw td, .drive .tw th { white-space: normal; } /* file name, status and Open in form stay on screen instead of scrolling away */
+  .drive .hidem { display: none; }
+  .drive .tw .btn { padding: 6px 10px; font-size: 12.5px; }
+}
