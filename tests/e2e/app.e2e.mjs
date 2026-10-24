@@ -26,8 +26,32 @@ test.afterEach(async () => {
 })
 test.after(async () => browser.close())
 
-async function open(opts = {}) {
+// A fake Google: sign-in script, Drive list and download. folders = { folderId: [{ id, name, lines }] }.
+async function fakeGoogle(ctx, folders, state = {}) {
+  await ctx.route('https://accounts.google.com/gsi/client', (r) =>
+    r.fulfill({ contentType: 'text/javascript', body: 'window.google={accounts:{oauth2:{initTokenClient:function(c){return{requestAccessToken:function(){setTimeout(function(){c.callback({access_token:"tok",expires_in:3600})},10)}}}}}}' }),
+  )
+  await ctx.route('https://www.googleapis.com/drive/v3/files**', (r) => {
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET' }
+    const req = r.request()
+    if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors })
+    if (state.status) return r.fulfill({ status: state.status, headers: cors, body: '{}' })
+    const u = new URL(req.url())
+    const media = u.pathname.match(/\/files\/([^/]+)$/)
+    if (media) {
+      const f = Object.values(folders).flat().find((x) => x.id === decodeURIComponent(media[1]))
+      return f ? r.fulfill({ headers: cors, contentType: 'application/pdf', body: Buffer.from(buildPdf({ title: 'TAX INVOICE', blocks: f.lines.map((p) => ({ p })) })) }) : r.fulfill({ status: 404, headers: cors, body: '{}' })
+    }
+    const m = (u.searchParams.get('q') || '').match(/'([^']+)' in parents/)
+    const list = m && folders[m[1]]
+    if (!list) return r.fulfill({ status: 404, headers: cors, body: '{}' })
+    r.fulfill({ headers: cors, contentType: 'application/json', body: JSON.stringify({ files: list.map((f, i) => ({ id: f.id, name: f.name, size: '1000', modifiedTime: `2026-10-0${i + 1}T10:00:00Z` })) }) })
+  })
+}
+
+async function open({ drive, driveState, ...opts } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 }, acceptDownloads: true, ...opts })
+  if (drive) await fakeGoogle(ctx, drive, driveState)
   await ctx.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\//, (r) => {
     const file = /worker/.test(r.request().url()) ? 'pdf.worker.min.mjs' : 'pdf.min.mjs'
     r.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(`${PDFJS_DIR}/${file}`) })
@@ -326,4 +350,133 @@ test('PDF import purchases, auto off: queue loads item 2 of 2 after recording it
   assert.equal(all[4].lines[0].rate, Math.round((1500 / 1.18) * 10000) / 10000)
   assert.equal(all[5].sup, all[4].sup)
   assert.equal(await p.locator('.pdfnote').count(), 0)
+})
+
+// ------------------------------------------------------------ Google Drive import
+const SALE = 'SALEFOLDER0001'
+const BUY = 'BUYFOLDER00002'
+const link = (id) => `https://drive.google.com/drive/folders/${id}?usp=sharing`
+const DRIVE = () => ({
+  [SALE]: [
+    { id: 'fA', name: 'apex-1.pdf', lines: APEX },
+    { id: 'fB', name: 'ashok.pdf', lines: ASHOK(2000, 2000) }, // more than the stock: needs review
+    { id: 'fC', name: 'apex-copy.pdf', lines: APEX }, // identical to fA: duplicate
+  ],
+  [BUY]: [{ id: 'fP', name: 'gupta.pdf', lines: PUR }],
+})
+const saleFolder = async (p) => {
+  await p.fill('[aria-label="Drive folder link for invoices"]', link(SALE))
+  await p.click('.drive button:has-text("Save folder")')
+}
+const rowOf = (p, name) => p.locator('.drive tr', { hasText: name })
+
+test('Drive: invoices and purchases keep separate folders', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'apex-1.pdf').waitFor()
+  assert.equal(await p.locator('.drive tbody tr').count(), 3)
+  await tab(p, 'Purchases')
+  await p.click('.drive summary')
+  assert.ok(await p.locator('[aria-label="Drive folder link for purchases"]').count(), 'purchases has its own, empty, folder box')
+  await p.fill('[aria-label="Drive folder link for purchases"]', link(BUY))
+  await p.click('.drive button:has-text("Save folder")')
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'gupta.pdf').waitFor()
+  assert.equal(await p.locator('.drive tbody tr').count(), 1)
+  const d = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].drive)
+  assert.deepEqual(d, { sale: SALE, purchase: BUY })
+})
+
+test('Drive: a bad link is rejected; a missing folder and an expired login give clear messages', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await p.fill('[aria-label="Drive folder link for invoices"]', 'https://example.com/x')
+  await p.click('.drive button:has-text("Save folder")')
+  await p.locator('.drive .err', { hasText: 'does not look like' }).waitFor()
+  await p.fill('[aria-label="Drive folder link for invoices"]', link('NOSUCHFOLDER123'))
+  await p.click('.drive button:has-text("Save folder")')
+  await p.click('button:has-text("Connect Google Drive")')
+  await p.locator('.drive .err', { hasText: 'Folder not found' }).waitFor()
+})
+
+test('Drive: Import all new saves the good one, leaves incomplete and duplicate ones for review, and remembers what was imported', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'apex-1.pdf').waitFor()
+  await p.click('button:has-text("Import all new")')
+  await p.locator('.toast', { hasText: '1 saved, 2 need review' }).waitFor()
+  assert.match(await rowOf(p, 'apex-1.pdf').innerText(), /Imported · INV-0004/)
+  assert.match(await rowOf(p, 'ashok.pdf').innerText(), /Needs review|Not enough stock/)
+  assert.match(await rowOf(p, 'apex-copy.pdf').innerText(), /identical|Needs review/)
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].inv.length), 5)
+  // survives a reload: the folder and the imported mark are saved with the business
+  await p.waitForTimeout(500)
+  await p.reload()
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'apex-1.pdf').waitFor()
+  assert.match(await rowOf(p, 'apex-1.pdf').innerText(), /Imported/)
+  assert.equal(await p.locator('button:has-text("Import all new (2)")').count(), 1)
+})
+
+test('Drive: Open in form fills the form, and creating from it marks the file imported', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'ashok.pdf').locator('button:has-text("Open in form")').click()
+  await p.locator('.pdfnote.warn').waitFor()
+  assert.equal(await p.inputValue('.newparty label:has-text("Name") input'), 'ASHOK ENGINEERING WORKS')
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10'))?.biz[0].inv.length ?? 4), 4) // opened, not saved
+  await p.fill('.lrow input >> nth=0', '10')
+  await p.fill('.lrow input >> nth=2', '10')
+  await p.click('button:has-text("Create")')
+  await p.locator('td', { hasText: /^INV-0004$/ }).waitFor()
+  assert.match(await rowOf(p, 'ashok.pdf').innerText(), /Imported · INV-0004/)
+})
+
+test('Drive: with Save automatically off the batch buttons are disabled', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Invoices')
+  await p.uncheck('.chk input')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'apex-1.pdf').waitFor()
+  assert.ok(await p.locator('button:has-text("Import all new")').isDisabled())
+  assert.ok(await rowOf(p, 'apex-1.pdf').locator('button:has-text("Open in form")').isEnabled())
+})
+
+test('Drive purchases: a two-row PDF becomes two Pay-later purchases and is marked imported', async () => {
+  const p = await open({ drive: DRIVE() })
+  await tab(p, 'Purchases')
+  await p.click('.drive summary')
+  await p.fill('[aria-label="Drive folder link for purchases"]', link(BUY))
+  await p.click('.drive button:has-text("Save folder")')
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'gupta.pdf').waitFor()
+  await p.click('button:has-text("Import all new")')
+  await p.locator('.toast', { hasText: '1 saved' }).waitFor()
+  assert.match(await rowOf(p, 'gupta.pdf').innerText(), /Imported · PUR-0005, PUR-0006/)
+  assert.equal((await purs(p)).length, 6)
+})
+
+test('Drive: a refused or expired Google login stops with a clear message', async () => {
+  const state = {}
+  const p = await open({ drive: DRIVE(), driveState: state })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  state.status = 401
+  await p.click('button:has-text("Connect Google Drive")')
+  await p.locator('.drive .err', { hasText: 'expired' }).waitFor()
 })

@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "check": "node scripts/check-guide.mjs",
     "test": "node --test \"tests/unit/*.test.mjs\"",
-    "test:e2e": "vite build && node scripts/run-e2e.mjs",
+    "test:e2e": "node scripts/run-e2e.mjs",
     "test:all": "npm test && npm run test:e2e"
   },
   "dependencies": {

@@ -1,6 +1,10 @@
 // Serves dist/ with `vite preview`, runs the browser tests against it, then stops the server.
 // First time only: npx playwright install chromium
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+
+// The Drive tests need the Drive panel enabled, so build with a dummy client id (the tests fake Google).
+const built = spawnSync('npx', ['vite', 'build'], { stdio: 'inherit', env: { ...process.env, VITE_GOOGLE_CLIENT_ID: 'test-client' } })
+if (built.status !== 0) process.exit(built.status ?? 1)
 
 const port = 4173
 const srv = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort'], { stdio: 'ignore' })

@@ -6,7 +6,8 @@ import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
-import { addInvoice, autoSaveIssues, buildDraft, extractLines, parseDocument } from '../lib/pdfimport.js'
+import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
+import DriveImport from '../driveui.jsx'
 import { partyError } from '../lib/rules.js'
 import { supplyType } from '../lib/calc.js'
 
@@ -99,9 +100,11 @@ function Paper({ b, inv }) {
 const blankForm = () => ({ cust: '', date: today(), lr: '', transporter: '', lines: [blankLine()] })
 
 export default function Invoices() {
-  const { b, updB } = useStore()
+  const { b, updB, getS } = useStore()
+  const getB = () => getS().biz.find((x) => x.id === getS().cur)
   const { ask, tell } = useDialog()
   const toast = useToast()
+  const [src, setSrc] = useState(null) // Drive file the form was opened from
   const [f, setF] = useState(blankForm)
   const [err, setErr] = useState('')
   const [view, setView] = useState(null)
@@ -114,23 +117,21 @@ export default function Invoices() {
   const reset = () => {
     setF(blankForm())
     setNewCust(null)
+    setSrc(null)
   }
 
-  const onPdf = async (file) => {
+  const onPdf = async (file, opts = {}) => {
     setBusy(true)
     setNote(null)
     try {
-      const d = buildDraft(b, parseDocument(await extractLines(file), 'sale'), 'sale')
-      const lines = d.rows.map((r) => ({ item: r.item, qty: r.qty, rate: r.rate }))
-      const issues = autoSaveIssues(b, d)
-      if (auto && !issues.length) {
-        let made
-        updB((x) => (made = addInvoice(x, { ...d, lines })))
-        const who = d.party === '__new__' ? d.newParty.name : find(b.cust, d.party)?.name
-        setNote({ kind: 'ok', title: `Saved ${made.no} for ${who}${d.party === '__new__' ? ' (new customer added)' : ''}.`, lines: [] })
-        toast.push(`Invoice ${made.no} created from PDF`, 'ok')
+      const useAuto = opts.auto ?? auto
+      const r = await importFile(file, { mode: 'sale', getB, updB, auto: useAuto, mark: opts.mark })
+      if (r.status === 'saved') {
+        setNote({ kind: 'ok', title: `Saved ${r.nos[0]} for ${r.who}${r.isNew ? ' (new customer added)' : ''}.`, lines: [] })
+        toast.push(`Invoice ${r.nos[0]} created from PDF`, 'ok')
         return
       }
+      const { draft: d, issues } = r
       const lines2 = []
       if (d.supply) {
         const c = d.party === '__new__' ? d.newParty : find(b.cust, d.party)
@@ -148,10 +149,11 @@ export default function Invoices() {
         lines: d.rows.length ? d.rows.map((r) => ({ item: r.item, qty: r.qty ?? '', rate: r.rate ?? '' })) : [blankLine()],
       })
       setNewCust(d.newParty)
+      setSrc(opts.mark || null)
       setNote({
         kind: 'warn',
-        title: auto ? 'Not saved automatically.' : 'Form filled from the PDF. Check it, then click Create.',
-        lines: auto ? [...issues, ...lines2] : lines2,
+        title: useAuto ? 'Not saved automatically.' : 'Form filled from the PDF. Check it, then click Create.',
+        lines: useAuto ? [...issues, ...lines2] : lines2,
       })
     } catch (e) {
       setNote({ kind: 'err', title: e.message, lines: [] })
@@ -172,7 +174,10 @@ export default function Invoices() {
     }
     const create = () => {
       setErr('')
-      updB((x) => addInvoice(x, { party: f.cust, newParty: newCust, date: f.date, lr: f.lr, transporter: f.transporter, lines }))
+      updB((x) => {
+        const inv = addInvoice(x, { party: f.cust, newParty: newCust, date: f.date, lr: f.lr, transporter: f.transporter, lines })
+        if (src) markImported(x, src, 'sale', inv.no)
+      })
       reset()
       setNote(null)
     }
@@ -191,7 +196,8 @@ export default function Invoices() {
     <>
       <form className="card" onSubmit={submit}>
         <h3>New invoice / bill</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={onPdf} />
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={(file) => onPdf(file)} />
+        <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
         <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
         {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
         <div className="grid">

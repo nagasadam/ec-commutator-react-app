@@ -2,7 +2,7 @@ import { uid } from './format.js'
 
 // Arrays every business must carry. Add new ones here so old saved data
 // is migrated by fixBiz and new businesses start with them.
-export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp']
+export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp', 'dimp']
 
 export const defaultItems = () => [
   { id: 'cu', name: 'Copper coil', type: 'raw', unit: 'kg', hsn: '7408', open: 0, openCost: 0, rate: 0, bom: [] },
@@ -34,6 +34,7 @@ export function mkBiz(name = 'My Business', kind = 'person') {
   const b = { id: uid(), name, kind, stateCode: '33', cashOpen: 0, gpayOpen: 0 }
   ARRAYS.forEach((k) => (b[k] = []))
   b.items = defaultItems()
+  b.drive = { sale: '', purchase: '' }
   return b
 }
 
@@ -43,6 +44,8 @@ export function fixBiz(b) {
   b.cashOpen = b.cashOpen || 0
   b.gpayOpen = b.gpayOpen || 0
   b.kind = b.kind || 'person'
+  // Google Drive folders to import PDFs from (one for invoices, one for purchases)
+  b.drive = { sale: '', purchase: '', ...(b.drive || {}) }
   b.stateCode = b.stateCode || '33'
   return b
 }
