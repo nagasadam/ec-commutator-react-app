@@ -23,12 +23,12 @@ export function usePdfAuto() {
 }
 
 // Upload button + "Save automatically" checkbox. `onFile(file)` does the work.
-export function PdfUpload({ auto, setAuto, busy, onFile, label = 'Upload PDF invoice' }) {
+export function PdfUpload({ auto, setAuto, busy, status, onFile, label = 'Upload PDF invoice' }) {
   const ref = useRef(null)
   return (
     <div className="pdfbar">
       <button type="button" className="btn ghost" disabled={busy} onClick={() => ref.current?.click()}>
-        {busy ? 'Reading PDF…' : label}
+        {busy ? status || 'Reading PDF…' : label}
       </button>
       <input
         ref={ref}

@@ -4,7 +4,7 @@ Upload a PDF to fill the invoice or purchase form. The PDF is read in the browse
 
 ## Limits
 
-- Works only on PDFs that contain text. A scanned image PDF cannot be read, and the page says so.
+- Works on PDFs that contain text. A scanned image PDF is read by text recognition (OCR), see Scanned PDFs below.
 - Maximum size is 10 MB, and only the first 5 pages are read.
 - Reading depends on the layout of the PDF, so unusual layouts may need a few fields corrected by hand.
 - Reading uses the PDF.js library, which loads from the internet (cdnjs). It needs a connection the first time.
@@ -127,3 +127,16 @@ Each of the Invoices and Purchases screens has a **Google Drive folder** panel w
 - **Import selected / Import all new** (needs Save automatically on) saves every complete PDF using the same rules as section "Automatic saving". Files that are incomplete, duplicates or short of stock stay as "Needs review" with the reason and are not marked imported.
 - **Open in form** loads one file into the form for checking (no automatic saving); creating the invoice or purchase from it marks the file imported.
 - Files are downloaded into the browser, read, and discarded. Nothing is stored from Drive except the file's id and name in the imported list.
+
+## Scanned PDFs (OCR)
+
+A PDF with no text layer (a photo or scan of an invoice) is read by text recognition in the browser. PDF.js draws each page and Tesseract (tesseract.js, loaded from jsDelivr the first time) reads the picture. Nothing is uploaded, and the page images are dropped as soon as they are read.
+
+- Only the first 3 pages are read, and it takes several seconds a page. The upload button shows the page and percentage while it works. The first scan also downloads the English language data once.
+- **A scan is never saved automatically**, even with Save automatically on. Text recognition can misread a digit, so the form is always filled for you to check, with a note saying the PDF was a scan.
+- Table lines and stray marks are removed from the recognised text before it is parsed.
+- GSTINs are often garbled by text recognition. A GSTIN printed after a "GSTIN" label is rebuilt only when its check character agrees. A GSTIN that cannot be confirmed is left blank (a firm then needs it typed in), never guessed.
+- Purchase invoices without a "From" label: the seller is the party above the first GSTIN that is not in a Buyer or Consignee block, so your own business (the buyer) is ignored.
+- Sale invoices work the same way: the customer is the Buyer (Bill to) block, not the Consignee, and LR number and transporter are read from "Bill of Lading / LR-RR No." and "Dispatched through" when the value is on the next line.
+- Dates written like `5-Jun-26` are read. Small print, such as a street address, may come out incomplete, so check the address.
+- If the OCR engine cannot be downloaded (offline), the page says the scan could not be read and to check the connection.

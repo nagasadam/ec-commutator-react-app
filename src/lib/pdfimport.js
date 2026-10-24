@@ -1,6 +1,7 @@
 // PDF import for invoices and purchases (spec: pdf-import.md).
 // Layers, each testable on its own:
-//   loadPdfjs / extractLines  browser side: PDF -> text lines (PDF.js from cdnjs, lazy)
+//   loadPdfjs / extractLines  browser side: PDF -> text lines (PDF.js from cdnjs, lazy).
+//                             A scanned PDF (no text layer) is read by OCR instead, see ocr.js
 //   parseDocument             lines -> { party, date, supply, lr, transporter, rows }
 //   buildDraft                match the party and items against the business
 //   autoSaveIssues            why a draft may NOT be saved automatically
@@ -9,6 +10,7 @@ import { find, valuation } from './calc.js'
 import { nextNo } from './model.js'
 import { partyError } from './rules.js'
 import { uid } from './format.js'
+import { OCR_MAX_PAGES, ocrText, ocrToLines } from './ocr.js'
 
 export const MAX_BYTES = 10 * 1024 * 1024
 export const MAX_PAGES = 5
@@ -65,7 +67,11 @@ export function itemsToLines(items) {
   })
 }
 
-export async function extractLines(file, pdfjs) {
+// opts.ocr === false turns OCR off (a scan then fails with 'no-text').
+// opts.ocrPage(page, { onProgress }) -> raw text of one page; defaults to the browser OCR in ocr.js.
+// opts.onProgress({ stage: 'ocr', page, pages, pct }) is called while a scan is being read.
+// The returned array has `.ocr = true` when the lines came from OCR rather than a text layer.
+export async function extractLines(file, pdfjs, opts = {}) {
   if (file.size > MAX_BYTES) throw err('too-big', 'This PDF is larger than 10 MB.')
   const data = new Uint8Array(await file.arrayBuffer())
   if (String.fromCharCode(...data.subarray(0, 5)) !== '%PDF-') throw err('not-pdf', 'This file is not a PDF.')
@@ -82,12 +88,66 @@ export async function extractLines(file, pdfjs) {
     const tc = await page.getTextContent()
     lines.push(...itemsToLines(tc.items))
   }
-  if (lines.join('').replace(/\s/g, '').length < 20) throw err('no-text', 'This PDF has no readable text (it looks like a scan). Scanned PDFs cannot be read.')
-  return lines
+  if (lines.join('').replace(/\s/g, '').length >= 20) return lines
+  if (opts.ocr === false) throw err('no-text', 'This PDF has no readable text (it looks like a scan). Scanned PDFs cannot be read.')
+
+  // A scan: no text layer, so read the page pictures.
+  const read = opts.ocrPage || ocrText
+  const pages = Math.min(doc.numPages, OCR_MAX_PAGES)
+  const out = []
+  for (let i = 1; i <= pages; i++) {
+    opts.onProgress?.({ stage: 'ocr', page: i, pages, pct: 0 })
+    const page = await doc.getPage(i)
+    out.push(...ocrToLines(await read(page, { onProgress: (pct) => opts.onProgress?.({ stage: 'ocr', page: i, pages, pct }) })))
+  }
+  if (out.join('').replace(/\s/g, '').length < 20) throw err('no-text', 'This PDF is a scan and no text could be recognised in it. Enter the invoice by hand.')
+  out.ocr = true
+  return out
 }
 
 // ------------------------------------------------------------------- parsing
 const GSTIN_RE = /\b\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]\b/
+// The 15th character of a GSTIN is a check character of the first 14.
+const G36 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+export function gstinCheck(g14) {
+  let sum = 0
+  for (let i = 0; i < 14; i++) {
+    const p = G36.indexOf(g14[i]) * (i % 2 === 0 ? 1 : 2)
+    sum += Math.floor(p / 36) + (p % 36)
+  }
+  return G36[(36 - (sum % 36)) % 36]
+}
+const GST_LABEL = /\bGSS?T\s*IN\b|\bGST\s*(?:no|number|\/)/i
+const DIGITISH = { O: '0', Q: '0', D: '0', I: '1', L: '1', Z: '2', S: '5', B: '8' }
+
+// A GSTIN from text. An exact match is used as it is. Text recognition garbles these ids
+// ("20AABCM1411F1ZG" came out as "Z2OAABCM1411F12Z2G"), so after a GSTIN label the state code and the
+// PAN are read loosely and the last three characters are rebuilt so that the check character agrees.
+// An id that does not satisfy its own check character is never invented.
+export function findGstin(text) {
+  const strict = String(text).match(new RegExp(GSTIN_RE.source, 'g')) || []
+  const good = strict.find((g) => gstinCheck(g.slice(0, 14)) === g[14])
+  if (good || strict.length) return good || strict[0]
+  for (const line of String(text).split('\n')) {
+    const lab = line.match(GST_LABEL)
+    if (!lab) continue
+    const clean = line.slice(lab.index + lab[0].length).toUpperCase().replace(/[^A-Z0-9]/g, '')
+    const pan = clean.match(/[A-Z]{5}\d{4}[A-Z]/)
+    if (!pan || pan.index < 2) continue
+    const st = clean.slice(pan.index - 2, pan.index).replace(/./g, (c) => DIGITISH[c] || c)
+    if (!/^\d\d$/.test(st)) continue
+    const rest = clean.slice(pan.index + 10)
+    for (const ent of '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+      const g14 = st + pan[0] + ent + 'Z'
+      const chk = gstinCheck(g14)
+      const e = rest.indexOf(ent)
+      const z = e >= 0 ? rest.indexOf('Z', e + 1) : -1
+      if (e >= 0 && z >= 0 && rest.indexOf(chk, z + 1) >= 0) return g14 + chk
+    }
+  }
+  return ''
+}
+const hasGst = (l) => GSTIN_RE.test(l) || GST_LABEL.test(l)
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -97,10 +157,10 @@ export function findDate(s) {
   if (m) return ok(m[1], m[2], m[3])
   m = s.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/)
   if (m) return ok(m[3], m[2], m[1])
-  m = s.match(/\b(\d{1,2})[\s-]+([A-Za-z]{3})[a-z]*\.?,?[\s-]+(\d{4})\b/)
+  m = s.match(/\b(\d{1,2})[\s-]+([A-Za-z]{3})[a-z]*\.?,?[\s-]+(\d{4}|\d{2})\b/)
   if (m) {
     const mi = MONTHS.indexOf(m[2].toLowerCase())
-    if (mi >= 0) return ok(m[3], mi + 1, m[1])
+    if (mi >= 0) return ok(m[3].length === 2 ? '20' + m[3] : m[3], mi + 1, m[1]) // "5-Jun-26"
   }
   return ''
   function ok(y, mo, d) {
@@ -112,7 +172,7 @@ const TITLE_RE = /^(tax\s*invoice|invoice|bill\s*of\s*supply|original|duplicate|
 const SALE_LABEL = /^(?:to\b|bill(?:ed)?\s*to\b|buyer\b|customer\b|sold\s*to\b|consignee\b|m\/s\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)$/i
 const PUR_LABEL = /^(?:from\b|supplier\b|seller\b|vendor\b|sold\s*by\b|billed\s*from\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)$/i
 const STOP_RE = /^(sl\.?\s*no|s\.?\s*no|sr\.?\s*no|description|particulars|ship(?:ped)?\s*to|invoice\s*(no|date)|place\s*of\s*supply|name\s*of\s*(the\s*)?transport|transporter|l\.?r\.?\s*no|bank\b|delivery)/i
-const PHONE_RE = /(?:ph(?:one)?(?:\s*no)?|mob(?:ile)?(?:\s*no)?|tel|contact|cell)\.?\s*[:\-]?\s*(\+?[\d][\d\s-]{8,14}\d)/i
+const PHONE_RE = /(?:ph(?:one)?(?:\s*no)?|mob(?:ile)?(?:\s*no)?|tel|contact|cell)\.?\s*[:\-]?\s*(\+?[\dO][\dO\s-]{8,14}\d)/i
 const FIRM_WORDS = /\b(pvt|private|ltd|limited|llp|industries|industry|enterprises?|engineering|engg|works|traders?|motors?|company|co|corporation|corp|associates|& sons|brothers|bros|agencies|electricals?|electric)\b/i
 
 // "BUYER DELIVERED ADDRESS: Same as in the customer name" is a delivery note, not part of the customer.
@@ -120,22 +180,44 @@ const DELIV_RE = /\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:
 const isDeliv = (l) => /^\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:to|address)/i.test(l)
 const noDeliv = (l) => l.replace(DELIV_RE, '').trim()
 
+// Text from the next column of a two-column header ("ACME LTD. Invoice No. e-Way Bill No.") that
+// the reader put on the same line. It is never part of the party.
+const RIGHT_COL = /\s+(?:invoice\s*no|e-?way|delivery\s*note|mode\/?\s*terms|reference\s*no|buyer'?s?\s*order|dispatch|other\s*ref|dated)\b.*$/i
 const cleanName = (s) =>
   noDeliv(s)
+    .replace(RIGHT_COL, '')
     .replace(/^m\/s\.?\s*/i, '')
     .replace(/\s*(gstin|gst\s*no|gst|ph|phone|mob|mobile|tel)\b.*$/i, '')
     .replace(/[,;:\s]+$/, '')
     .trim()
 
-function readBlock(lines, i, first) {
+function readBlock(lines, i, first, max = 8) {
   const out = first ? [first] : []
-  for (let k = i + 1; k < lines.length && out.length < 8; k++) {
+  for (let k = i + 1; k < lines.length && out.length < max; k++) {
     const l = lines[k]
     if (!l || isDeliv(l) || STOP_RE.test(l) || (SALE_LABEL.test(l) && /^(to|buyer|customer|sold|consignee|bill)/i.test(l) && out.length)) break
-    const c = noDeliv(l)
+    const c = noDeliv(l).replace(RIGHT_COL, '').trim()
     if (c) out.push(c)
   }
   return out
+}
+
+// Purchase invoices rarely say "From:". The seller is the party at the top of the page, so find the
+// first GSTIN that is not in a Buyer / Consignee block and take the nearest firm-like line above it.
+function sellerLine(lines) {
+  const BUYER = /^(consignee|buyer|bill\s*to|ship\s*to|to\s*[,:])/i
+  for (let i = 0; i < lines.length; i++) {
+    if (!hasGst(lines[i]) || isDeliv(lines[i])) continue
+    let buyer = false
+    for (let k = i - 1; k >= Math.max(0, i - 8); k--) if (BUYER.test(lines[k])) buyer = true
+    if (buyer) continue
+    for (let k = i; k >= Math.max(0, i - 10); k--) {
+      const n = cleanName(lines[k])
+      if (n && FIRM_WORDS.test(n) && !TITLE_RE.test(n) && !/^(irn|ack|invoice|e-?way)\b/i.test(n)) return k
+    }
+    return -1
+  }
+  return -1
 }
 
 function partyFromBlock(block) {
@@ -143,12 +225,13 @@ function partyFromBlock(block) {
   const name = cleanName(block[0])
   if (!name) return null
   const text = block.join('\n')
-  const gstin = (text.match(GSTIN_RE) || [''])[0]
-  const phone = ((text.match(PHONE_RE) || [])[1] || '').replace(/[\s-]/g, '')
-  const gIdx = block.findIndex((l) => GSTIN_RE.test(l))
+  const gstin = findGstin(text)
+  const phone = ((text.match(PHONE_RE) || [])[1] || '').replace(/[\s-]/g, '').replace(/O/g, '0')
+  const gIdx = block.findIndex(hasGst)
   const addr = block
     .slice(1, gIdx > 0 ? gIdx : undefined)
-    .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan)\b/i.test(l) && !/same\s*as\b/i.test(l))
+    .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan|udyam|cin|e-?mail|www|terms\s*of|ex-)\b/i.test(l) && !/same\s*as\b/i.test(l))
+    .filter((l) => !/\b\d{1,2}-[A-Za-z]{3}-\d{2,4}\b|\b\d{9,}\b/.test(l)) // an invoice number / date from the next column
     .join(', ')
     .replace(/,\s*,/g, ',')
     .trim()
@@ -175,9 +258,12 @@ function triple(nums) {
 }
 
 function parseRow(text) {
-  const s = text.replace(/^\s*\d{1,3}[.)]?\s+(?=[A-Za-z])/, '')
+  const s = text
+    .replace(/^\s*\d{1,3}[.)]?\s+(?=[A-Za-z])/, '')
+    // "1 05 CTNS Mica ..." : serial number and package count come before the description
+    .replace(/^\s*(?:\d{1,3}[.)]?\s+)?\d+\s*(?:ctns?|cartons?|bags?|boxes|box|pkgs?|bundles?|rolls?|drums?|cases?)\.?\s+(?=[A-Za-z])/i, '')
   const firstNum = s.search(/\d/)
-  const desc = (firstNum > 0 ? s.slice(0, firstNum) : '').replace(UNITS, '').replace(/[\s,;:|-]+$/, '').trim()
+  const desc = (firstNum > 0 ? s.slice(0, firstNum) : '').replace(UNITS, '').replace(/[\s,;:|(-]+$/, '').trim()
   const rest = firstNum >= 0 ? s.slice(firstNum) : ''
   const hsnM = rest.match(/^\d{4,8}\b(?!\.)/)
   const hsn = hsnM ? hsnM[0] : ''
@@ -202,22 +288,25 @@ export function parseDocument(rawLines, mode = 'sale') {
   for (let i = 0; i < lines.length && !date; i++) {
     const l = lines[i]
     if (/(supply|due|order|p\.?o\.?\b|lr\b|l\.r|lorry|dispatch|ack)/i.test(l) && !/invoice\s*date/i.test(l)) continue
-    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\s*[:\-]|\bdated\b/i.test(l)) date = findDate(l) || (/date\s*[:\-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
+    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\s*[:\-]|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:\-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
   }
 
   // party
   const label = mode === 'sale' ? SALE_LABEL : PUR_LABEL
   let party = null
-  for (let i = 0; i < lines.length && !party; i++) {
-    if (isDeliv(lines[i])) continue
-    const m = lines[i].match(label)
-    if (!m) continue
+  // A sale invoice can name a consignee (ship to) as well as the buyer (bill to): the buyer is the customer.
+  const labelAt = []
+  for (let i = 0; i < lines.length; i++) if (!isDeliv(lines[i]) && label.test(lines[i]) && !/^buyer['\u2019]?s?\s*(order|ref)/i.test(lines[i])) labelAt.push(i) // not "Buyer's Order No."
+  const li = mode === 'sale' ? labelAt.find((i) => !/^(consignee|ship)/i.test(lines[i])) ?? labelAt[0] : labelAt[0]
+  if (li !== undefined) {
+    const m = lines[li].match(label)
     const rest = m[1] && /[A-Za-z]/.test(m[1]) && !/^\(?\s*(buyer|billed|address)/i.test(m[1]) ? m[1] : ''
-    party = partyFromBlock(readBlock(lines, i, rest))
+    party = partyFromBlock(readBlock(lines, li, rest))
   }
   if (!party && mode === 'purchase') {
-    const i = lines.findIndex((l) => !TITLE_RE.test(l) && /[A-Za-z]{3}/.test(l) && !/^(page|invoice\s*(no|date)|date)\b/i.test(l))
-    if (i >= 0) party = partyFromBlock(readBlock(lines, i, lines[i]).slice(0, 6))
+    const k = sellerLine(lines)
+    const i = k >= 0 ? k : lines.findIndex((l) => !TITLE_RE.test(l) && /[A-Za-z]{3}/.test(l) && !/^(page|invoice\s*(no|date)|date)\b/i.test(l))
+    if (i >= 0) party = partyFromBlock(readBlock(lines, i, lines[i], 12)) // a seller block runs on to CIN / contact lines
   }
 
   // transport
@@ -238,6 +327,28 @@ export function parseDocument(rawLines, mode = 'sale') {
     }
   }
 
+  // Tally style: the label sits on one line and the value on the next
+  const after = (i, re) => {
+    const same = lines[i].replace(re, '').replace(/^[\s:\-]+/, '').trim()
+    return same || lines[i + 1] || ''
+  }
+  if (!transporter) {
+    const i = lines.findIndex((l) => /dispatched\s*through/i.test(l))
+    if (i >= 0) {
+      const v = after(i, /.*dispatched\s*through\s*(?:destination)?/i)
+      const t = v.match(/^(.*?\b(?:express|logistics|transports?|carriers?|courier|cargo|roadways|travels)\b(?:\s+(?:ltd|limited|pvt|private)\b\.?)*)/i)
+      transporter = (t ? t[1] : v.replace(RIGHT_COL, '').replace(/\s*(destination|motor|vehicle).*$/i, '')).trim()
+    }
+  }
+  if (!lr) {
+    const i = lines.findIndex((l) => /(bill\s*of\s*lading|\bL\.?R\.?\s*[-/]\s*R\.?R\.?)\s*(?:\/\s*L\.?R\.?\s*[-/]\s*R\.?R\.?)?\s*(?:no\.?)?\s*$/i.test(l))
+    const m = i >= 0 && (lines[i + 1] || '').match(/^([A-Z0-9][A-Z0-9\-/]{3,})/i)
+    if (m && /\d/.test(m[1])) {
+      lr = m[1]
+      lrDate = findDate(lines[i + 1])
+    }
+  }
+
   // item rows
   const h = lines.findIndex((l) => /(description|particulars|item|product|goods)/i.test(l) && /(qty|quantity)/i.test(l))
   const rows = []
@@ -247,8 +358,15 @@ export function parseDocument(rawLines, mode = 'sale') {
       const l = lines[i]
       if (/^(total|sub\s*total|grand|amount\s*(chargeable|in\s*words)|taxable|cgst|sgst|igst|bank|terms|rupees|declaration)/i.test(l)) break
       const nums = (l.replace(UNITS, ' ').match(NUM_RE) || []).length
+      // second line of the table header ("No. of Pkgs. Rate") before the first item
+      if (!rows.length && !pending && !/\d/.test(l) && /\b(pkgs?|kind|rate|per|amount|hsn|gst|unit|qty|quantity)\b/i.test(l)) continue
       if (nums >= 3 || (nums >= 2 && /[A-Za-z]/.test(l) && /\d\s*(nos|pcs|kg)/i.test(l))) {
         const r = parseRow(pending ? `${pending} ${l}` : l)
+        // a note with numbers but no quantity ("Size : 1000 X 600 X 0.55 MM") is not an item
+        if (r.qty == null && !r.taxable && !/\b(?:nos?|pcs?|kgs?|units?|sets?)\b/i.test(l)) {
+          pending = ''
+          continue
+        }
         if (r.desc || r.qty) rows.push(r)
         pending = ''
       } else if (/[A-Za-z]{3}/.test(l)) pending = (pending ? pending + ' ' : '') + l
@@ -392,9 +510,12 @@ export const exclGst = (rate, company) => (company ? Math.round((+rate / 1.18) *
 // result is { status: 'saved', nos, who, isNew }. Otherwise { status: 'review', draft, issues }
 // so the caller can fill the form. `mark` ({ id, name }) records a Drive file as imported in the
 // same change that saves it, so a crash can never leave one without the other.
-export async function importFile(file, { mode, getB, updB, auto, mark, pdfjs }) {
-  const d = buildDraft(getB(), parseDocument(await extractLines(file, pdfjs), mode), mode)
+export async function importFile(file, { mode, getB, updB, auto, mark, pdfjs, onProgress, ocrPage }) {
+  const lines = await extractLines(file, pdfjs, { onProgress, ocrPage })
+  const d = buildDraft(getB(), parseDocument(lines, mode), mode)
   const issues = autoSaveIssues(getB(), d)
+  // Text recognition can misread a digit, so a scan is never saved without a human check.
+  if (lines.ocr) issues.unshift('This PDF is a scanned image. Its text was read by text recognition and can contain mistakes, so check every field before saving.')
   if (!(auto && !issues.length)) return { status: 'review', draft: d, issues }
   let made
   updB((x) => {

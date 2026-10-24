@@ -2,7 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   parseDocument, buildDraft, autoSaveIssues, addInvoice, addPurchases, findDate, matchItem, matchParty, extractLines, itemsToLines, exclGst,
+  gstinCheck, findGstin, importFile,
 } from '../../src/lib/pdfimport.js'
+import { ocrToLines } from '../../src/lib/ocr.js'
 import { buildPdf } from '../../src/lib/pdf.js'
 import { calc } from '../../src/lib/calc.js'
 import { demoBiz } from '../../src/lib/seed.js'
@@ -236,7 +238,7 @@ test('end to end through PDF.js: Ashok PDF -> filled draft', { skip: !pdfjs && '
 
 test('limits: scan-like PDF, oversize file, non-PDF', { skip: !pdfjs && 'pdfjs-dist not installed' }, async () => {
   const empty = buildDraftless()
-  await assert.rejects(extractLines(asFile(empty), pdfjs), { code: 'no-text' })
+  await assert.rejects(extractLines(asFile(empty), pdfjs, { ocr: false }), { code: 'no-text' })
   await assert.rejects(extractLines({ size: 11 * 1024 * 1024 }, pdfjs), { code: 'too-big' })
   await assert.rejects(extractLines(asFile(new TextEncoder().encode('hello world, not a pdf')), pdfjs), { code: 'not-pdf' })
   function buildDraftless() {
@@ -268,4 +270,163 @@ test('delivery-address note is never part of the customer (own line, label line,
     assert.equal(p.address, '1/424/66-A, SHAHDRA FLYOVER, SHAHDRA, NEW DELHI -110032', name)
     assert.equal(p.gstin, '07AAKPB7527M1ZF', name)
   }
+})
+
+// ---------------------------------------------------------------- scanned PDFs (OCR)
+// Real output of the Tesseract reader on a scanned Tally-style purchase invoice (trimmed; the
+// "|" and "{" marks are table borders the reader mistook for letters, and the seller's GSTIN is
+// garbled: the real one is 20AABCM1411F1ZG).
+const SCAN = `
+Tax Invoice e-Invoice
+IRN : 2201 bc2b9f3155acc9c0dfacb2885ed42c1eec29c8ba-
+Ack No. : 142620501845154
+Ack Date : 5-Jun-26
+(Cwpmica
+M.P.MICA ENTERPRISES PVT. LTD.
+BHUDOLIA BHAWAN, KUTIA ROAD
+GIRIDIH-815301 JHARKHAND)
+Jharkhand - 815301, India
+UDYAM : UDYAM-JH-08-0000449 (Small)
+GSTIN/UIN: Z2OAABCM1411F12Z2G
+State Name : Jharkhand, Code : 20
+CIN: U14293JH1988PTCO003170
+Contact : O6532-250977,221211
+E-Mail : accounts@mpmica.com
+Consignee (Ship to)
+V4 INDUSTRIES
+Plot No 35,36, Survey No 53 & 54, Bahadurpally,
+Telangana - 500055, India
+GSTIN/UIN : 36AALFV9329A1ZZ
+Invoice No. e-Way Bill No. | Dated
+103/26-27 431733958144 | 5-Jun-26
+Buyer's Order No. Dated
+PI/V4/015/2627 27-May-26
+Dispatched through
+Blue Dart Express Ltd.
+Bill of Lading/LR-RR No.
+51944717694 dt. 5-Jun-26
+Buyer (Bill to)
+V4 INDUSTRIES
+GSTIN/UIN : 36AALFV9329A1ZZ
+SI] No. & Kind Description of Goods HSN/SAC | GST | Quantity Rate per Amount
+No.| of Pkgs. Rate
+1| 05 CTNS | Mica Rifted Into Sheets (681410) |68141090 | 18 %| 246.000 KG 400.00) KG 98,400.00
+Size : 1000 X 600 X 0.55 MM, Epoxy
+IGST 17,712.00
+Total 246.000 KG 1,16,112.00 Rs.
+`
+
+test('GSTIN check character, and recovery of a garbled GSTIN', () => {
+  for (const g of ['36AALFV9329A1ZZ', '07AAKPB7527M1ZF', '20AABCM1411F1ZG']) assert.equal(gstinCheck(g.slice(0, 14)), g[14])
+  assert.equal(findGstin('GSTIN/UIN: Z2OAABCM1411F12Z2G'), '20AABCM1411F1ZG')
+  assert.equal(findGstin('GSTIN: 07AAKPB7527M1ZF Ph No: 9810209580'), '07AAKPB7527M1ZF')
+  assert.equal(findGstin('GSTIN/UIN: Z2OAABCM1411F12Z2X'), '') // check character disagrees: never invent one
+  assert.equal(findGstin('no id here'), '')
+})
+
+test('findDate reads two-digit years written with a month name', () => {
+  assert.equal(findDate('| 5-Jun-26'), '2026-06-05')
+  assert.equal(findDate('17 Oct 2024'), '2024-10-17')
+})
+
+test('scanned purchase invoice: seller, date and item are read; the buyer (our own business) is ignored', () => {
+  const p = parseDocument(ocrToLines(SCAN), 'purchase')
+  assert.equal(p.party.name, 'M.P.MICA ENTERPRISES PVT. LTD.')
+  assert.equal(p.party.gstin, '20AABCM1411F1ZG')
+  assert.equal(p.party.phone, '06532250977')
+  assert.equal(p.party.company, true)
+  assert.match(p.party.address, /KUTIA ROAD/)
+  assert.doesNotMatch(p.party.address, /26-27|5-Jun|\d{9}/) // nothing from the invoice-number column
+  assert.equal(p.date, '2026-06-05')
+  assert.equal(p.supply, 'inter')
+  assert.equal(p.rows.length, 1) // the "Size : 1000 X 600 X 0.55 MM" note is not an item
+  assert.deepEqual([p.rows[0].desc, p.rows[0].qty, p.rows[0].rate, p.rows[0].taxable], ['Mica Rifted Into Sheets', 246, 400, 98400])
+  const d = buildDraft(demoBiz(), p, 'purchase')
+  assert.equal(d.party, '__new__')
+  assert.equal(d.newParty.name, 'M.P.MICA ENTERPRISES PVT. LTD.')
+})
+
+test('ocrToLines drops table borders and noise lines', () => {
+  assert.deepEqual(ocrToLines('1| 05 CTNS | Mica {x}\n\n  |\n.\nTotal   98,400.00\n'), ['1 05 CTNS Mica x', 'Total 98,400.00'])
+})
+
+const fakePdfjs = (pageCount = 1) => ({
+  getDocument: () => ({ promise: Promise.resolve({ numPages: pageCount, getPage: async (i) => ({ n: i, getTextContent: async () => ({ items: [] }) }) }) }),
+})
+const pdfBytes = new TextEncoder().encode('%PDF-1.4 fake')
+
+test('extractLines: a PDF with no text layer is read by OCR and reports progress', async () => {
+  const seen = []
+  const lines = await extractLines(asFile(pdfBytes), fakePdfjs(2), {
+    ocrPage: async (page, { onProgress }) => {
+      onProgress(0.5)
+      return SCAN.split('\n').slice(0, 12).join('\n') + ` page ${page.n}`
+    },
+    onProgress: (p) => seen.push(`${p.page}/${p.pages}@${p.pct}`),
+  })
+  assert.equal(lines.ocr, true)
+  assert.ok(lines.includes('M.P.MICA ENTERPRISES PVT. LTD.'))
+  assert.deepEqual(seen, ['1/2@0', '1/2@0.5', '2/2@0', '2/2@0.5'])
+})
+
+test('extractLines: OCR can be switched off, and a scan with no recognisable text says so', async () => {
+  await assert.rejects(extractLines(asFile(pdfBytes), fakePdfjs(), { ocr: false }), { code: 'no-text' })
+  await assert.rejects(extractLines(asFile(pdfBytes), fakePdfjs(), { ocrPage: async () => '| _ .' }), { code: 'no-text', message: /scan/ })
+})
+
+test('extractLines: only the first 3 pages of a scan are OCR-ed', async () => {
+  let n = 0
+  await extractLines(asFile(pdfBytes), fakePdfjs(9), { ocrPage: async () => (n++, 'Some readable invoice text here') })
+  assert.equal(n, 3)
+})
+
+test('importFile: a scanned PDF is never saved automatically, even with auto on', async () => {
+  const b = demoBiz()
+  let updated = false
+  // a page whose recognised text is complete enough that a text PDF would be saved straight away
+  const text = [
+    'Tax Invoice',
+    'M.P.MICA ENTERPRISES PVT. LTD.',
+    'GSTIN/UIN: 20AABCM1411F1ZG',
+    'Invoice No. Dated',
+    '103/26-27 5-Jun-26',
+    'Sl Description HSN Quantity Rate Amount',
+    '1 Mica 68141090 246.000 KG 400.00 KG 98,400.00',
+    'IGST 17,712.00',
+  ].join('\n')
+  const r = await importFile(asFile(pdfBytes), { mode: 'purchase', getB: () => b, updB: () => (updated = true), auto: true, pdfjs: fakePdfjs(), ocrPage: async () => text })
+  assert.equal(r.status, 'review')
+  assert.equal(updated, false)
+  assert.match(r.issues[0], /scanned image/)
+  assert.equal(r.draft.newParty.name, 'M.P.MICA ENTERPRISES PVT. LTD.')
+  assert.deepEqual(r.draft.rows.map((x) => [x.item, x.qty, x.rate]), [['mi', 246, 400]])
+})
+
+test('scanned sale invoice: the buyer (bill to) is the customer, with LR and transporter from the next line', () => {
+  const p = parseDocument(ocrToLines(SCAN), 'sale')
+  assert.equal(p.party.name, 'V4 INDUSTRIES')
+  assert.equal(p.party.gstin, '36AALFV9329A1ZZ')
+  assert.equal(p.date, '2026-06-05')
+  assert.equal(p.supply, 'inter')
+  assert.equal(p.transporter, 'Blue Dart Express Ltd.')
+  assert.equal(p.lr, '51944717694')
+  assert.equal(p.lrDate, '2026-06-05')
+  assert.deepEqual(p.rows.map((r) => [r.desc, r.qty, r.rate]), [['Mica Rifted Into Sheets', 246, 400]])
+})
+
+test('sale invoice: buyer wins over a consignee that comes first', () => {
+  const lines = ['Consignee (Ship to)', 'SHIP HERE TRADERS', 'GSTIN: 07AAKPB7527M1ZF', 'Buyer (Bill to)', 'BILL ME ENGINEERING', 'GSTIN: 36AALFV9329A1ZZ', 'Sl Description HSN Qty Rate Amount', '1 COMMUTATOR 8503 10 Nos 5.00 50.00']
+  assert.equal(parseDocument(lines, 'sale').party.name, 'BILL ME ENGINEERING')
+})
+
+test('importFile: a scanned sale invoice fills the draft for review and never saves itself', async () => {
+  const b = demoBiz()
+  let updated = false
+  const r = await importFile(asFile(pdfBytes), { mode: 'sale', getB: () => b, updB: () => (updated = true), auto: true, pdfjs: fakePdfjs(), ocrPage: async () => SCAN })
+  assert.equal(r.status, 'review')
+  assert.equal(updated, false)
+  assert.match(r.issues[0], /scanned image/)
+  assert.equal(r.draft.newParty.name, 'V4 INDUSTRIES')
+  assert.equal(r.draft.lr, '51944717694')
+  assert.equal(r.draft.transporter, 'Blue Dart Express Ltd.')
 })

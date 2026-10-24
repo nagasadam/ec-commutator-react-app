@@ -24,6 +24,7 @@ export default function Purchases() {
   const [note, setNote] = useState(null)
   const [queue, setQueue] = useState({ rows: [], total: 0 }) // rows still to load after the current one
   const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState('') // progress text while a scanned PDF is being read
   const [auto, setAuto] = usePdfAuto()
   const sup = f.sup === '__new__' ? newSup : find(b.sup, f.sup)
   const opts = acctOptions(b, sup)
@@ -41,7 +42,14 @@ export default function Purchases() {
     setNote(null)
     try {
       const useAuto = opts.auto ?? auto
-      const r = await importFile(file, { mode: 'purchase', getB, updB, auto: useAuto, mark: opts.mark })
+      const r = await importFile(file, {
+        mode: 'purchase',
+        getB,
+        updB,
+        auto: useAuto,
+        mark: opts.mark,
+        onProgress: (p) => setStatus(`Reading scanned PDF, page ${p.page} of ${p.pages}${p.pct ? ' (' + Math.round(p.pct * 100) + '%)' : ''}…`),
+      })
       if (r.status === 'saved') {
         setNote({ kind: 'ok', title: `Saved ${r.nos.join(', ')} as Pay later${r.isNew ? ' (new supplier added)' : ''}.`, lines: [] })
         toast.push(`${r.nos.length} purchase${r.nos.length === 1 ? '' : 's'} created from PDF`, 'ok')
@@ -63,6 +71,7 @@ export default function Purchases() {
       toast.push(e.message, 'err')
     } finally {
       setBusy(false)
+      setStatus('')
     }
   }
 
@@ -117,7 +126,7 @@ export default function Purchases() {
     <>
       <form className="card" onSubmit={submit}>
         <h3>New purchase</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} onFile={(file) => onPdf(file)} />
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
         <DriveImport mode="purchase" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
         <PdfNote note={note} onDismiss={() => (clearImport(), setF(blank()))} />
         {newSup && <NewParty title="New supplier" p={newSup} setP={setNewSup} forceFirm={b.kind === 'firm'} />}
