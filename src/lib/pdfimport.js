@@ -297,7 +297,9 @@ export function parseDocument(rawLines, mode = 'sale') {
   // A sale invoice can name a consignee (ship to) as well as the buyer (bill to): the buyer is the customer.
   const labelAt = []
   for (let i = 0; i < lines.length; i++) if (!isDeliv(lines[i]) && label.test(lines[i]) && !/^buyer['\u2019]?s?\s*(order|ref)/i.test(lines[i])) labelAt.push(i) // not "Buyer's Order No."
-  const li = mode === 'sale' ? labelAt.find((i) => !/^(consignee|ship)/i.test(lines[i])) ?? labelAt[0] : labelAt[0]
+  // An e-way bill page prints a bare "From   To" header: that is a column heading, not the supplier.
+  const bareHeading = (i) => /^(?:from|to)(?:\s+(?:from|to))*\s*[:\-]?$/i.test(lines[i].match(label)?.[0].trim() ?? '') || /^from\s+to\b/i.test(lines[i])
+  const li = mode === 'sale' ? labelAt.find((i) => !/^(consignee|ship)/i.test(lines[i])) ?? labelAt[0] : labelAt.find((i) => !bareHeading(i))
   if (li !== undefined) {
     const m = lines[li].match(label)
     const rest = m[1] && /[A-Za-z]/.test(m[1]) && !/^\(?\s*(buyer|billed|address)/i.test(m[1]) ? m[1] : ''

@@ -1,0 +1,117 @@
+Tax Invoice e-Invoice
+o} El
+si ce ci a 5 oof
+IRN : 2201 bc2b9f3155acc9c0dfacb2885ed42c1eec29c8ba- 21eceaeiale see
+90b721d58dd2a7 1e9ef7 SiR
+AckNo. : 142620501845154 : .
+Ack Date : 5-Jun-26 F a i
+Oi} F
+
+(Cwpmica
+
+M.P.MICA ENTERPRISES PVT. LTD.
+BHUDOLIA BHAWAN, KUTIA ROAD
+GIRIDIH-815301 JHARKHAND)
+Jharkhand - 815301, India
+
+UDYAM : UDYAM-JH-08-0000449 (Small)
+GSTIN/UIN: Z2OAABCM1411F12Z2G
+State Name : Jharkhand, Code : 20
+CIN: U14293JH1988PTCO003170
+Contact : O6532-250977,221211
+E-Mail : accounts@mpmica.com
+www-_mpmica.com
+
+Consignee (Ship to)
+
+V4 INDUSTRIES
+
+Plot No 35,36, Survey No 53 & 54, Bahadurpally,
+| Qutubullapur Mandal, Rangareddy
+
+Telangana - 500055, India
+
+GSTIN/UIN : 36AALFV9329A1ZZ
+
+PAN/IT No : AALFV9329A
+
+State Name : Telangana, Code : 36
+
+Invoice No. e-Way Bill No. | Dated
+
+103/26-27 431733958144 | 5-Jun-26
+
+Delivery Note Mode/Terms of Payment
+As Per P.I.
+
+Reference No. & Date. Other References
+By E-Mail
+
+Buyer's Order No. Dated
+
+PI/V4/015/2627 27-May-26
+
+Dispatch Doc No. Delivery Note Date
+
+51944717694
+
+Destination
+Rangareddy-500055
+
+Dispatched through
+Blue Dart Express Ltd.
+
+Bill of Lading/LR-RR No.
+51944717694 dt. 5-Jun-26
+
+Motor Vehicle No.
+
+Buyer (Bill to)
+
+V4 INDUSTRIES
+
+Plot No 35,36, Survey No 53 & 54, Bahadurpally,
+Qutubullapur Mandal, Rangareddy
+
+Telangana - 500055, India
+
+Terms of Delivery
+Ex-Rangareddy
+
+GSTIN/UIN : 36AALFV9329A1ZZ
+PAN/IT No : AALFV9329A
+State Name : Telangana, Code : 36
+Place of Supply : Telangana
+SI] No. & Kind Description of Goods HSN/SAC | GST | Quantity Rate per Amount
+No.| of Pkgs. Rate
+1| 05 CTNS | Mica Rifted Into Sheets (681410) |68141090 | 18 %| 246.000 KG 400.00) KG 98,400.00
+Size : 1000 X 600 X 0.55 MM, Epoxy
+IGST 17,712.00
+Total 246.000 KG 1,16,112.00 Rs.
+Amount Chargeable (in words) E&OE
+One Lakh Sixteen Thousand One Hundred Twelve Indian Rupees Only
+HSN/SAC Taxable IGST Total
+Seles __Value Rate | Amount _|Tax Amount|
+68141090 98,400.00 18%] 17,712.00} 17,712.00
+Total} 98,400.00 17,712.00| 17,712.00
+
+Company's PAN >: AABCM1411F
+
+Declaration
+We declare that this invoice shows the actual price of the
+goods described and that all particulars are true and correct.
+
+Tax Amount (in words) : Seventeen Thousand Seven Hundred Twelve Indian Rupees Only
+
+Company's Bank Details
+
+A/c Holder's Name: M.P.MICA ENTERPRISES PVT. LTD.
+Bank Name : S.B.1. - C/C AIC
+
+Alc No. : 10605469880
+
+Branch & IFS Code: SME , GIRIDIH & SBIN0006449
+
+SUBJECT TO GIRIDIH JURISDICTION
+This is a Computer Generated Invoice
+

@@ -464,3 +464,14 @@ test('Konica invoice: customer, date without a colon, transporter and the item r
   assert.equal(p.transporter, 'sadananda carriers')
   assert.deepEqual(p.rows.map((r) => [r.desc, r.qty, r.rate, r.taxable]), [['slot type commutators', 4000, 29, 116000]])
 })
+
+test('scanned purchase: supplier is the seller block, not the e-way bill "From To" heading', async () => {
+  const { readFileSync } = await import('node:fs')
+  const rd = (f) => readFileSync(new URL('./fixtures/' + f, import.meta.url), 'utf8')
+  const lines = [...ocrToLines(rd('mica-p1.txt')), ...ocrToLines(rd('mica-p2.txt'))]
+  const p = parseDocument(lines, 'purchase')
+  assert.equal(p.party.name, 'M.P.MICA ENTERPRISES PVT. LTD.')
+  assert.match(p.party.address, /BHUDOLIA BHAWAN/)
+  assert.doesNotMatch(p.party.name + p.party.address, /V4 INDUSTRIES/i)
+  assert.equal(p.date, '2026-06-05')
+})
