@@ -163,6 +163,21 @@ test('backup: export downloads JSON, import of bad file shows an error toast and
   assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz.length), 2)
 })
 
+test('reload before any edit keeps the same business id (no new business, no save toast)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 } })
+  const p = await ctx.newPage()
+  pages.push(p)
+  await p.goto(target)
+  await p.locator('nav').waitFor()
+  const id1 = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10') || 'null')?.cur)
+  assert.ok(id1, 'the starting business is written to storage on first load')
+  await p.reload()
+  await p.locator('nav').waitFor()
+  const id2 = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10') || 'null')?.cur)
+  assert.equal(id2, id1)
+  assert.equal(await p.locator('.toast').count(), 0)
+})
+
 test('reload keeps data; no horizontal overflow on a phone', async () => {
   const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true })
   for (const t of ['Invoices', 'Reports', 'Ledgers', 'Cash & GPay', 'Banking']) {
