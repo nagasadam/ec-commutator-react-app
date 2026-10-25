@@ -2,7 +2,7 @@ import { mkBiz } from './model.js'
 
 // Demo business built from notes §9 (E.C Commutators test data).
 export function demoBiz() {
-  const b = mkBiz('E.C Commutators', 'person')
+  const b = mkBiz('EC', 'person')
   b.demo = true
   b.cashOpen = 30000
   b.gpayOpen = 8000

@@ -22,6 +22,8 @@ import Banking from './tabs/Banking.jsx'
 import Reports from './tabs/Reports.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
 import { Icon } from './icons.jsx'
+import logoLight from './assets/logo-light.png'
+import logoDark from './assets/logo-dark.png'
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
 const MOBILE = ['dash', 'inv', 'pur']
@@ -39,6 +41,17 @@ const TABS = [
   ['cg', 'Cash & GPay', CashPeople, 'Cash & GPay people'],
   ['bank', 'Banking', Banking],
 ]
+
+// V4 mark: the white-background artwork on light themes, the original on dark ones.
+function Logo({ big }) {
+  const c = 'logo' + (big ? ' big' : '')
+  return (
+    <>
+      <img className={c + ' lt'} src={logoLight} alt="" />
+      <img className={c + ' dk'} src={logoDark} alt="" />
+    </>
+  )
+}
 
 function Sec({ tone, icon, title, hint, children }) {
   return (
@@ -169,6 +182,9 @@ function Manage({ onClose }) {
           </Sec>
 
           <Sec icon="⚙" title={b.name} hint="Settings for this business">
+            <Field label="Business name">
+              <input value={b.name} onChange={(e) => updB((x) => (x.name = e.target.value))} />
+            </Field>
             <Field label="Business type">
               <select value={b.kind} onChange={(e) => setKind2(e.target.value)}>
                 <option value="person">Person based (BILL, cash/GPay and firms)</option>
@@ -240,7 +256,7 @@ export function Login() {
   return (
     <div className="login">
       <form className="card" onSubmit={go}>
-        <span className="logo big" aria-hidden="true" />
+        <Logo big />
         <h1>E.C Commutator</h1>
         <p className="sub-t">Sign in to ERP for Manufacturers</p>
         <Field label="Email">
@@ -350,7 +366,7 @@ export default function App() {
     <div className="app">
       <header className="top glass">
         <div className="brand">
-          <span className="logo" aria-hidden="true" />
+          <Logo />
           <div>
             E.C Commutator
             <small>Billing · Production · Stock</small>

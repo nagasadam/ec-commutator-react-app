@@ -60,7 +60,7 @@ test('first device pushes its business, second device pulls it', async () => {
   const b = device(be, S1(mkBiz('blank')))
   await b.eng.sync()
   assert.equal(b.st.S.biz.length, 1) // pristine blank dropped
-  assert.equal(b.st.S.biz[0].name, 'E.C Commutators')
+  assert.equal(b.st.S.biz[0].name, 'EC')
   assert.equal(b.st.S.biz[0].inv.length, 4)
 })
 

@@ -199,14 +199,17 @@ p {
   display: none;
 }
 .logo {
-  width: 34px;
-  height: 26px;
   display: block;
-  background: linear-gradient(135deg, var(--a) 0 56%, var(--b) 56% 100%);
-  clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%);
-  border-radius: 6px;
+  width: 62px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(20, 40, 120, 0.28));
   transition: transform 0.5s var(--ease);
 }
+.logo.dk { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo.lt { display: none; } :root:not([data-theme="light"]) .logo.dk { display: block; } }
+:root[data-theme="dark"] .logo.lt { display: none; }
+:root[data-theme="dark"] .logo.dk { display: block; }
 .brand:hover .logo {
   transform: rotate(-6deg) scale(1.06);
 }
@@ -2147,7 +2150,7 @@ input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 
 .login .card .fld { text-align: left; }
 .login h1 { font-size: 24px; margin: 6px 0 0; }
 .login .sub-t { margin: -6px 0 6px; color: var(--muted); }
-.login .logo.big { width: 46px; height: 36px; margin: 0 auto; animation: rise 0.7s var(--ease) both; }
+.login .logo.big { width: 120px; margin: 0 auto; animation: rise 0.7s var(--ease) both; }
 .login .foot-t { margin: 4px 0 0; color: var(--faint); font-size: 12px; }
 .btn.block { width: 100%; padding: 12px 18px; }
 .pw { position: relative; display: block; }
@@ -2167,7 +2170,7 @@ input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 
 }
 .login .card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, var(--gloss, rgba(255, 255, 255, 0.7)), rgba(255, 255, 255, 0) 40%); pointer-events: none; z-index: 0; }
 .login .card > * { position: relative; z-index: 1; }
-.login .logo.big { filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--a) 55%, transparent)); }
+.login .logo.big { filter: drop-shadow(0 8px 14px rgba(20, 40, 120, 0.4)); }
 .login input { background: linear-gradient(180deg, color-mix(in srgb, var(--soft) 100%, #000 4%), var(--card)); box-shadow: inset 0 2px 5px rgba(40, 60, 140, 0.18); border-color: rgba(110, 130, 200, 0.28); }
 .login input:focus { box-shadow: inset 0 2px 5px rgba(40, 60, 140, 0.12), 0 0 0 4px color-mix(in srgb, var(--a) 22%, transparent); }
 .login .btn { position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.55); background: linear-gradient(180deg, #6b92ff, #2f55f0 55%, #2344d6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 26px -8px rgba(47, 85, 240, 0.8), 0 0 0 1px rgba(20, 40, 160, 0.35); }
