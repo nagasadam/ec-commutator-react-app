@@ -196,7 +196,7 @@ export function Login() {
         </Field>
         <Field label="Password">
           <span className="pw">
-            <input type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            <input type={show ? 'text' : 'password'} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
             <button type="button" className="showpw" onClick={() => setShow((v) => !v)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button>
           </span>
         </Field>
