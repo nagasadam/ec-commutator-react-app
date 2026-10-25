@@ -2123,3 +2123,17 @@ input[type='date'] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
 .fld, .grid > * { min-width: 0; }
 @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.muted.loading { display: flex; align-items: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }

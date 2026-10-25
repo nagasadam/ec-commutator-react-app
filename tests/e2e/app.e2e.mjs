@@ -28,10 +28,11 @@ test.after(async () => browser.close())
 
 // A fake Google: sign-in script, Drive list and download. folders = { folderId: [{ id, name, lines }] }.
 async function fakeGoogle(ctx, folders, state = {}) {
+  const slow = async () => state.delay && new Promise((ok) => setTimeout(ok, state.delay))
   await ctx.route('https://accounts.google.com/gsi/client', (r) =>
     r.fulfill({ contentType: 'text/javascript', body: 'window.google={accounts:{oauth2:{initTokenClient:function(c){return{requestAccessToken:function(){setTimeout(function(){c.callback({access_token:"tok",expires_in:3600})},10)}}}}}}' }),
   )
-  await ctx.route('https://www.googleapis.com/drive/v3/files**', (r) => {
+  await ctx.route('https://www.googleapis.com/drive/v3/files**', async (r) => {
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET' }
     const req = r.request()
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors })
@@ -39,6 +40,7 @@ async function fakeGoogle(ctx, folders, state = {}) {
     const u = new URL(req.url())
     const media = u.pathname.match(/\/files\/([^/]+)$/)
     if (media) {
+      await slow()
       const f = Object.values(folders).flat().find((x) => x.id === decodeURIComponent(media[1]))
       return f ? r.fulfill({ headers: cors, contentType: 'application/pdf', body: Buffer.from(buildPdf({ title: 'TAX INVOICE', blocks: f.lines.map((p) => ({ p })) })) }) : r.fulfill({ status: 404, headers: cors, body: '{}' })
     }
@@ -490,6 +492,20 @@ test('Drive: Open in form fills the form, and creating from it marks the file im
   await p.click('button:has-text("Create")')
   await p.locator('td', { hasText: /^INV-0004$/ }).waitFor()
   assert.match(await rowOf(p, 'ashok.pdf').innerText(), /Imported · INV-0004/)
+})
+
+test('Drive: Open in form shows a loading spinner while the PDF is fetched', async () => {
+  const p = await open({ drive: DRIVE(), driveState: { delay: 1500 } })
+  await tab(p, 'Invoices')
+  await p.click('.drive summary')
+  await saleFolder(p)
+  await p.click('button:has-text("Connect Google Drive")')
+  await rowOf(p, 'ashok.pdf').locator('button:has-text("Open in form")').click()
+  await rowOf(p, 'ashok.pdf').locator('.spinner').waitFor({ timeout: 800 })
+  assert.match(await rowOf(p, 'ashok.pdf').innerText(), /Opening/)
+  await p.locator('.drive .loading[role=status]').waitFor()
+  await p.locator('.pdfnote.warn').waitFor()
+  assert.equal(await p.locator('.drive .spinner').count(), 0, 'spinner clears once the form is filled')
 })
 
 test('Drive: with Save automatically off the batch buttons are disabled', async () => {
