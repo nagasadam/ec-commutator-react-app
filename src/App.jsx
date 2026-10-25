@@ -202,6 +202,12 @@ function Login() {
   )
 }
 
+// Initials of the business name (dots ignored, so "E.C Commutators" gives EC).
+const initials = (n) => {
+  const w = (n || '').replace(/\./g, '').split(/\s+/).filter(Boolean)
+  return ((w.length > 1 ? w[0][0] + w[1][0] : (w[0] || '?').slice(0, 2)) || '?').toUpperCase()
+}
+
 const THEME_KEY = 'ecc-theme'
 function useTheme() {
   const [t, setT] = useState(() => {
@@ -328,7 +334,7 @@ export default function App() {
           </button>
           <div className="bsel">
             <span className="who">
-              <span className="avatar" aria-hidden="true">EC</span>
+              <span className="avatar" aria-hidden="true">{initials(b.name)}</span>
               <select value={S.cur} onChange={(e) => upd((s) => (s.cur = e.target.value))} aria-label="Business">
                 {S.biz.map((x) => (
                   <option key={x.id} value={x.id}>
