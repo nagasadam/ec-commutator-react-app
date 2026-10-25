@@ -352,7 +352,7 @@ export default function App() {
           </div>
         )}
         {cloud.sizeWarn && <div className="cloudbar">This business is nearing the cloud size limit. Export a backup and start a new business for the next year.</div>}
-        {tab !== 'inv' && (
+        {tab !== 'inv' && tab !== 'pur' && (
         <div className="head">
           <div>
             <div className="crumb">
