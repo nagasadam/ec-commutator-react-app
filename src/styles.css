@@ -2113,7 +2113,7 @@ tr.neg td {
 .rowmenu { position: relative; display: inline-block; }
 .iconbtn.flat { box-shadow: none; background: transparent; }
 .iconbtn.flat:hover { background: var(--soft); }
-.rowmenu .menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 130px; padding: 6px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow-up); display: grid; animation: pop 0.18s var(--ease) both; text-align: left; }
+.rowmenu .menu { position: fixed; z-index: 40; min-width: 130px; padding: 6px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow-up); display: grid; animation: pop 0.18s var(--ease) both; text-align: left; }
 .rowmenu .menu button { appearance: none; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: left; padding: 8px 12px; border-radius: 10px; cursor: pointer; }
 .rowmenu .menu button:hover { background: var(--soft); }
 .rowmenu .menu button.bad { color: var(--bad); }

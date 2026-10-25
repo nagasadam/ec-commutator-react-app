@@ -66,13 +66,21 @@ async function open({ drive, driveState, ...opts } = {}) {
     if (!localStorage.getItem('__seeded')) window.__EC_SEED_DEMO__ = true
   })
   await p.goto(target)
-  await p.locator('nav button:text-is("Invoices")').click() // the app now opens on the Dashboard
+  await tab(p, 'Invoices') // the app now opens on the Dashboard
   p.errs = errs
   pages.push(p)
   return p
 }
 const PRIMARY = ['Dashboard', 'Invoices', 'Inventory', 'Purchases', 'Reports']
-const tab = async (p, t) => {
+const onPhone = (p) => p.evaluate(() => matchMedia('(max-width: 880px)').matches)
+// Desktop: pill bar + More menu. Phone (<= 880px): the pill bar is hidden, so use the bottom bar and the More sheet.
+async function tab(p, t) {
+  if (await onPhone(p)) {
+    const bar = p.locator(`.tabbar > button:text-is("${t}")`)
+    if (await bar.count()) return bar.click()
+    await p.click('.tabbar button[aria-label="More sections"]')
+    return p.click(`.sheet .tiles >> button:text-is("${t}")`)
+  }
   if (PRIMARY.includes(t)) return p.click(`nav >> button:text-is("${t}")`)
   await p.click('nav .more > button')
   await p.click(`nav .menu >> text=${t}`)

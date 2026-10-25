@@ -126,8 +126,17 @@ export default function Invoices() {
   useEffect(() => {
     if (!menu) return undefined
     const close = (e) => !e.target.closest?.('.rowmenu') && setMenu(null)
+    const hide = () => setMenu(null)
     document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
+    window.addEventListener('wheel', hide, { passive: true }) // the menu is fixed to the screen, so it closes when the person scrolls instead of drifting off its row
+    window.addEventListener('touchmove', hide, { passive: true })
+    window.addEventListener('resize', hide)
+    return () => {
+      document.removeEventListener('click', close)
+      window.removeEventListener('wheel', hide)
+      window.removeEventListener('touchmove', hide)
+      window.removeEventListener('resize', hide)
+    }
   }, [menu])
 
   const reset = () => {
@@ -259,11 +268,15 @@ export default function Invoices() {
   }
   const Menu = ({ r }) => (
     <span className="rowmenu">
-      <button type="button" className="iconbtn flat" aria-label={'Actions for ' + r.i.no} aria-expanded={menu === r.i.id} onClick={() => setMenu(menu === r.i.id ? null : r.i.id)}>
+      <button type="button" className="iconbtn flat" aria-label={'Actions for ' + r.i.no} aria-expanded={menu?.id === r.i.id} onClick={(e) => {
+        // The table wrapper scrolls sideways, which would clip a dropdown inside it (rows near the bottom could not be reached), so the menu is placed against the screen.
+        const b = e.currentTarget.getBoundingClientRect()
+        setMenu(menu?.id === r.i.id ? null : { id: r.i.id, right: Math.max(8, window.innerWidth - b.right), ...(b.bottom > window.innerHeight - 140 ? { bottom: window.innerHeight - b.top + 4 } : { top: b.bottom + 4 }) })
+      }}>
         <Icon n="more" />
       </button>
-      {menu === r.i.id && (
-        <span className="menu" role="menu">
+      {menu?.id === r.i.id && (
+        <span className="menu" role="menu" style={{ right: menu.right, top: menu.top, bottom: menu.bottom }}>
           <button type="button" role="menuitem" onClick={() => (setMenu(null), open(r))}>View</button>
           <button type="button" role="menuitem" className="bad" onClick={() => (setMenu(null), del(r.i))}>Delete</button>
         </span>
