@@ -192,7 +192,7 @@ export function Login() {
         <h1>E.C Commutator</h1>
         <p className="sub-t">Sign in to ERP for Manufacturers</p>
         <Field label="Email">
-          <input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
         <Field label="Password">
           <span className="pw">
