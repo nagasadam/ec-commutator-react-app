@@ -226,7 +226,6 @@ function useTheme() {
   return [dark, toggle]
 }
 
-const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
 const CLOUD_TEXT = { idle: 'Cloud connected', syncing: 'Syncing…', saved: 'Saved to cloud', offline: 'Offline: saved on this device', error: 'Cloud error: saved on this device', choice: 'Choose what to do with local data' }
 
@@ -329,7 +328,7 @@ export default function App() {
           </button>
           <div className="bsel">
             <span className="who">
-              <span className="avatar" aria-hidden="true">{initials(b.name)}</span>
+              <span className="avatar" aria-hidden="true">EC</span>
               <select value={S.cur} onChange={(e) => upd((s) => (s.cur = e.target.value))} aria-label="Business">
                 {S.biz.map((x) => (
                   <option key={x.id} value={x.id}>
