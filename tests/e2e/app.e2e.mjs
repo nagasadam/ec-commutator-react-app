@@ -150,6 +150,17 @@ test('phone: the + button opens the New invoice form, and invoices are cards, no
   assert.equal(await p.locator('.seg[aria-label="View"]').isVisible(), false)
 })
 
+test('opening Invoices from the menu after a New invoice click does not reopen the form', async () => {
+  const p = await open()
+  await p.click('button:has-text("+ New invoice")')
+  await p.locator('.ov form').waitFor()
+  await p.click('.ov button[aria-label="Close"]')
+  await tab(p, 'Purchases')
+  await tab(p, 'Invoices')
+  await p.waitForTimeout(400)
+  assert.equal(await p.locator('.ov form').count(), 0)
+})
+
 test('desktop: the dashboard New invoice button opens the form', async () => {
   const p = await open()
   await p.click('button:has-text("+ New invoice")')
