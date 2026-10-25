@@ -68,6 +68,21 @@ export function Modal({ title, onClose, children, wide }) {
   )
 }
 
+// Tracks a CSS media query (e.g. the phone layout) so lists can switch to cards.
+export function useMedia(query) {
+  const get = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches
+  const [on, setOn] = useState(get)
+  useEffect(() => {
+    if (!window.matchMedia) return undefined
+    const m = window.matchMedia(query)
+    const h = () => setOn(m.matches)
+    h()
+    m.addEventListener('change', h)
+    return () => m.removeEventListener('change', h)
+  }, [query])
+  return on
+}
+
 // Eases a number from its previous value to the target (instant under reduced motion).
 export function useCountUp(target) {
   const [v, setV] = useState(0)

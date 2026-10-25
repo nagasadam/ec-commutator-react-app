@@ -63,7 +63,7 @@ export default function Dashboard({ go }) {
             {last6.map((m) => <i key={m.month} style={{ height: Math.max(8, (m.sales / maxS) * 100) + '%' }} title={label(m.month)} />)}
           </div>
           <div className="acts">
-            <button className="btn dark" onClick={() => go('inv')}>+ New invoice</button>
+            <button className="btn dark" onClick={() => go('inv', true)}>+ New invoice</button>
             <button className="btn ghost" onClick={() => go('rep')}>Reports</button>
           </div>
         </div>

@@ -2129,3 +2129,5 @@ tr.neg td {
 .phead .search { width: 230px; }
 @media (max-width: 880px) { .phead .r { flex-wrap: wrap; } }
 @media (max-width: 560px) { .stats.s4 { grid-template-columns: 1fr 1fr; } .stats.s4 .stat .v { font-size: 20px; } }
+
+@media (max-width: 880px) { .seg.hidephone { display: none; } }
