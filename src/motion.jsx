@@ -15,7 +15,10 @@ export function riseIn(root, selector, { y = 16, gap = 0.06 } = {}) {
   if (reduced() || !root) return undefined
   const els = root.querySelectorAll(selector)
   if (!els.length) return undefined
-  return animate(els, { opacity: [0, 1], transform: [`translateY(${y}px)`, 'translateY(0px)'] }, { duration: 0.5, ease: EASE, delay: stagger(gap) })
+  const a = animate(els, { opacity: [0, 1], transform: [`translateY(${y}px)`, 'translateY(0px)'] }, { duration: 0.5, ease: EASE, delay: stagger(gap) })
+  // a resting transform would make each card the anchor for fixed-position row menus, so clear it afterwards
+  a.then(() => els.forEach((el) => { el.style.transform = ''; el.style.opacity = '' }))
+  return a
 }
 
 // Eases a number from its previous value to the target (instant under reduced motion).

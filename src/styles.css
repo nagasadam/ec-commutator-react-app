@@ -611,7 +611,7 @@ td {
 }
 tbody tr {
   transition: background 0.2s;
-  animation: rise 0.45s var(--ease) both;
+  animation: rise 0.45s var(--ease) backwards;
 }
 tbody tr:nth-child(1) { animation-delay: 0.03s; }
 tbody tr:nth-child(2) { animation-delay: 0.06s; }
@@ -2118,7 +2118,7 @@ tr.neg td {
 .rowmenu .menu button:hover { background: var(--soft); }
 .rowmenu .menu button.bad { color: var(--bad); }
 .icards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
-.icard { background: var(--soft); border-radius: 18px; padding: 16px; display: grid; gap: 4px; animation: rise 0.4s var(--ease) both; transition: transform 0.3s var(--ease); }
+.icard { background: var(--soft); border-radius: 18px; padding: 16px; display: grid; gap: 4px; animation: rise 0.4s var(--ease) backwards; transition: transform 0.3s var(--ease); }
 .icard:hover { transform: translateY(-3px); }
 .icard .top, .icard .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .icard .who { font-weight: 650; margin-top: 6px; }
@@ -2131,3 +2131,13 @@ tr.neg td {
 @media (max-width: 560px) { .stats.s4 { grid-template-columns: 1fr 1fr; } .stats.s4 .stat .v { font-size: 20px; } }
 
 @media (max-width: 880px) { .seg.hidephone { display: none; } }
+
+/* Arriving through "+" opens the form straight away: skip the page and list entrance so nothing moves behind the dialog. */
+main.nofx, .nofx .stat, .nofx tbody tr, .nofx .icard, .nofx .card:not(.modal) { animation: none; }
+.nofx .ov { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--scrim); }
+
+/* Date pickers keep an intrinsic width in mobile browsers and push past their column. */
+input[type='date'] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 44px; text-align: left; }
+input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
+.fld, .grid > * { min-width: 0; }
+@media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
