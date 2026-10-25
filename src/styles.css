@@ -437,7 +437,7 @@ main {
   display: grid;
   gap: 16px;
   align-content: start;
-  animation: page 0.5s var(--ease) both;
+  animation: page 0.5s var(--ease) backwards;
 }
 
 /* ============ cards ============ */
@@ -2086,3 +2086,46 @@ tr.neg td {
 .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 16px; align-items: start; }
 .cols .grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .cols > .card { margin: 0; }
+
+/* ---- Invoices page ---- */
+.phead { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.phead h2 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+.phead p { margin: 2px 0 0; font-size: 13px; }
+.phead .r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.stats.s4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.stat .dot-dark { background: var(--dark); }
+.stat .dot-dark::after { background: var(--b); }
+.ch .ico.warn { background: var(--warn-soft); color: var(--warn-ink); }
+.chips.inl { margin: 0 0 0 auto; gap: 6px; }
+.chips.inl button { padding: 5px 12px; font-size: 12px; }
+.chips.inl button span { opacity: 0.6; margin-left: 2px; }
+.sub { color: var(--faint); font-size: 12px; margin-top: 1px; }
+.importer p { margin: -4px 0 12px; font-size: 13px; }
+.importer .pdfbar { margin-bottom: 10px; }
+.importer .pdfbar .btn { background: var(--a); color: #fff; }
+.revs { display: grid; gap: 4px; }
+.rev { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; }
+.rev .btn { padding: 6px 14px; }
+.coll .big { font-size: 34px; }
+.coll .s { color: rgba(255, 255, 255, 0.6); margin-top: 8px; font-size: 12.5px; }
+.coll .meter { background: rgba(255, 255, 255, 0.14); margin-top: 14px; }
+.rowmenu { position: relative; display: inline-block; }
+.iconbtn.flat { box-shadow: none; background: transparent; }
+.iconbtn.flat:hover { background: var(--soft); }
+.rowmenu .menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 130px; padding: 6px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow-up); display: grid; animation: pop 0.18s var(--ease) both; text-align: left; }
+.rowmenu .menu button { appearance: none; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: left; padding: 8px 12px; border-radius: 10px; cursor: pointer; }
+.rowmenu .menu button:hover { background: var(--soft); }
+.rowmenu .menu button.bad { color: var(--bad); }
+.icards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.icard { background: var(--soft); border-radius: 18px; padding: 16px; display: grid; gap: 4px; animation: rise 0.4s var(--ease) both; transition: transform 0.3s var(--ease); }
+.icard:hover { transform: translateY(-3px); }
+.icard .top, .icard .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.icard .who { font-weight: 650; margin-top: 6px; }
+.icard .amt { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; margin: 6px 0; }
+.icard .foot { color: var(--muted); font-size: 12.5px; }
+@media (max-width: 560px) { .phead .r { width: 100%; } .phead .search { flex: 1; min-width: 0; } .chips.inl { margin-left: 0; width: 100%; } .ch { flex-wrap: wrap; } }
+.phead .r { flex-wrap: nowrap; }
+.phead .search { width: 230px; }
+@media (max-width: 880px) { .phead .r { flex-wrap: wrap; } }
+@media (max-width: 560px) { .stats.s4 { grid-template-columns: 1fr 1fr; } .stats.s4 .stat .v { font-size: 20px; } }

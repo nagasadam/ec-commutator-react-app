@@ -118,12 +118,14 @@ test('toaster: a failed save shows a persistent error toast and the red bar', as
 test('invoice: creating a bill for a person, then viewing a firm invoice shows IGST', async () => {
   const p = await open()
   await tab(p, 'Invoices')
+  await p.click('button:has-text("+ New invoice")')
   await p.selectOption('form select >> nth=0', { label: 'Ramesh Pillai (person · BILL)' })
   await p.selectOption('.lrow select', { label: 'Commutator (pcs)' })
   await p.fill('.lrow input >> nth=0', '10')
   await p.click('button:has-text("Create")')
   assert.equal(await p.locator('td', { hasText: 'BILL-0002' }).count(), 1)
-  await p.locator('tr', { hasText: 'INV-0002' }).locator('text=View').click()
+  await p.locator('tr', { hasText: 'INV-0002' }).locator('.rowmenu > button').click()
+  await p.locator('.rowmenu .menu >> text=View').click()
   assert.match(await p.locator('.paper').innerText(), /IGST 18%/)
 })
 

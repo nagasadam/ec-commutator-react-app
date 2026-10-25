@@ -352,6 +352,7 @@ export default function App() {
           </div>
         )}
         {cloud.sizeWarn && <div className="cloudbar">This business is nearing the cloud size limit. Export a backup and start a new business for the next year.</div>}
+        {tab !== 'inv' && (
         <div className="head">
           <div>
             <div className="crumb">
@@ -365,6 +366,7 @@ export default function App() {
             </span>
           </div>
         </div>
+        )}
         <main key={b.id + tab}>
           <Cur go={go} />
         </main>
