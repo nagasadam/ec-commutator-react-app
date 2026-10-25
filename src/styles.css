@@ -2135,3 +2135,9 @@ tr.neg td {
 /* Arriving through "+" opens the form straight away: skip the page and list entrance so nothing moves behind the dialog. */
 main.nofx, .nofx .stat, .nofx tbody tr, .nofx .icard, .nofx .card:not(.modal) { animation: none; }
 .nofx .ov { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--scrim); }
+
+/* Date pickers keep an intrinsic width in mobile browsers and push past their column. */
+input[type='date'] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 44px; text-align: left; }
+input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
+.fld, .grid > * { min-width: 0; }
+@media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
