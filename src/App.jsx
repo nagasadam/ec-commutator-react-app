@@ -253,8 +253,10 @@ export default function App() {
     const place = () => {
       const on = nav.querySelector('button.on:not(.menu-item)')
       if (on) {
-        nav.style.setProperty('--ix', on.offsetLeft + 'px')
-        nav.style.setProperty('--iw', on.offsetWidth + 'px')
+        const n = nav.getBoundingClientRect()
+        const r = on.getBoundingClientRect()
+        nav.style.setProperty('--ix', r.left - n.left + 'px')
+        nav.style.setProperty('--iw', r.width + 'px')
         nav.style.setProperty('--io', '1')
       } else nav.style.setProperty('--io', '0')
     }

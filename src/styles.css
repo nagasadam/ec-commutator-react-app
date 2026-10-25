@@ -2080,3 +2080,6 @@ tr.neg td {
 .work td { padding-inline: 8px; }
 .stat.bad.hero { background: linear-gradient(135deg, var(--bad), color-mix(in srgb, var(--bad) 65%, #000)); }
 .stat.bad.hero .v { color: #fff; }
+.work > .main, .work > .side { min-width: 0; }
+@media (max-width: 880px) { .work { grid-template-columns: minmax(0, 1fr); } }
+.stats.k6 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
