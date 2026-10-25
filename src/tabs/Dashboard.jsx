@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { riseIn } from '../motion.jsx'
+import { EASE, motion, riseIn } from '../motion.jsx'
 import { useStore } from '../lib/store.jsx'
 import { calc, find, invTot, paidFor, srTot, valuation } from '../lib/calc.js'
 import { monthly } from '../lib/reports.js'
@@ -66,7 +66,7 @@ export default function Dashboard({ go }) {
             </div>
           </div>
           <div className="minibars" aria-hidden="true">
-            {last6.map((m) => <i key={m.month} style={{ height: Math.max(8, (m.sales / maxS) * 100) + '%' }} title={label(m.month)} />)}
+            {last6.map((m, k) => <motion.i key={m.month} style={{ height: Math.max(8, (m.sales / maxS) * 100) + '%' }} title={label(m.month)} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.9, ease: EASE, delay: 0.2 + k * 0.06 }} />)}
           </div>
           <div className="acts">
             <button className="btn dark" onClick={() => go('inv', true)}>+ New invoice</button>
@@ -100,7 +100,7 @@ export default function Dashboard({ go }) {
             <div className="gauge">
               <svg viewBox="0 0 200 110">
                 <path className="trk" d="M15 100a85 85 0 01170 0" fill="none" strokeWidth="14" strokeLinecap="round" />
-                <path className="arc b" pathLength="100" d="M15 100a85 85 0 01170 0" fill="none" strokeWidth="14" strokeLinecap="round" style={{ '--off': 100 - pct }} />
+                <motion.path className="arc b" pathLength="100" d="M15 100a85 85 0 01170 0" fill="none" strokeWidth="14" strokeLinecap="round" initial={{ strokeDashoffset: 100 }} animate={{ strokeDashoffset: 100 - pct }} transition={{ duration: 1.5, ease: EASE, delay: 0.3 }} />
               </svg>
               <div className="mid"><small>Units this month</small><b><Num n={curP} /></b></div>
             </div>
@@ -119,8 +119,8 @@ export default function Dashboard({ go }) {
                     <div className="pair" key={m.month} tabIndex={0}>
                       <div className="tip"><b>{label(m.month)}</b><span><i style={{ background: 'var(--b)' }} />Sales {inr(m.sales)}</span><span><i style={{ background: 'var(--a)' }} />Spend {inr(spend)}</span></div>
                       <div className="col">
-                        <i className="p" style={{ height: Math.max(3, (m.sales / mx) * 100) + '%' }} />
-                        <i className="s" style={{ height: Math.max(3, (spend / mx) * 100) + '%' }} />
+                        <motion.i className="p" style={{ height: Math.max(3, (m.sales / mx) * 100) + '%' }} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 1, ease: EASE }} />
+                        <motion.i className="s" style={{ height: Math.max(3, (spend / mx) * 100) + '%' }} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 1, ease: EASE, delay: 0.1 }} />
                       </div>
                       <small>{MON[+m.month.slice(5, 7) - 1]}</small>
                     </div>

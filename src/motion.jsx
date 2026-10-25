@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MotionConfig, animate, stagger } from 'motion/react'
 
-export { AnimatePresence, motion } from 'motion/react'
+export { AnimatePresence, motion, useDragControls } from 'motion/react'
 export const EASE = [0.2, 0.7, 0.2, 1]
 
 // Respects the person's "reduce motion" setting everywhere Motion is used.

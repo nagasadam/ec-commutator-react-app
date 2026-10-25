@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, EASE } from './motion.jsx'
+import { AnimatePresence, motion, useDragControls, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
 import { mkBiz } from './lib/model.js'
 import { demoBiz } from './lib/seed.js'
@@ -245,6 +245,7 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [sheet, setSheet] = useState(false)
   const [newInv, setNewInv] = useState(0)
+  const drag = useDragControls()
   const [ind, setInd] = useState({ x: 0, w: 0, o: 0 })
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
@@ -399,20 +400,37 @@ export default function App() {
           More
         </button>
       </div>
-      {sheet && (
-        <>
-          <div className="sheet-scrim" onClick={() => setSheet(false)} />
-          <div className="sheet" role="dialog" aria-label="All sections">
-            <div className="grab" />
-            <div className="sh"><h4>All sections</h4><button className="btn ghost" onClick={() => { setSheet(false); setManage(true) }}>Manage</button></div>
-            <div className="tiles">
-              {TABS.map(([id, l]) => (
-                <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}><Icon n={id} />{l}</button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <AnimatePresence>
+        {sheet && (
+          <>
+            <motion.div key="scrim" className="sheet-scrim" onClick={() => setSheet(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} />
+            <motion.div
+              key="sheet"
+              className="sheet"
+              role="dialog"
+              aria-label="All sections"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+              drag="y"
+              dragControls={drag}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
+              onDragEnd={(_, i) => (i.offset.y > 90 || i.velocity.y > 500) && setSheet(false)}
+            >
+              <div className="grab" onPointerDown={(e) => drag.start(e)} />
+              <div className="sh"><h4>All sections</h4><button className="btn ghost" onClick={() => { setSheet(false); setManage(true) }}>Manage</button></div>
+              <div className="tiles">
+                {TABS.map(([id, l], k) => (
+                  <motion.button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: EASE, delay: 0.08 + k * 0.03 }} whileTap={{ scale: 0.95 }}><Icon n={id} />{l}</motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       {manage && <Manage onClose={() => setManage(false)} />}
     </div>
   )
