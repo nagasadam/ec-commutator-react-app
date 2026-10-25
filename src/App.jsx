@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion, EASE } from './motion.jsx'
+import { AnimatePresence, motion, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
 import { mkBiz } from './lib/model.js'
 import { demoBiz } from './lib/seed.js'
@@ -245,6 +245,7 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [sheet, setSheet] = useState(false)
   const [newInv, setNewInv] = useState(0)
+  const [ind, setInd] = useState({ x: 0, w: 0, o: 0 })
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
   const go = (id, fresh) => {
@@ -254,7 +255,7 @@ export default function App() {
     setSheet(false)
     window.scrollTo?.({ top: 0 })
   }
-  // sliding pill: measure the active button and publish it as CSS variables
+  // sliding pill: measure the active button, Motion springs the pill to it
   useLayoutEffect(() => {
     const nav = navRef.current
     if (!nav) return undefined
@@ -263,10 +264,8 @@ export default function App() {
       if (on) {
         const n = nav.getBoundingClientRect()
         const r = on.getBoundingClientRect()
-        nav.style.setProperty('--ix', r.left - n.left + 'px')
-        nav.style.setProperty('--iw', r.width + 'px')
-        nav.style.setProperty('--io', '1')
-      } else nav.style.setProperty('--io', '0')
+        setInd({ x: r.left - n.left, w: r.width, o: 1 })
+      } else setInd((i) => ({ ...i, o: 0 }))
     }
     place()
     window.addEventListener('resize', place)
@@ -299,7 +298,7 @@ export default function App() {
           </div>
         </div>
         <nav ref={navRef} aria-label="Sections">
-          <i className="nav-ind" aria-hidden="true" />
+          <motion.i className="nav-ind" aria-hidden="true" initial={false} animate={{ x: ind.x, width: ind.w, opacity: ind.o }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
           {TABS.filter((t) => PRIMARY.includes(t[0])).map(([id, l]) => (
             <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
               {l}
@@ -309,15 +308,17 @@ export default function App() {
             <button className={!PRIMARY.includes(tab) ? 'on' : ''} aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
               {!PRIMARY.includes(tab) ? cur[1] : 'More'} ▾
             </button>
-            {moreOpen && (
-              <div className="menu" role="menu">
+            <AnimatePresence>
+              {moreOpen && (
+              <motion.div className="menu" role="menu" initial={{ opacity: 0, scale: 0.94, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: -4 }} transition={{ duration: 0.18, ease: EASE }}>
                 {TABS.filter((t) => !PRIMARY.includes(t[0])).map(([id, l]) => (
                   <button key={id} role="menuitem" className={'menu-item' + (id === tab ? ' on' : '')} onClick={() => go(id)}>
                     {l}
                   </button>
                 ))}
-              </div>
-            )}
+              </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </nav>
         <div className="right">
