@@ -369,7 +369,7 @@ export default function App() {
           </div>
         </div>
         )}
-        <main key={b.id + tab}>
+        <main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''}>
           <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
         </main>
       </div>
