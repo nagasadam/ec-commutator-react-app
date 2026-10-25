@@ -250,7 +250,7 @@ export default function App() {
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
   const go = (id, fresh) => {
-    if (fresh) setNewInv((n) => n + 1)
+    setNewInv((n) => (fresh ? n + 1 : 0)) // only a New invoice click asks the Invoices page to open its form
     setTab(id)
     setMoreOpen(false)
     setSheet(false)
