@@ -114,7 +114,7 @@ export default function Invoices({ newInv = 0 }) {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('') // progress text while a scanned PDF is being read
   const [auto, setAuto] = usePdfAuto()
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(newInv > 0) // already open on the first paint when "+" brought us here
   useEffect(() => {
     if (newInv) setShowForm(true)
   }, [newInv])
