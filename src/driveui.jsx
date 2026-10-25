@@ -21,6 +21,7 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
   const [pick, setPick] = useState({})
   const [res, setRes] = useState({}) // fileId -> { kind, text }
   const [work, setWork] = useState('') // '', 'list', 'import'
+  const [opening, setOpening] = useState(null) // file being downloaded and read for the form
   const [show, setShow] = useState(false) // panel open state, kept in React so re-renders do not close it
   const done = (id) => b.dimp.find((m) => m.id === id)
 
@@ -58,10 +59,16 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
   }
 
   const open = async (f) => {
+    setWork('open')
+    setOpening(f)
+    setErr('')
     try {
       await onOpen(await downloadPdf(f, await getToken(CLIENT_ID)), { id: f.id, name: f.name })
     } catch (e) {
       fail(e)
+    } finally {
+      setWork('')
+      setOpening(null)
     }
   }
 
@@ -173,7 +180,13 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
                               <td className="r nw">
                                 {!m && (
                                   <button type="button" className="btn ghost" disabled={disabled} onClick={() => open(f)}>
-                                    Open in form
+                                    {opening?.id === f.id ? (
+                                      <>
+                                        <span className="spinner" aria-hidden="true" /> Opening…
+                                      </>
+                                    ) : (
+                                      'Open in form'
+                                    )}
                                   </button>
                                 )}
                               </td>
@@ -183,6 +196,11 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
                       </tbody>
                     </table>
                   </div>
+                  {opening && (
+                    <p className="muted loading" role="status">
+                      <span className="spinner" aria-hidden="true" /> Reading {opening.name}… this can take a few seconds.
+                    </p>
+                  )}
                   <div className="pdfbar">
                     <button type="button" className="btn" disabled={disabled || !auto || !chosen.length} onClick={() => importMany(chosen)}>
                       Import selected ({chosen.length})
