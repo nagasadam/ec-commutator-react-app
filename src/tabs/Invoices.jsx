@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Icon } from '../icons.jsx'
 import { useStore } from '../lib/store.jsx'
 import { find, invTot, srTot, paidFor, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
@@ -113,9 +114,34 @@ export default function Invoices() {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('') // progress text while a scanned PDF is being read
   const [auto, setAuto] = usePdfAuto()
+  const [showForm, setShowForm] = useState(false)
+  const [q, setQ] = useState('')
+  const [flt, setFlt] = useState('all')
+  const [mode, setMode] = useState('table')
+  const [menu, setMenu] = useState(null)
+  const [review, setReview] = useState([]) // PDFs read but not saved: { id, name, why, snap }
+  const [rid, setRid] = useState(null)
   const v = useMemo(() => valuation(b), [b])
 
+  useEffect(() => {
+    if (!menu) return undefined
+    const close = (e) => !e.target.closest?.('.rowmenu') && setMenu(null)
+    const hide = () => setMenu(null)
+    document.addEventListener('click', close)
+    window.addEventListener('wheel', hide, { passive: true }) // the menu is fixed to the screen, so it closes when the person scrolls instead of drifting off its row
+    window.addEventListener('touchmove', hide, { passive: true })
+    window.addEventListener('resize', hide)
+    return () => {
+      document.removeEventListener('click', close)
+      window.removeEventListener('wheel', hide)
+      window.removeEventListener('touchmove', hide)
+      window.removeEventListener('resize', hide)
+    }
+  }, [menu])
+
   const reset = () => {
+    setShowForm(false)
+    setRid(null)
     setF(blankForm())
     setNewCust(null)
     setSrc(null)
@@ -149,20 +175,26 @@ export default function Invoices() {
         }
       }
       d.rows.forEach((r, i) => !r.item && lines2.push(`Row ${i + 1} ("${r.desc || 'no description'}", qty ${r.qty ?? '?'}, rate ${r.rate ?? '?'}) did not match a product. Choose one on that row.`))
-      setF({
+      const nf = {
         cust: d.party,
         date: d.date || today(),
         lr: d.lr,
         transporter: d.transporter,
         lines: d.rows.length ? d.rows.map((r) => ({ item: r.item, qty: r.qty ?? '', rate: r.rate ?? '' })) : [blankLine()],
-      })
-      setNewCust(d.newParty)
-      setSrc(opts.mark || null)
-      setNote({
+      }
+      const nn = {
         kind: 'warn',
         title: useAuto ? 'Not saved automatically.' : 'Form filled from the PDF. Check it, then click Create.',
         lines: useAuto ? [...issues, ...lines2] : lines2,
-      })
+      }
+      const id = uid()
+      setF(nf)
+      setNewCust(d.newParty)
+      setSrc(opts.mark || null)
+      setNote(nn)
+      setRid(id)
+      setReview((l) => [...l.filter((x) => x.name !== (file.name || 'PDF')), { id, name: file.name || 'PDF', why: nn.lines[0] || 'Check the details', snap: { f: nf, newCust: d.newParty, note: nn, src: opts.mark || null } }].slice(-5))
+      setShowForm(true)
     } catch (e) {
       setNote({ kind: 'err', title: e.message, lines: [] })
       toast.push(e.message, 'err')
@@ -187,6 +219,7 @@ export default function Invoices() {
         const inv = addInvoice(x, { party: f.cust, newParty: newCust, date: f.date, lr: f.lr, transporter: f.transporter, lines })
         if (src) markImported(x, src, 'sale', inv.no)
       })
+      setReview((l) => l.filter((x) => x.id !== rid))
       reset()
       setNote(null)
     }
@@ -200,92 +233,241 @@ export default function Invoices() {
     ask(`Delete ${i.no}?`, () => updB((x) => (x.inv = x.inv.filter((y) => y.id !== i.id))), 'Delete')
   }
 
-  const rows = [...b.inv].reverse()
+  const all = useMemo(
+    () =>
+      [...b.inv].reverse().map((i) => {
+        const c = find(b.cust, i.cust)
+        const t = invTot(b, i)
+        const cn = b.sr.filter((x) => x.inv === i.id).reduce((n, r) => n + srTot(b, r).total, 0)
+        const paid = paidFor(b, i.id)
+        const open = Math.max(0, t.total - cn - paid)
+        return { i, c, t, open, isPaid: open < 0.5, person: !c?.company }
+      }),
+    [b],
+  )
+  const paidRows = all.filter((r) => r.isPaid)
+  const dueRows = all.filter((r) => !r.isPaid)
+  const billed = all.reduce((n, r) => n + r.t.total, 0)
+  const got = all.reduce((n, r) => n + Math.min(r.t.total, r.t.total - r.open), 0)
+  const gstSum = all.reduce((n, r) => n + r.t.gst, 0)
+  const needle = q.trim().toLowerCase()
+  const rows = all.filter((r) => {
+    if (flt === 'due' && r.isPaid) return false
+    if (flt === 'paid' && !r.isPaid) return false
+    if (flt === 'person' && !r.person) return false
+    return !needle || (r.c?.name || '').toLowerCase().includes(needle) || r.i.no.toLowerCase().includes(needle)
+  })
+  const open = (r) => setView(r.i)
+  const openReview = (x) => {
+    setF(x.snap.f)
+    setNewCust(x.snap.newCust)
+    setNote(x.snap.note)
+    setSrc(x.snap.src)
+    setRid(x.id)
+    setShowForm(true)
+  }
+  const Menu = ({ r }) => (
+    <span className="rowmenu">
+      <button type="button" className="iconbtn flat" aria-label={'Actions for ' + r.i.no} aria-expanded={menu?.id === r.i.id} onClick={(e) => {
+        // The table wrapper scrolls sideways, which would clip a dropdown inside it (rows near the bottom could not be reached), so the menu is placed against the screen.
+        const b = e.currentTarget.getBoundingClientRect()
+        setMenu(menu?.id === r.i.id ? null : { id: r.i.id, right: Math.max(8, window.innerWidth - b.right), ...(b.bottom > window.innerHeight - 140 ? { bottom: window.innerHeight - b.top + 4 } : { top: b.bottom + 4 }) })
+      }}>
+        <Icon n="more" />
+      </button>
+      {menu?.id === r.i.id && (
+        <span className="menu" role="menu" style={{ right: menu.right, top: menu.top, bottom: menu.bottom }}>
+          <button type="button" role="menuitem" onClick={() => (setMenu(null), open(r))}>View</button>
+          <button type="button" role="menuitem" className="bad" onClick={() => (setMenu(null), del(r.i))}>Delete</button>
+        </span>
+      )}
+    </span>
+  )
+  const chip = (id, label, n) => (
+    <button key={id} className={flt === id ? 'on' : ''} onClick={() => setFlt(id)}>
+      {label} <span>{n}</span>
+    </button>
+  )
+
   return (
     <>
-      <form className="card" onSubmit={submit}>
-        <h3>New invoice / bill</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
-        <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
-        <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
-        {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
-        <div className="grid">
-          <Field label="Customer">
-            <select value={f.cust} onChange={(e) => setF({ ...f, cust: e.target.value })}>
-              <option value="">Select…</option>
-              {newCust && <option value="__new__">New customer: {newCust.name}</option>}
-              {b.cust.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.company ? '(firm · INV, GST)' : '(person · BILL)'}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-          </Field>
-          <Field label="LR number (transport)">
-            <input value={f.lr} onChange={(e) => setF({ ...f, lr: e.target.value })} />
-          </Field>
-          <Field label="Transporter">
-            <input value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })} />
-          </Field>
+      <div className="phead">
+        <div>
+          <h2>Invoices &amp; bills</h2>
+          <p className="muted">Everything you sell — firms get INV, persons get BILL</p>
         </div>
-        <LinesEditor items={b.items} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} rateFrom={(it) => it.rate} />
-        <ErrBar msg={err} />
-        {b.cust.length === 0 && <p className="muted">Add a customer under Customers &amp; suppliers first.</p>}
-        <button className="btn">Create</button>
-      </form>
-
-      <div className="card">
-        <h3>Invoices &amp; bills</h3>
-        {rows.length === 0 ? (
-          <Empty>No invoices yet.</Empty>
-        ) : (
-          <div className="tw">
-            <table>
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th className="r">Taxable</th>
-                  <th className="r">GST</th>
-                  <th className="r">Total</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((i) => {
-                  const t = invTot(b, i)
-                  const cn = b.sr.filter((s) => s.inv === i.id).reduce((s, r) => s + srTot(b, r).total, 0)
-                  const open = t.total - cn - paidFor(b, i.id)
-                  return (
-                    <tr key={i.id}>
-                      <td>{i.no}</td>
-                      <td>{dmy(i.date)}</td>
-                      <td>{find(b.cust, i.cust)?.name}</td>
-                      <td className="r">{inr(t.taxable)}</td>
-                      <td className="r">{inr(t.gst)}</td>
-                      <td className="r">{inr(t.total)}</td>
-                      <td>{open < 0.5 ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}</td>
-                      <td className="r nw">
-                        <button className="btn ghost" onClick={() => setView(i)}>
-                          View
-                        </button>
-                        <button className="btn ghost" onClick={() => del(i)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        <div className="r">
+          <input className="search" type="search" placeholder="Search invoices" aria-label="Search invoices" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="seg" role="group" aria-label="View">
+            <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
+            <button className={mode === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
           </div>
-        )}
+          <button className="btn" onClick={() => setShowForm(true)}>+ New invoice</button>
+        </div>
       </div>
+
+      <div className="stats s4">
+        <div className="stat">
+          <div className="l"><i className="dot" />Invoices</div>
+          <div className="v">{all.length}</div>
+          <div className="s">{b.inv.length ? 'Recorded in this business' : 'None yet'}</div>
+        </div>
+        <div className="stat">
+          <div className="l"><i className="dot dot-good" />Paid</div>
+          <div className="v">{inr(paidRows.reduce((n, r) => n + r.t.total, 0))}</div>
+          <div className="s">{paidRows.length} invoice{paidRows.length === 1 ? '' : 's'}</div>
+        </div>
+        <div className="stat">
+          <div className="l"><i className="dot dot-warn" />Due</div>
+          <div className="v">{inr(dueRows.reduce((n, r) => n + r.open, 0))}</div>
+          <div className="s">{dueRows.length} invoice{dueRows.length === 1 ? '' : 's'} outstanding</div>
+        </div>
+        <div className="stat">
+          <div className="l"><i className="dot dot-dark" />GST collected</div>
+          <div className="v">{inr(gstSum)}</div>
+          <div className="s">CGST+SGST · IGST</div>
+        </div>
+      </div>
+
+      <div className="work">
+        <div className="main">
+          <div className="card">
+            <div className="ch">
+              <span className="ico"><Icon n="inv" /></span>All invoices
+              <div className="chips inl">
+                {chip('all', 'All', all.length)}
+                {chip('due', 'Due', dueRows.length)}
+                {chip('paid', 'Paid', paidRows.length)}
+                {chip('person', 'Persons', all.filter((r) => r.person).length)}
+              </div>
+            </div>
+            {rows.length === 0 ? (
+              <Empty>{all.length ? 'No invoices match.' : 'No invoices yet.'}</Empty>
+            ) : mode === 'table' ? (
+              <div className="tw">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>No</th>
+                      <th>Date</th>
+                      <th className="r">Taxable</th>
+                      <th className="r">GST</th>
+                      <th className="r">Total</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.i.id}>
+                        <td>
+                          <b>{r.c?.name}</b>
+                          <div className="sub">{r.c?.gstin || (r.person ? 'Person · cash' : 'Firm')}</div>
+                        </td>
+                        <td className="nw">{r.i.no}</td>
+                        <td className="nw">{dmy(r.i.date)}</td>
+                        <td className="r nw">{inr(r.t.taxable)}</td>
+                        <td className="r nw">{inr(r.t.gst)}</td>
+                        <td className="r nw"><b>{inr(r.t.total)}</b></td>
+                        <td>{r.isPaid ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}</td>
+                        <td className="r"><Menu r={r} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="icards">
+                {rows.map((r) => (
+                  <div className="icard" key={r.i.id}>
+                    <div className="top">
+                      <b>{r.i.no}</b>
+                      {r.isPaid ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}
+                    </div>
+                    <div className="who">{r.c?.name}</div>
+                    <div className="sub">{r.c?.gstin || (r.person ? 'Person · cash' : 'Firm')} · {dmy(r.i.date)}</div>
+                    <div className="amt">{inr(r.t.total)}</div>
+                    <div className="foot">
+                      <span>GST {inr(r.t.gst)}</span>
+                      <Menu r={r} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="side">
+          <div className="card importer">
+            <div className="ch"><span className="ico"><Icon n="up" /></span>Import from PDF</div>
+            <p className="muted">Drop a sale invoice PDF — scans are read with OCR and checked before saving.</p>
+            <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} label="Choose PDF" onFile={(file) => onPdf(file)} />
+            <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
+            {!showForm && <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />}
+          </div>
+
+          {review.length > 0 && (
+            <div className="card">
+              <div className="ch"><span className="ico warn"><Icon n="warn" /></span>Needs review</div>
+              <div className="revs">
+                {review.map((x) => (
+                  <div className="rev" key={x.id}>
+                    <div>
+                      <b>{x.name}</b>
+                      <div className="sub">{x.why}</div>
+                    </div>
+                    <button className="btn ghost" onClick={() => openReview(x)}>Open</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="card d-prod coll">
+            <div className="ch">Collections</div>
+            <div className="big">{inr(got)}</div>
+            <div className="meter"><i style={{ width: Math.max(2, billed > 0 ? (got / billed) * 100 : 0) + '%' }} /></div>
+            <div className="s">{billed > 0 ? Math.round((got / billed) * 100) : 0}% of {inr(billed)} billed</div>
+          </div>
+        </div>
+      </div>
+
+      {showForm && (
+        <Modal title="New invoice / bill" onClose={() => setShowForm(false)} wide>
+          <form onSubmit={submit}>
+            <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
+            {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
+            <div className="grid">
+              <Field label="Customer">
+                <select value={f.cust} onChange={(e) => setF({ ...f, cust: e.target.value })}>
+                  <option value="">Select…</option>
+                  {newCust && <option value="__new__">New customer: {newCust.name}</option>}
+                  {b.cust.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.company ? '(firm · INV, GST)' : '(person · BILL)'}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Date">
+                <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+              </Field>
+              <Field label="LR number (transport)">
+                <input value={f.lr} onChange={(e) => setF({ ...f, lr: e.target.value })} />
+              </Field>
+              <Field label="Transporter">
+                <input value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })} />
+              </Field>
+            </div>
+            <LinesEditor items={b.items} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} rateFrom={(it) => it.rate} />
+            <ErrBar msg={err} />
+            {b.cust.length === 0 && <p className="muted">Add a customer under Parties first.</p>}
+            <button className="btn">Create</button>
+          </form>
+        </Modal>
+      )}
 
       {view && (
         <Modal title={view.no} onClose={() => setView(null)} wide>

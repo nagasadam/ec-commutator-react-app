@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from './lib/store.jsx'
 import { mkBiz } from './lib/model.js'
 import { demoBiz } from './lib/seed.js'
@@ -19,8 +19,13 @@ import Returns from './tabs/Returns.jsx'
 import Parties from './tabs/Parties.jsx'
 import Banking from './tabs/Banking.jsx'
 import Reports from './tabs/Reports.jsx'
+import Dashboard from './tabs/Dashboard.jsx'
+import { Icon } from './icons.jsx'
 
+const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
+const MOBILE = ['dash', 'inv', 'pur']
 const TABS = [
+  ['dash', 'Dashboard', Dashboard, 'Dashboard'],
   ['inv', 'Invoices', Invoices],
   ['stk', 'Inventory', Inventory],
   ['pro', 'Production', Production],
@@ -197,14 +202,74 @@ function Login() {
   )
 }
 
+const THEME_KEY = 'ecc-theme'
+function useTheme() {
+  const [t, setT] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) || ''
+    } catch {
+      return ''
+    }
+  })
+  useEffect(() => {
+    if (t) document.documentElement.setAttribute('data-theme', t)
+    else document.documentElement.removeAttribute('data-theme')
+  }, [t])
+  const dark = t ? t === 'dark' : typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  const toggle = () => {
+    const n = dark ? 'light' : 'dark'
+    setT(n)
+    try {
+      localStorage.setItem(THEME_KEY, n)
+    } catch {}
+  }
+  return [dark, toggle]
+}
+
+const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+
 const CLOUD_TEXT = { idle: 'Cloud connected', syncing: 'Syncing…', saved: 'Saved to cloud', offline: 'Offline: saved on this device', error: 'Cloud error: saved on this device', choice: 'Choose what to do with local data' }
 
 export default function App() {
   const { S, upd, b, saveErr } = useStore()
   const cloud = useCloud()
   const { ask } = useDialog()
-  const [tab, setTab] = useState('inv')
+  const [tab, setTab] = useState('dash')
   const [manage, setManage] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [sheet, setSheet] = useState(false)
+  const [dark, toggleTheme] = useTheme()
+  const navRef = useRef(null)
+  const go = (id) => {
+    setTab(id)
+    setMoreOpen(false)
+    setSheet(false)
+    window.scrollTo?.({ top: 0 })
+  }
+  // sliding pill: measure the active button and publish it as CSS variables
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    if (!nav) return undefined
+    const place = () => {
+      const on = nav.querySelector('button.on:not(.menu-item)')
+      if (on) {
+        const n = nav.getBoundingClientRect()
+        const r = on.getBoundingClientRect()
+        nav.style.setProperty('--ix', r.left - n.left + 'px')
+        nav.style.setProperty('--iw', r.width + 'px')
+        nav.style.setProperty('--io', '1')
+      } else nav.style.setProperty('--io', '0')
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [tab, cloud.ready, cloud.user])
+  useEffect(() => {
+    if (!moreOpen) return undefined
+    const close = (e) => !e.target.closest?.('.more') && setMoreOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [moreOpen])
   const Cur = TABS.find((t) => t[0] === tab)[2]
 
   const cur = TABS.find((t) => t[0] === tab)
@@ -225,27 +290,53 @@ export default function App() {
             <small>Billing · Production · Stock</small>
           </div>
         </div>
-        <nav>
-          {TABS.map(([id, l]) => (
-            <button key={id} className={id === tab ? 'on' : ''} onClick={() => setTab(id)}>
+        <nav ref={navRef} aria-label="Sections">
+          <i className="nav-ind" aria-hidden="true" />
+          {TABS.filter((t) => PRIMARY.includes(t[0])).map(([id, l]) => (
+            <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
               {l}
             </button>
           ))}
+          <div className="more">
+            <button className={!PRIMARY.includes(tab) ? 'on' : ''} aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+              {!PRIMARY.includes(tab) ? cur[1] : 'More'} ▾
+            </button>
+            {moreOpen && (
+              <div className="menu" role="menu">
+                {TABS.filter((t) => !PRIMARY.includes(t[0])).map(([id, l]) => (
+                  <button key={id} role="menuitem" className={'menu-item' + (id === tab ? ' on' : '')} onClick={() => go(id)}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
         <div className="right">
           <span className={'live' + (saveErr || cloud.status === 'error' ? ' bad' : cloudOn ? ' cloud' : '')} title={live} role="status">
             <i />
             <span className="lt">{live}</span>
           </span>
+          {cloudOn && (
+            <button className={'iconbtn' + (cloud.status === 'syncing' ? ' spin' : '')} onClick={cloud.syncNow} aria-label="Sync now" title="Sync now">
+              <Icon n="sync" />
+            </button>
+          )}
+          <button className="iconbtn" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title="Theme">
+            <Icon n={dark ? 'sun' : 'moon'} />
+          </button>
           <div className="bsel">
-            <select value={S.cur} onChange={(e) => upd((s) => (s.cur = e.target.value))} aria-label="Business">
-              {S.biz.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-            </select>
-            <button className="btn ghost" onClick={() => setManage(true)}>
+            <span className="who">
+              <span className="avatar" aria-hidden="true">{initials(b.name)}</span>
+              <select value={S.cur} onChange={(e) => upd((s) => (s.cur = e.target.value))} aria-label="Business">
+                {S.biz.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+              </select>
+            </span>
+            <button className="btn ghost manage" onClick={() => setManage(true)}>
               Manage
             </button>
           </div>
@@ -261,6 +352,7 @@ export default function App() {
           </div>
         )}
         {cloud.sizeWarn && <div className="cloudbar">This business is nearing the cloud size limit. Export a backup and start a new business for the next year.</div>}
+        {tab !== 'inv' && tab !== 'pur' && (
         <div className="head">
           <div>
             <div className="crumb">
@@ -274,10 +366,44 @@ export default function App() {
             </span>
           </div>
         </div>
+        )}
         <main key={b.id + tab}>
-          <Cur />
+          <Cur go={go} />
         </main>
       </div>
+      <div className="tabbar" role="navigation" aria-label="Quick tabs">
+        {MOBILE.slice(0, 2).map((id) => (
+          <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
+            <Icon n={id} />
+            {TABS.find((t) => t[0] === id)[1]}
+          </button>
+        ))}
+        <button className="fab" aria-label="New invoice" onClick={() => go('inv')}>+</button>
+        {MOBILE.slice(2).map((id) => (
+          <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
+            <Icon n={id} />
+            {TABS.find((t) => t[0] === id)[1]}
+          </button>
+        ))}
+        <button className={!MOBILE.includes(tab) ? 'on' : ''} onClick={() => setSheet(true)} aria-label="More sections">
+          <Icon n="more" />
+          More
+        </button>
+      </div>
+      {sheet && (
+        <>
+          <div className="sheet-scrim" onClick={() => setSheet(false)} />
+          <div className="sheet" role="dialog" aria-label="All sections">
+            <div className="grab" />
+            <div className="sh"><h4>All sections</h4><button className="btn ghost" onClick={() => { setSheet(false); setManage(true) }}>Manage</button></div>
+            <div className="tiles">
+              {TABS.map(([id, l]) => (
+                <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}><Icon n={id} />{l}</button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
       {manage && <Manage onClose={() => setManage(false)} />}
     </div>
   )

@@ -31,30 +31,8 @@ export default function Production() {
 
   return (
     <>
-      <form className="card" onSubmit={submit}>
-        <h3>Record production</h3>
-        <div className="grid">
-          <Field label="Finished item">
-            <select value={f.item} onChange={(e) => setF({ ...f, item: e.target.value })}>
-              <option value="">Select…</option>
-              {fgs.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Quantity produced">
-            <input type="number" min="0" step="any" value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} />
-          </Field>
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-          </Field>
-        </div>
-        <ErrBar msg={err} />
-        <button className="btn">Record run</button>
-      </form>
-
+      <div className="work">
+        <div className="main">
       <div className="card">
         <h3>Production runs</h3>
         {b.prod.length === 0 ? (
@@ -98,6 +76,33 @@ export default function Production() {
             </table>
           </div>
         )}
+      </div>
+        </div>
+        <div className="side">
+      <form className="card" onSubmit={submit}>
+        <h3>Record production</h3>
+        <div className="grid">
+          <Field label="Finished item">
+            <select value={f.item} onChange={(e) => setF({ ...f, item: e.target.value })}>
+              <option value="">Select…</option>
+              {fgs.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Quantity produced">
+            <input type="number" min="0" step="any" value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} />
+          </Field>
+          <Field label="Date">
+            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </Field>
+        </div>
+        <ErrBar msg={err} />
+        <button className="btn">Record run</button>
+      </form>
+        </div>
       </div>
     </>
   )

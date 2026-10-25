@@ -69,7 +69,7 @@ export function Modal({ title, onClose, children, wide }) {
 }
 
 // Eases a number from its previous value to the target (instant under reduced motion).
-function useCountUp(target) {
+export function useCountUp(target) {
   const [v, setV] = useState(0)
   const cur = useRef(0)
   useEffect(() => {

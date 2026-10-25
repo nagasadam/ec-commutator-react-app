@@ -51,7 +51,7 @@ function Overview() {
     <>
       <div className="stats k6">
         <Stat label="Sales" n={c.sales} dot="a" meter={c.sales > 0 ? 100 : 0} sub={`${b.inv.length} invoice${b.inv.length === 1 ? '' : 's'}, net of credit notes`} />
-        <Stat label="Profit" n={c.profit} dot="good" tone={c.profit < 0 ? 'bad' : ''} meter={pct(c.profit)} sub={`${pct(c.profit)}% of sales`} />
+        <Stat label="Profit" n={c.profit} dot="good" tone={(c.profit < 0 ? 'bad ' : '') + 'hero'} meter={pct(c.profit)} sub={`${pct(c.profit)}% of sales`} />
         <Stat label="Receivable" n={c.receivable} dot="warn" meter={pct(c.receivable)} sub={`${pct(c.receivable)}% of sales still to collect`} />
         <Stat label="Payable" n={c.payable} dot="b" meter={pct(c.payable)} sub={`owed to ${supCount} supplier${supCount === 1 ? '' : 's'}`} />
         <Stat label="Closing stock" n={c.closingStock} dot="c" sub="valued at average cost" />

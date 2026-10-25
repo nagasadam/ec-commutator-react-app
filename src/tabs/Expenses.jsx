@@ -24,41 +24,8 @@ export default function Expenses() {
 
   return (
     <>
-      <form className="card" onSubmit={submit}>
-        <h3>Add expense</h3>
-        <div className="grid">
-          <Field label="Head">
-            <input list="heads" value={f.head} onChange={(e) => setF({ ...f, head: e.target.value })} />
-            <datalist id="heads">
-              {HEADS.map((h) => (
-                <option key={h} value={h} />
-              ))}
-            </datalist>
-          </Field>
-          <Field label="Amount">
-            <input type="number" min="0" step="any" value={f.amt} onChange={(e) => setF({ ...f, amt: e.target.value })} />
-          </Field>
-          <Field label="Paid from">
-            <select value={f.acct} onChange={(e) => setF({ ...f, acct: e.target.value })}>
-              <option value="">Select…</option>
-              {opts.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-          </Field>
-          <Field label="Note">
-            <input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
-          </Field>
-        </div>
-        <ErrBar msg={err} />
-        <button className="btn">Add</button>
-      </form>
-
+      <div className="work">
+        <div className="main">
       <div className="card">
         <h3>Expenses · {inr(total)}</h3>
         {b.exp.length === 0 ? (
@@ -95,6 +62,44 @@ export default function Expenses() {
             </table>
           </div>
         )}
+      </div>
+        </div>
+        <div className="side">
+      <form className="card" onSubmit={submit}>
+        <h3>Add expense</h3>
+        <div className="grid">
+          <Field label="Head">
+            <input list="heads" value={f.head} onChange={(e) => setF({ ...f, head: e.target.value })} />
+            <datalist id="heads">
+              {HEADS.map((h) => (
+                <option key={h} value={h} />
+              ))}
+            </datalist>
+          </Field>
+          <Field label="Amount">
+            <input type="number" min="0" step="any" value={f.amt} onChange={(e) => setF({ ...f, amt: e.target.value })} />
+          </Field>
+          <Field label="Paid from">
+            <select value={f.acct} onChange={(e) => setF({ ...f, acct: e.target.value })}>
+              <option value="">Select…</option>
+              {opts.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Date">
+            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </Field>
+          <Field label="Note">
+            <input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+          </Field>
+        </div>
+        <ErrBar msg={err} />
+        <button className="btn">Add</button>
+      </form>
+        </div>
       </div>
     </>
   )

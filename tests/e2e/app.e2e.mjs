@@ -66,11 +66,25 @@ async function open({ drive, driveState, ...opts } = {}) {
     if (!localStorage.getItem('__seeded')) window.__EC_SEED_DEMO__ = true
   })
   await p.goto(target)
+  await tab(p, 'Invoices') // the app now opens on the Dashboard
   p.errs = errs
   pages.push(p)
   return p
 }
-const tab = (p, t) => p.click(`nav >> text=${t}`)
+const PRIMARY = ['Dashboard', 'Invoices', 'Inventory', 'Purchases', 'Reports']
+const onPhone = (p) => p.evaluate(() => matchMedia('(max-width: 880px)').matches)
+// Desktop: pill bar + More menu. Phone (<= 880px): the pill bar is hidden, so use the bottom bar and the More sheet.
+async function tab(p, t) {
+  if (await onPhone(p)) {
+    const bar = p.locator(`.tabbar > button:text-is("${t}")`)
+    if (await bar.count()) return bar.click()
+    await p.click('.tabbar button[aria-label="More sections"]')
+    return p.click(`.sheet .tiles >> button:text-is("${t}")`)
+  }
+  if (PRIMARY.includes(t)) return p.click(`nav >> button:text-is("${t}")`)
+  await p.click('nav .more > button')
+  await p.click(`nav .menu >> text=${t}`)
+}
 
 test('guide figures all match on the demo business', async () => {
   const p = await open()
@@ -112,12 +126,14 @@ test('toaster: a failed save shows a persistent error toast and the red bar', as
 test('invoice: creating a bill for a person, then viewing a firm invoice shows IGST', async () => {
   const p = await open()
   await tab(p, 'Invoices')
+  await p.click('button:has-text("+ New invoice")')
   await p.selectOption('form select >> nth=0', { label: 'Ramesh Pillai (person · BILL)' })
   await p.selectOption('.lrow select', { label: 'Commutator (pcs)' })
   await p.fill('.lrow input >> nth=0', '10')
   await p.click('button:has-text("Create")')
   assert.equal(await p.locator('td', { hasText: 'BILL-0002' }).count(), 1)
-  await p.locator('tr', { hasText: 'INV-0002' }).locator('text=View').click()
+  await p.locator('tr', { hasText: 'INV-0002' }).locator('.rowmenu > button').click()
+  await p.locator('.rowmenu .menu >> text=View').click()
   assert.match(await p.locator('.paper').innerText(), /IGST 18%/)
 })
 
