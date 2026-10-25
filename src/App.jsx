@@ -202,6 +202,12 @@ function Login() {
   )
 }
 
+// Initials of the business name (dots ignored, so "E.C Commutators" gives EC).
+const initials = (n) => {
+  const w = (n || '').replace(/\./g, '').split(/\s+/).filter(Boolean)
+  return ((w.length > 1 ? w[0][0] + w[1][0] : (w[0] || '?').slice(0, 2)) || '?').toUpperCase()
+}
+
 const THEME_KEY = 'ecc-theme'
 function useTheme() {
   const [t, setT] = useState(() => {
@@ -226,7 +232,6 @@ function useTheme() {
   return [dark, toggle]
 }
 
-const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
 const CLOUD_TEXT = { idle: 'Cloud connected', syncing: 'Syncing…', saved: 'Saved to cloud', offline: 'Offline: saved on this device', error: 'Cloud error: saved on this device', choice: 'Choose what to do with local data' }
 
