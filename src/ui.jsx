@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { inr } from './lib/format.js'
+import { useCountUp } from './motion.jsx'
 
 // In-page replacements for window.confirm / window.alert (blocked inside artifact viewers).
 const DlgCtx = createContext(null)
@@ -83,32 +84,7 @@ export function useMedia(query) {
   return on
 }
 
-// Eases a number from its previous value to the target (instant under reduced motion).
-export function useCountUp(target) {
-  const [v, setV] = useState(0)
-  const cur = useRef(0)
-  useEffect(() => {
-    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      cur.current = target
-      setV(target)
-      return undefined
-    }
-    const from = cur.current
-    const t0 = performance.now()
-    let raf
-    const step = (t) => {
-      const k = Math.min(1, (t - t0) / 900)
-      const val = k === 1 ? target : from + (target - from) * (1 - Math.pow(1 - k, 3))
-      cur.current = val
-      setV(val)
-      if (k < 1) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [target])
-  return v
-}
+export { useCountUp }
 
 export function Stat({ label, value, n, sub, tone, dot, meter }) {
   const counted = useCountUp(n ?? 0)

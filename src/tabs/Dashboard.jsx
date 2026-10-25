@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { riseIn } from '../motion.jsx'
 import { useStore } from '../lib/store.jsx'
 import { calc, find, invTot, paidFor, srTot, valuation } from '../lib/calc.js'
 import { monthly } from '../lib/reports.js'
@@ -18,6 +19,11 @@ const label = (m) => MON[+m.slice(5, 7) - 1] + ' ' + m.slice(2, 4)
 
 export default function Dashboard({ go }) {
   const { b } = useStore()
+  const root = useRef(null)
+  useEffect(() => {
+    const a = riseIn(root.current, '.card')
+    return () => a?.stop()
+  }, [])
   const c = useMemo(() => calc(b), [b])
   const v = useMemo(() => valuation(b), [b])
   const months = useMemo(() => monthly(b), [b])
@@ -48,7 +54,7 @@ export default function Dashboard({ go }) {
   const seg = (x) => (compoTot > 0 ? (Math.max(0, x) / compoTot) * 100 : 0)
 
   return (
-    <div className="dash">
+    <div className="dash" ref={root}>
       <div className="dash-r1">
         <div className="card d-sales">
           <div className="ch"><span className="ico"><Icon n="rep" /></span>Sales<span className="tag">{cur ? label(cur.month) : 'This month'}</span></div>

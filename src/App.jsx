@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { motion, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
 import { mkBiz } from './lib/model.js'
 import { demoBiz } from './lib/seed.js'
@@ -369,9 +370,9 @@ export default function App() {
           </div>
         </div>
         )}
-        <main key={b.id + tab}>
+        <motion.main key={b.id + tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: EASE }}>
           <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
-        </main>
+        </motion.main>
       </div>
       <div className="tabbar" role="navigation" aria-label="Quick tabs">
         {MOBILE.slice(0, 2).map((id) => (
