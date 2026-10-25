@@ -2137,3 +2137,21 @@ input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 
 }
 .muted.loading { display: flex; align-items: center; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+
+/* ---- Sign in ---- */
+.login { position: relative; overflow: hidden; background: var(--bg); }
+.login::before, .login::after { content: ''; position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; opacity: 0.7; animation: drift 14s ease-in-out infinite alternate; }
+.login::before { width: 420px; height: 420px; left: -80px; top: -90px; background: color-mix(in srgb, var(--a) 22%, transparent); }
+.login::after { width: 460px; height: 460px; right: -120px; bottom: -140px; background: color-mix(in srgb, var(--b) 35%, transparent); animation-delay: -6s; }
+.login .card { position: relative; z-index: 1; width: min(390px, 100%); padding: 30px 30px 24px; border-radius: 28px; text-align: center; display: grid; gap: 14px; }
+.login .card .fld { text-align: left; }
+.login h1 { font-size: 24px; margin: 6px 0 0; }
+.login .sub-t { margin: -6px 0 6px; color: var(--muted); }
+.login .logo.big { width: 46px; height: 36px; margin: 0 auto; animation: rise 0.7s var(--ease) both; }
+.login .foot-t { margin: 4px 0 0; color: var(--faint); font-size: 12px; }
+.btn.block { width: 100%; padding: 12px 18px; }
+.pw { position: relative; display: block; }
+.pw input { padding-right: 64px; }
+.showpw { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); appearance: none; border: 0; background: transparent; color: var(--a); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; padding: 6px 8px; border-radius: 8px; }
+.showpw:hover { background: var(--a-soft); }
+@keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, 30px) scale(1.12); } }

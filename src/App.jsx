@@ -172,7 +172,7 @@ function Manage({ onClose }) {
   )
 }
 
-function Login() {
+export function Login() {
   const cloud = useCloud()
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
@@ -184,20 +184,26 @@ function Login() {
     setErr(await cloud.signIn(email.trim(), pw))
     setBusy(false)
   }
+  const [show, setShow] = useState(false)
   return (
     <div className="login">
       <form className="card" onSubmit={go}>
-        <h3>Sign in</h3>
-        <p className="muted">Your books sync to the cloud once you sign in.</p>
+        <span className="logo big" aria-hidden="true" />
+        <h1>E.C Commutator</h1>
+        <p className="sub-t">Sign in to ERP for Manufacturers</p>
         <Field label="Email">
           <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
         <Field label="Password">
-          <input type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+          <span className="pw">
+            <input type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            <button type="button" className="showpw" onClick={() => setShow((v) => !v)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button>
+          </span>
         </Field>
         {err && <div className="err" role="alert">{err}</div>}
-        <button className="btn" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>{' '}
-        <button type="button" className="btn ghost" onClick={() => cloud.setSkip(true)}>Use on this device only</button>
+        <button className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button type="button" className="btn ghost block" onClick={() => cloud.setSkip(true)}>Use on this device only</button>
+        <p className="foot-t">Billing · Production · Stock</p>
       </form>
     </div>
   )
