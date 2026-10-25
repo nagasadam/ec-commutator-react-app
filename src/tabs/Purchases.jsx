@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctOptions, find, paidFor, prrTot, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
@@ -30,7 +30,9 @@ export default function Purchases() {
   const [showForm, setShowForm] = useState(false)
   const [q, setQ] = useState('')
   const [flt, setFlt] = useState('all')
-  const [mode, setMode] = useState('table')
+  const [pick, setMode] = useState('table')
+  const phone = useMedia('(max-width: 880px)')
+  const mode = phone ? 'cards' : pick
   const [menu, setMenu] = useState(null)
   const [review, setReview] = useState([]) // PDFs read but not saved: { id, name, why, snap }
   const [rid, setRid] = useState(null)
@@ -221,9 +223,9 @@ export default function Purchases() {
         </div>
         <div className="r">
           <input className="search" type="search" placeholder="Search purchases" aria-label="Search purchases" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="seg" role="group" aria-label="View">
-            <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
-            <button className={mode === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
+          <div className="seg hidephone" role="group" aria-label="View">
+            <button className={pick === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
+            <button className={pick === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
           </div>
           <button className="btn" onClick={() => setShowForm(true)}>+ New purchase</button>
         </div>

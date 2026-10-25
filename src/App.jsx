@@ -238,9 +238,11 @@ export default function App() {
   const [manage, setManage] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [sheet, setSheet] = useState(false)
+  const [newInv, setNewInv] = useState(0)
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
-  const go = (id) => {
+  const go = (id, fresh) => {
+    if (fresh) setNewInv((n) => n + 1)
     setTab(id)
     setMoreOpen(false)
     setSheet(false)
@@ -368,7 +370,7 @@ export default function App() {
         </div>
         )}
         <main key={b.id + tab}>
-          <Cur go={go} />
+          <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
         </main>
       </div>
       <div className="tabbar" role="navigation" aria-label="Quick tabs">
@@ -378,7 +380,7 @@ export default function App() {
             {TABS.find((t) => t[0] === id)[1]}
           </button>
         ))}
-        <button className="fab" aria-label="New invoice" onClick={() => go('inv')}>+</button>
+        <button className="fab" aria-label="New invoice" onClick={() => go('inv', true)}>+</button>
         {MOBILE.slice(2).map((id) => (
           <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
             <Icon n={id} />

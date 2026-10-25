@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { find, invTot, srTot, paidFor, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
@@ -100,7 +100,7 @@ function Paper({ b, inv }) {
 
 const blankForm = () => ({ cust: '', date: today(), lr: '', transporter: '', lines: [blankLine()] })
 
-export default function Invoices() {
+export default function Invoices({ newInv = 0 }) {
   const { b, updB, getS } = useStore()
   const getB = () => getS().biz.find((x) => x.id === getS().cur)
   const { ask, tell } = useDialog()
@@ -115,9 +115,14 @@ export default function Invoices() {
   const [status, setStatus] = useState('') // progress text while a scanned PDF is being read
   const [auto, setAuto] = usePdfAuto()
   const [showForm, setShowForm] = useState(false)
+  useEffect(() => {
+    if (newInv) setShowForm(true)
+  }, [newInv])
   const [q, setQ] = useState('')
   const [flt, setFlt] = useState('all')
-  const [mode, setMode] = useState('table')
+  const [pick, setMode] = useState('table')
+  const phone = useMedia('(max-width: 880px)')
+  const mode = phone ? 'cards' : pick
   const [menu, setMenu] = useState(null)
   const [review, setReview] = useState([]) // PDFs read but not saved: { id, name, why, snap }
   const [rid, setRid] = useState(null)
@@ -298,9 +303,9 @@ export default function Invoices() {
         </div>
         <div className="r">
           <input className="search" type="search" placeholder="Search invoices" aria-label="Search invoices" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="seg" role="group" aria-label="View">
-            <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
-            <button className={mode === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
+          <div className="seg hidephone" role="group" aria-label="View">
+            <button className={pick === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
+            <button className={pick === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
           </div>
           <button className="btn" onClick={() => setShowForm(true)}>+ New invoice</button>
         </div>

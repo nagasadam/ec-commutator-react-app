@@ -137,6 +137,25 @@ test('invoice: creating a bill for a person, then viewing a firm invoice shows I
   assert.match(await p.locator('.paper').innerText(), /IGST 18%/)
 })
 
+test('phone: the + button opens the New invoice form, and invoices are cards, not a table', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true })
+  await p.click('.fab')
+  await p.locator('.ov form').waitFor()
+  assert.match(await p.locator('.ov .mh h3').innerText(), /invoice/i)
+  await p.click('.ov button[aria-label="Close"]')
+  await tab(p, 'Invoices')
+  assert.ok((await p.locator('.icard').count()) > 0, 'cards shown')
+  assert.equal(await p.locator('main .tw table').count(), 0, 'no table on a phone')
+  assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+  assert.equal(await p.locator('.seg[aria-label="View"]').isVisible(), false)
+})
+
+test('desktop: the dashboard New invoice button opens the form', async () => {
+  const p = await open()
+  await p.click('button:has-text("+ New invoice")')
+  await p.locator('.ov form').waitFor()
+})
+
 test('ledger: statement shows the party balance and downloads a real PDF', async () => {
   const p = await open()
   await tab(p, 'Ledgers')
