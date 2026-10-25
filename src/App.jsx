@@ -40,6 +40,23 @@ const TABS = [
   ['bank', 'Banking', Banking],
 ]
 
+function Sec({ tone, icon, title, hint, children }) {
+  return (
+    <section className={'mgr-sec' + (tone ? ' ' + tone : '')}>
+      <header>
+        <span className="mgr-ico" aria-hidden="true">
+          {icon}
+        </span>
+        <div>
+          <h4>{title}</h4>
+          {hint && <p className="muted">{hint}</p>}
+        </div>
+      </header>
+      {children}
+    </section>
+  )
+}
+
 function Manage({ onClose }) {
   const { S, upd, b, updB } = useStore()
   const { ask, tell } = useDialog()
@@ -118,56 +135,91 @@ function Manage({ onClose }) {
   }
 
   return (
-    <Modal title="Businesses" onClose={onClose}>
-      <form onSubmit={add}>
-        <h4>Add business</h4>
-        <Field label="Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label="Type">
-          <select value={kind} onChange={(e) => setKind(e.target.value)}>
-            <option value="person">Person based (BILL, cash/GPay and firms)</option>
-            <option value="firm">Firm based</option>
-          </select>
-        </Field>
-        <button className="btn">Add</button> <button type="button" className="btn ghost" onClick={demo}>Load E.C Commutators demo data</button>
-      </form>
+    <Modal title="Businesses" onClose={onClose} wide>
+      <div className="mgr">
+        <div className="mgr-list" role="group" aria-label="Switch business">
+          {S.biz.map((x) => (
+            <button key={x.id} type="button" className={'mgr-biz' + (x.id === S.cur ? ' on' : '')} onClick={() => upd((s) => (s.cur = x.id))}>
+              <span className="avatar" aria-hidden="true">{initials(x.name)}</span>
+              <span>
+                {x.name}
+                <small>{x.kind === 'firm' ? 'Firm based' : 'Person based'}</small>
+              </span>
+            </button>
+          ))}
+        </div>
 
-      <h4>This business: {b.name}</h4>
-      <Field label="Business type">
-        <select value={b.kind} onChange={(e) => setKind2(e.target.value)}>
-          <option value="person">Person based (BILL, cash/GPay and firms)</option>
-          <option value="firm">Firm based (firms with GSTIN, bank only)</option>
-        </select>
-      </Field>
-      <Field label="Your GST state code (first 2 digits of your GSTIN)">
-        <input value={b.stateCode} maxLength={2} onChange={(e) => updB((x) => (x.stateCode = e.target.value.replace(/\D/g, '')))} />
-      </Field>
-      <p className="muted">Sales to a customer with the same state code get CGST + SGST; otherwise IGST.</p>
-      <h4>Backup</h4>
-      <button type="button" className="btn ghost" onClick={doExport}>Export all data (JSON)</button>{' '}
-      <label className="btn ghost" style={{ display: 'inline-block' }}>
-        Import backup
-        <input type="file" accept="application/json,.json" hidden onChange={doImport} />
-      </label>
-      {cloud.configured && cloud.user && (
-        <>
-          <h4>Cloud</h4>
-          <p className="muted">Signed in as {cloud.user.email}.</p>
-          <button type="button" className="btn ghost" onClick={cloud.syncNow}>Sync now</button>{' '}
-          <button type="button" className="btn ghost" onClick={() => cloud.signOut().then(onClose)}>Sign out</button>
-        </>
-      )}
-      <h4>Danger zone</h4>
-      <button className="btn ghost" onClick={reset}>
-        Reset this business
-      </button>
-      <Field label={`Delete this business — type "${b.name}"`}>
-        <input value={typed} onChange={(e) => setTyped(e.target.value)} />
-      </Field>
-      <button className="btn danger" onClick={del}>
-        Delete this business
-      </button>
+        <div className="mgr-cols">
+          <Sec icon="＋" title="Add business" hint="Start a separate set of books">
+            <form onSubmit={add}>
+              <Field label="Name">
+                <input value={name} onChange={(e) => setName(e.target.value)} />
+              </Field>
+              <Field label="Type">
+                <select value={kind} onChange={(e) => setKind(e.target.value)}>
+                  <option value="person">Person based (BILL, cash/GPay and firms)</option>
+                  <option value="firm">Firm based</option>
+                </select>
+              </Field>
+              <div className="mgr-acts">
+                <button className="btn">Add</button>
+                <button type="button" className="btn ghost" onClick={demo}>Load E.C Commutators demo data</button>
+              </div>
+            </form>
+          </Sec>
+
+          <Sec icon="⚙" title={b.name} hint="Settings for this business">
+            <Field label="Business type">
+              <select value={b.kind} onChange={(e) => setKind2(e.target.value)}>
+                <option value="person">Person based (BILL, cash/GPay and firms)</option>
+                <option value="firm">Firm based (firms with GSTIN, bank only)</option>
+              </select>
+            </Field>
+            <Field label="Your GST state code (first 2 digits of your GSTIN)">
+              <input value={b.stateCode} maxLength={2} onChange={(e) => updB((x) => (x.stateCode = e.target.value.replace(/\D/g, '')))} />
+            </Field>
+            <p className="muted">Sales to a customer with the same state code get CGST + SGST; otherwise IGST.</p>
+          </Sec>
+
+          <Sec icon="⇅" title="Backup" hint="Download everything, or bring a backup back in">
+            <div className="mgr-acts">
+              <button type="button" className="btn ghost" onClick={doExport}>Export all data (JSON)</button>
+              <label className="btn ghost">
+                Import backup
+                <input type="file" accept="application/json,.json" hidden onChange={doImport} />
+              </label>
+            </div>
+          </Sec>
+
+          {cloud.configured && cloud.user && (
+            <Sec icon="☁" title="Cloud" hint={`Signed in as ${cloud.user.email}`}>
+              <div className="mgr-acts">
+                <button type="button" className="btn ghost" onClick={cloud.syncNow}>Sync now</button>
+                <button type="button" className="btn ghost" onClick={() => cloud.signOut().then(onClose)}>Sign out</button>
+              </div>
+            </Sec>
+          )}
+        </div>
+
+        <Sec tone="danger" icon="!" title="Danger zone" hint="These cannot be undone">
+          <div className="mgr-danger">
+            <div>
+              <button className="btn ghost" onClick={reset}>
+                Reset this business
+              </button>
+              <p className="muted">Clears all entries and restores the default items.</p>
+            </div>
+            <div>
+              <Field label={`Delete this business — type "${b.name}"`}>
+                <input value={typed} onChange={(e) => setTyped(e.target.value)} />
+              </Field>
+              <button className="btn danger" onClick={del}>
+                Delete this business
+              </button>
+            </div>
+          </div>
+        </Sec>
+      </div>
     </Modal>
   )
 }
