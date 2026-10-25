@@ -2083,3 +2083,6 @@ tr.neg td {
 .work > .main, .work > .side { min-width: 0; }
 @media (max-width: 880px) { .work { grid-template-columns: minmax(0, 1fr); } }
 .stats.k6 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 16px; align-items: start; }
+.cols .grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.cols > .card { margin: 0; }

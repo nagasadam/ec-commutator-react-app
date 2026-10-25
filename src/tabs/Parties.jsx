@@ -104,9 +104,9 @@ function PartyBlock({ kind }) {
 
 export default function Parties() {
   return (
-    <>
+    <div className="cols">
       <PartyBlock kind="cust" />
       <PartyBlock kind="sup" />
-    </>
+    </div>
   )
 }

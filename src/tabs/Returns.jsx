@@ -250,10 +250,10 @@ function Rejects() {
 
 export default function Returns() {
   return (
-    <>
+    <div className="cols">
       <SalesReturn />
       <PurchaseReturn />
       <Rejects />
-    </>
+    </div>
   )
 }

@@ -96,6 +96,7 @@ export default function Banking() {
         <Stat label="GPay" n={acctBal(b, 'gpay')} />
       </div>
 
+      <div className="cols">
       <div className="card">
         <h3>Accounts &amp; opening balances</h3>
         <div className="grid">
@@ -118,9 +119,9 @@ export default function Banking() {
           <button className="btn">Add bank</button>
         </form>
       </div>
-
       <Settle kind="recv" />
       <Settle kind="pay" />
+      </div>
 
       <div className="card">
         <h3>Receipts &amp; payments</h3>

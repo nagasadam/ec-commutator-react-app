@@ -64,6 +64,8 @@ export default function Inventory() {
 
   return (
     <>
+      <div className="work">
+        <div className="main">
       <div className="card">
         <h3>Stock</h3>
         <p className="muted">Stock is derived from opening + purchases + production − sales ± returns/rejects. Cost is moving average.</p>
@@ -114,7 +116,8 @@ export default function Inventory() {
         </div>
         {b.items.length === 0 && <Empty>No items.</Empty>}
       </div>
-
+        </div>
+        <div className="side">
       <form className="card" onSubmit={submit}>
         <h3>Add item</h3>
         <div className="grid">
@@ -147,6 +150,8 @@ export default function Inventory() {
         <ErrBar msg={err} />
         <button className="btn">Add item</button>
       </form>
+        </div>
+      </div>
       {bom && <BomEditor item={bom} onClose={() => setBom(null)} />}
     </>
   )
