@@ -124,50 +124,8 @@ export default function Purchases() {
 
   return (
     <>
-      <form className="card" onSubmit={submit}>
-        <h3>New purchase</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
-        <DriveImport mode="purchase" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
-        <PdfNote note={note} onDismiss={() => (clearImport(), setF(blank()))} />
-        {newSup && <NewParty title="New supplier" p={newSup} setP={setNewSup} forceFirm={b.kind === 'firm'} />}
-        <div className="grid">
-          <Field label="Supplier">
-            <select value={f.sup} onChange={(e) => setF({ ...f, sup: e.target.value, pay: 'later' })}>
-              <option value="">Select…</option>
-              {newSup && <option value="__new__">New supplier: {newSup.name}</option>}
-              {b.sup.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.company ? '(firm · GST)' : '(person)'}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-          </Field>
-          <Field label="Rate includes">
-            <select value={f.incl} onChange={(e) => setF({ ...f, incl: e.target.value })}>
-              <option value="excl">Excluding GST</option>
-              <option value="incl">Including GST (18%)</option>
-            </select>
-          </Field>
-          <Field label="Payment">
-            <select value={f.pay} onChange={(e) => setF({ ...f, pay: e.target.value })}>
-              <option value="later">Pay later</option>
-              {opts.map((o) => (
-                <option key={o.id} value={o.id}>
-                  Paid now — {o.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <LinesEditor items={b.items.filter((i) => i.type === 'raw')} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} />
-        <p className="muted">{f.incl === 'incl' ? 'Rates include 18% GST for firms; the app removes it before recording.' : 'Rates are before GST. Firms add 18% GST automatically.'}</p>
-        <ErrBar msg={err} />
-        <button className="btn">Record purchase</button>
-      </form>
-
+      <div className="work">
+        <div className="main">
       <div className="card">
         <h3>Purchases</h3>
         {b.pur.length === 0 ? (
@@ -213,6 +171,53 @@ export default function Purchases() {
             </table>
           </div>
         )}
+      </div>
+        </div>
+        <div className="side">
+      <form className="card" onSubmit={submit}>
+        <h3>New purchase</h3>
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
+        <DriveImport mode="purchase" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
+        <PdfNote note={note} onDismiss={() => (clearImport(), setF(blank()))} />
+        {newSup && <NewParty title="New supplier" p={newSup} setP={setNewSup} forceFirm={b.kind === 'firm'} />}
+        <div className="grid">
+          <Field label="Supplier">
+            <select value={f.sup} onChange={(e) => setF({ ...f, sup: e.target.value, pay: 'later' })}>
+              <option value="">Select…</option>
+              {newSup && <option value="__new__">New supplier: {newSup.name}</option>}
+              {b.sup.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.company ? '(firm · GST)' : '(person)'}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Date">
+            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </Field>
+          <Field label="Rate includes">
+            <select value={f.incl} onChange={(e) => setF({ ...f, incl: e.target.value })}>
+              <option value="excl">Excluding GST</option>
+              <option value="incl">Including GST (18%)</option>
+            </select>
+          </Field>
+          <Field label="Payment">
+            <select value={f.pay} onChange={(e) => setF({ ...f, pay: e.target.value })}>
+              <option value="later">Pay later</option>
+              {opts.map((o) => (
+                <option key={o.id} value={o.id}>
+                  Paid now — {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <LinesEditor items={b.items.filter((i) => i.type === 'raw')} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} />
+        <p className="muted">{f.incl === 'incl' ? 'Rates include 18% GST for firms; the app removes it before recording.' : 'Rates are before GST. Firms add 18% GST automatically.'}</p>
+        <ErrBar msg={err} />
+        <button className="btn">Record purchase</button>
+      </form>
+        </div>
       </div>
     </>
   )

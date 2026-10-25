@@ -66,11 +66,17 @@ async function open({ drive, driveState, ...opts } = {}) {
     if (!localStorage.getItem('__seeded')) window.__EC_SEED_DEMO__ = true
   })
   await p.goto(target)
+  await p.locator('nav button:text-is("Invoices")').click() // the app now opens on the Dashboard
   p.errs = errs
   pages.push(p)
   return p
 }
-const tab = (p, t) => p.click(`nav >> text=${t}`)
+const PRIMARY = ['Dashboard', 'Invoices', 'Inventory', 'Purchases', 'Reports']
+const tab = async (p, t) => {
+  if (PRIMARY.includes(t)) return p.click(`nav >> button:text-is("${t}")`)
+  await p.click('nav .more > button')
+  await p.click(`nav .menu >> text=${t}`)
+}
 
 test('guide figures all match on the demo business', async () => {
   const p = await open()

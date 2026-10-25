@@ -203,40 +203,8 @@ export default function Invoices() {
   const rows = [...b.inv].reverse()
   return (
     <>
-      <form className="card" onSubmit={submit}>
-        <h3>New invoice / bill</h3>
-        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
-        <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
-        <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
-        {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
-        <div className="grid">
-          <Field label="Customer">
-            <select value={f.cust} onChange={(e) => setF({ ...f, cust: e.target.value })}>
-              <option value="">Select…</option>
-              {newCust && <option value="__new__">New customer: {newCust.name}</option>}
-              {b.cust.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.company ? '(firm · INV, GST)' : '(person · BILL)'}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-          </Field>
-          <Field label="LR number (transport)">
-            <input value={f.lr} onChange={(e) => setF({ ...f, lr: e.target.value })} />
-          </Field>
-          <Field label="Transporter">
-            <input value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })} />
-          </Field>
-        </div>
-        <LinesEditor items={b.items} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} rateFrom={(it) => it.rate} />
-        <ErrBar msg={err} />
-        {b.cust.length === 0 && <p className="muted">Add a customer under Customers &amp; suppliers first.</p>}
-        <button className="btn">Create</button>
-      </form>
-
+      <div className="work">
+        <div className="main">
       <div className="card">
         <h3>Invoices &amp; bills</h3>
         {rows.length === 0 ? (
@@ -285,6 +253,43 @@ export default function Invoices() {
             </table>
           </div>
         )}
+      </div>
+        </div>
+        <div className="side">
+      <form className="card" onSubmit={submit}>
+        <h3>New invoice / bill</h3>
+        <PdfUpload auto={auto} setAuto={setAuto} busy={busy} status={status} onFile={(file) => onPdf(file)} />
+        <DriveImport mode="sale" auto={auto} busy={busy} onOpen={(file, mark) => onPdf(file, { auto: false, mark })} />
+        <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
+        {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
+        <div className="grid">
+          <Field label="Customer">
+            <select value={f.cust} onChange={(e) => setF({ ...f, cust: e.target.value })}>
+              <option value="">Select…</option>
+              {newCust && <option value="__new__">New customer: {newCust.name}</option>}
+              {b.cust.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.company ? '(firm · INV, GST)' : '(person · BILL)'}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Date">
+            <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </Field>
+          <Field label="LR number (transport)">
+            <input value={f.lr} onChange={(e) => setF({ ...f, lr: e.target.value })} />
+          </Field>
+          <Field label="Transporter">
+            <input value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })} />
+          </Field>
+        </div>
+        <LinesEditor items={b.items} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} rateFrom={(it) => it.rate} />
+        <ErrBar msg={err} />
+        {b.cust.length === 0 && <p className="muted">Add a customer under Customers &amp; suppliers first.</p>}
+        <button className="btn">Create</button>
+      </form>
+        </div>
       </div>
 
       {view && (
