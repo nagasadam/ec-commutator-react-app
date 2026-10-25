@@ -227,12 +227,8 @@ nav {
   top: 6px;
   bottom: 6px;
   left: 0;
-  width: var(--iw, 0px);
-  transform: translateX(var(--ix, 0px));
   background: var(--dark);
   border-radius: 999px;
-  transition: transform 0.45s var(--ease), width 0.45s var(--ease), opacity 0.2s;
-  opacity: var(--io, 0);
   pointer-events: none;
 }
 nav button {
@@ -274,7 +270,6 @@ nav button.on:hover {
   display: grid;
   gap: 2px;
   transform-origin: top right;
-  animation: pop 0.22s var(--ease) both;
 }
 .more .menu button {
   text-align: left;
@@ -1449,14 +1444,13 @@ tr.neg td {
   border-radius: 5px;
   background: var(--c);
   transform-origin: bottom;
-  animation: grow-y 0.9s var(--ease) both;
 }
-.minibars i:nth-child(1) { animation-delay: 0.2s; opacity: 0.45; }
-.minibars i:nth-child(2) { animation-delay: 0.26s; opacity: 0.55; }
-.minibars i:nth-child(3) { animation-delay: 0.32s; background: var(--a); }
-.minibars i:nth-child(4) { animation-delay: 0.38s; background: var(--a); }
-.minibars i:nth-child(5) { animation-delay: 0.44s; background: var(--b); }
-.minibars i:nth-child(6) { animation-delay: 0.5s; background: var(--a); }
+.minibars i:nth-child(1) { opacity: 0.45; }
+.minibars i:nth-child(2) { opacity: 0.55; }
+.minibars i:nth-child(3) { background: var(--a); }
+.minibars i:nth-child(4) { background: var(--a); }
+.minibars i:nth-child(5) { background: var(--b); }
+.minibars i:nth-child(6) { background: var(--a); }
 .d-recv .big,
 .d-pay .big {
   margin-bottom: 10px;
@@ -1549,7 +1543,6 @@ tr.neg td {
 .gauge .arc {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  animation: gauge 1.5s var(--ease) 0.3s both;
 }
 .gauge .arc.a { stroke: var(--a); }
 .gauge .arc.b { stroke: var(--b); }
@@ -1627,7 +1620,6 @@ tr.neg td {
   display: block;
   width: 100%;
   transform-origin: bottom;
-  animation: grow-y 1s var(--ease) both;
 }
 .pair .col .p {
   background: var(--b);
@@ -1637,7 +1629,6 @@ tr.neg td {
   background: var(--a);
   border-radius: 12px;
   margin-top: -8px;
-  animation-delay: 0.1s;
   position: relative;
 }
 .pair small {
@@ -1881,7 +1872,6 @@ tr.neg td {
     inset: 0;
     z-index: 55;
     background: var(--scrim);
-    animation: fade 0.25s ease both;
   }
   .sheet {
     display: block;
@@ -1896,7 +1886,6 @@ tr.neg td {
     max-height: 80dvh;
     overflow-y: auto;
     box-shadow: var(--shadow-up);
-    animation: sheet-in 0.45s var(--ease) both;
   }
   .sheet .grab {
     width: 44px;
@@ -1936,14 +1925,7 @@ tr.neg td {
     gap: 8px;
     cursor: pointer;
     transition: transform 0.25s var(--ease), background 0.2s;
-    animation: rise 0.4s var(--ease) both;
   }
-  .sheet .tiles button:nth-child(2) { animation-delay: 0.03s; }
-  .sheet .tiles button:nth-child(3) { animation-delay: 0.06s; }
-  .sheet .tiles button:nth-child(4) { animation-delay: 0.09s; }
-  .sheet .tiles button:nth-child(5) { animation-delay: 0.12s; }
-  .sheet .tiles button:nth-child(6) { animation-delay: 0.15s; }
-  .sheet .tiles button:nth-child(n + 7) { animation-delay: 0.18s; }
   .sheet .tiles button:active {
     transform: scale(0.95);
   }
