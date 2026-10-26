@@ -139,9 +139,10 @@ test('invoice: creating a bill for a person, then viewing a firm invoice shows I
   assert.match(await p.locator('.paper').innerText(), /IGST 18%/)
 })
 
-test('phone: the + button opens the New invoice form, and invoices are cards, not a table', async () => {
+test('phone: the New invoice button opens the form, and invoices are cards, not a table', async () => {
   const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true })
-  await p.click('.fab')
+  await p.click('.tabbar >> text=Invoices')
+  await p.click('text=+ New invoice')
   await p.locator('.ov form').waitFor()
   assert.match(await p.locator('.ov .mh h3').innerText(), /invoice/i)
   await p.click('.ov button[aria-label="Close"]')

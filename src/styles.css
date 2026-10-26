@@ -1806,7 +1806,7 @@ tr.neg td {
   }
   .tabbar {
     display: grid;
-    grid-template-columns: 1fr 1fr 72px 1fr 1fr;
+    grid-template-columns: repeat(5, 1fr);
     align-items: center;
     position: fixed;
     left: max(12px, env(safe-area-inset-left, 0px));
@@ -1845,27 +1845,6 @@ tr.neg td {
   }
   .tabbar > button:active {
     transform: scale(0.94);
-  }
-  .tabbar .fab {
-    width: 54px;
-    height: 54px;
-    margin: -26px auto 0;
-    padding: 0;
-    border-radius: 50%;
-    background: var(--a);
-    color: #fff;
-    box-shadow: 0 12px 24px -8px color-mix(in srgb, var(--a) 80%, transparent);
-    font-size: 26px;
-    line-height: 1;
-    place-items: center;
-    animation: fab-in 0.7s var(--ease) 0.5s both;
-  }
-  .tabbar .fab:hover {
-    background: var(--a);
-  }
-  .tabbar .fab.on {
-    background: var(--a);
-    color: #fff;
   }
   .sheet-scrim {
     display: block;
@@ -2248,7 +2227,6 @@ input:focus, select:focus, textarea:focus { box-shadow: inset 0 2px 4px var(--gl
 .seg button.on, .chips button.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 12px -6px rgba(0, 0, 0, 0.5); }
 .tabbar, .sheet { border: 1px solid var(--gl-line); background-image: linear-gradient(180deg, var(--gl), transparent 50%); box-shadow: inset 0 1px 0 var(--gl-edge), var(--shadow-up); }
 .more .menu { border: 1px solid var(--gl-line); background-image: linear-gradient(180deg, var(--gl), transparent 50%); box-shadow: inset 0 1px 0 var(--gl-edge), var(--shadow-up); }
-.tabbar .fab { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 55%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 14px 26px -10px color-mix(in srgb, var(--a) 95%, transparent); }
 .pill { box-shadow: inset 0 1px 0 var(--gl-edge); }
 .mgr-sec { background-image: linear-gradient(180deg, var(--gl), transparent 55%); border: 1px solid var(--gl-line); box-shadow: inset 0 1px 0 var(--gl-edge); }
 .mgr-biz.on { box-shadow: inset 0 1px 0 var(--gl-edge), 0 8px 20px -10px color-mix(in srgb, var(--a) 70%, transparent); }

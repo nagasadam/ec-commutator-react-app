@@ -25,7 +25,7 @@ import { Icon } from './icons.jsx'
 import { light as logoLight, dark as logoDark } from './assets/logos.js'
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
-const MOBILE = ['dash', 'inv', 'pur']
+const MOBILE = ['dash', 'inv', 'par', 'pur']
 const TABS = [
   ['dash', 'Dashboard', Dashboard, 'Dashboard'],
   ['inv', 'Invoices', Invoices],
@@ -441,14 +441,7 @@ export default function App() {
         </motion.main>
       </div>
       <div className="tabbar" role="navigation" aria-label="Quick tabs">
-        {MOBILE.slice(0, 2).map((id) => (
-          <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
-            <Icon n={id} />
-            {TABS.find((t) => t[0] === id)[1]}
-          </button>
-        ))}
-        <button className="fab" aria-label="New invoice" onClick={() => go('inv', true)}>+</button>
-        {MOBILE.slice(2).map((id) => (
+        {MOBILE.map((id) => (
           <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
             <Icon n={id} />
             {TABS.find((t) => t[0] === id)[1]}
