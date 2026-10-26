@@ -2302,3 +2302,13 @@ button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); out
   table.stk tr.tot td { border: 0; font-size: 15px; }
   table.stk tr.tot td:empty { display: none; }
 }
+
+/* Import icons: duotone, tinted with the theme accent */
+.pdfbar .btn { display: inline-flex; align-items: center; gap: 8px; }
+.pdfbar .btn svg { width: 18px; height: 18px; flex: none; }
+.drive summary { display: flex; align-items: center; gap: 10px; }
+.drive summary::before { content: none; }
+.drive summary::after { content: '›'; margin-left: auto; font-size: 20px; line-height: 1; color: var(--faint); transition: transform 0.25s var(--ease); }
+.drive[open] summary::after { transform: rotate(90deg); }
+.drive .dico { width: 32px; height: 32px; border-radius: 11px; flex: none; display: grid; place-items: center; color: var(--a); background: color-mix(in srgb, var(--a) 14%, transparent); box-shadow: inset 0 1px 0 var(--gl-edge, rgba(255, 255, 255, 0.5)); }
+.drive .dico svg { width: 18px; height: 18px; }
