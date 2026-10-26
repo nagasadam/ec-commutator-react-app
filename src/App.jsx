@@ -44,11 +44,12 @@ const TABS = [
 // V4 mark: the white-background artwork on light themes, the original on dark ones.
 function Logo({ big }) {
   const c = 'logo' + (big ? ' big' : '')
+  const sizes = big ? '65px' : '33px'
   return (
-    <>
-      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={big ? '56px' : '29px'} alt="" />
-      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={big ? '56px' : '29px'} alt="" />
-    </>
+    <span className={'logo-wrap' + (big ? ' big' : '')} aria-hidden="true">
+      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" />
+      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={sizes} alt="" />
+    </span>
   )
 }
 
