@@ -22,8 +22,7 @@ import Banking from './tabs/Banking.jsx'
 import Reports from './tabs/Reports.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
 import { Icon } from './icons.jsx'
-import logoLight from './assets/logo-light.png'
-import logoDark from './assets/logo-dark.png'
+import { light as logoLight, dark as logoDark } from './assets/logos.js'
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
 const MOBILE = ['dash', 'inv', 'pur']
@@ -47,8 +46,8 @@ function Logo({ big }) {
   const c = 'logo' + (big ? ' big' : '')
   return (
     <>
-      <img className={c + ' lt'} src={logoLight} alt="" />
-      <img className={c + ' dk'} src={logoDark} alt="" />
+      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={big ? '56px' : '29px'} alt="" />
+      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={big ? '56px' : '29px'} alt="" />
     </>
   )
 }
