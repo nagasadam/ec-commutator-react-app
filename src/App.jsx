@@ -479,7 +479,7 @@ export default function App() {
               onDragEnd={(_, i) => (i.offset.y > 90 || i.velocity.y > 500) && setSheet(false)}
             >
               <div className="grab" onPointerDown={(e) => drag.start(e)} />
-              <div className="sh"><h4>All sections</h4><button className="btn ghost" onClick={() => { setSheet(false); setManage(true) }}>Manage</button></div>
+              <div className="sh"><h4>All sections</h4></div>
               <div className="tiles">
                 {TABS.map(([id, l], k) => (
                   <motion.button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: EASE, delay: 0.08 + k * 0.03 }} whileTap={{ scale: 0.95 }}><Icon n={id} />{l}</motion.button>
