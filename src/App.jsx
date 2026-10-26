@@ -44,7 +44,7 @@ const TABS = [
 // V4 mark: the white-background artwork on light themes, the original on dark ones.
 function Logo({ big }) {
   const c = 'logo' + (big ? ' big' : '')
-  const sizes = big ? '65px' : '33px'
+  const sizes = big ? '65px' : '91px'
   return (
     <span className={'logo-wrap' + (big ? ' big' : '')} aria-hidden="true">
       <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" />
@@ -367,10 +367,7 @@ export default function App() {
       <header className="top glass">
         <div className="brand">
           <Logo />
-          <div>
-            E.C Commutator
-            <small>Billing · Production · Stock</small>
-          </div>
+          <span className="vh">E.C Commutator</span>
         </div>
         <nav ref={navRef} aria-label="Sections">
           <motion.i className="nav-ind" aria-hidden="true" initial={false} animate={{ x: ind.x, width: ind.w, opacity: ind.o }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
@@ -409,21 +406,9 @@ export default function App() {
           <button className="iconbtn" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title="Theme">
             <Icon n={dark ? 'sun' : 'moon'} />
           </button>
-          <div className="bsel">
-            <span className="who">
-              <span className="avatar" aria-hidden="true">{initials(b.name)}</span>
-              <select value={S.cur} onChange={(e) => upd((s) => (s.cur = e.target.value))} aria-label="Business">
-                {S.biz.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
-            </span>
-            <button className="btn ghost manage" onClick={() => setManage(true)}>
-              Manage
-            </button>
-          </div>
+          <button type="button" className="avatar avatar-btn" onClick={() => setManage(true)} aria-label="Manage businesses" title="Manage businesses">
+            {initials(b.name)}
+          </button>
         </div>
       </header>
       <div className="content">
