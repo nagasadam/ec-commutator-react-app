@@ -373,11 +373,13 @@ export default function App() {
           <motion.i className="nav-ind" aria-hidden="true" initial={false} animate={{ x: ind.x, width: ind.w, opacity: ind.o }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
           {TABS.filter((t) => PRIMARY.includes(t[0])).map(([id, l]) => (
             <button key={id} className={id === tab ? 'on' : ''} onClick={() => go(id)}>
+              <Icon n={id} />
               {l}
             </button>
           ))}
           <div className="more">
             <button className={!PRIMARY.includes(tab) ? 'on' : ''} aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+              <Icon n={!PRIMARY.includes(tab) ? tab : 'more'} />
               {!PRIMARY.includes(tab) ? cur[1] : 'More'} ▾
             </button>
             <AnimatePresence>
@@ -385,6 +387,7 @@ export default function App() {
               <motion.div className="menu" role="menu" initial={{ opacity: 0, scale: 0.94, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: -4 }} transition={{ duration: 0.18, ease: EASE }}>
                 {TABS.filter((t) => !PRIMARY.includes(t[0])).map(([id, l]) => (
                   <button key={id} role="menuitem" className={'menu-item' + (id === tab ? ' on' : '')} onClick={() => go(id)}>
+                    <Icon n={id} />
                     {l}
                   </button>
                 ))}
