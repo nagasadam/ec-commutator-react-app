@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Icon } from './icons.jsx'
 
 const KEY = 'ec_pdf_auto'
 const readAuto = () => {
@@ -28,6 +29,7 @@ export function PdfUpload({ auto, setAuto, busy, status, onFile, label = 'Upload
   return (
     <div className="pdfbar">
       <button type="button" className="btn ghost" disabled={busy} onClick={() => ref.current?.click()}>
+        <Icon n="pdf" duo />
         {busy ? status || 'Reading PDF…' : label}
       </button>
       <input

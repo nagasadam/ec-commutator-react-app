@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from './icons.jsx'
 import { useStore } from './lib/store.jsx'
 import { useToast } from './toast.jsx'
 import { downloadPdf, getToken, listPdfs, parseFolderId } from './lib/drive.js'
@@ -115,7 +116,10 @@ export default function DriveImport({ mode, auto, busy, onOpen }) {
 
   return (
     <details className="drive" open={show} onToggle={(e) => setShow(e.currentTarget.open)}>
-      <summary>Google Drive folder for {LABEL[mode]}</summary>
+      <summary>
+        <span className="dico"><Icon n="gdrive" duo /></span>
+        Google Drive folder for {LABEL[mode]}
+      </summary>
       {!CLIENT_ID ? (
         <p className="muted">Drive import is not set up on this site yet (needs VITE_GOOGLE_CLIENT_ID, see DEPLOY.md).</p>
       ) : (
