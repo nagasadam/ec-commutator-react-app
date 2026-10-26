@@ -2302,3 +2302,15 @@ button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); out
   table.stk tr.tot td { border: 0; font-size: 15px; }
   table.stk tr.tot td:empty { display: none; }
 }
+
+/* Desktop nav: icon beside each label */
+nav button { display: inline-flex; align-items: center; gap: 7px; }
+nav button svg { width: 16px; height: 16px; flex: none; }
+.more .menu button { gap: 10px; }
+.more .menu button svg { width: 17px; height: 17px; opacity: 0.8; }
+
+/* Page title with its icon */
+.ptitle { display: flex; align-items: center; gap: 12px; }
+.hico { flex: none; width: 1.35em; height: 1.35em; border-radius: 0.45em; display: inline-grid; place-items: center; background: color-mix(in srgb, var(--a) 14%, transparent); color: var(--a); }
+.hico svg { width: 0.72em; height: 0.72em; }
+.phead h2.ptitle { font-size: 22px; }
