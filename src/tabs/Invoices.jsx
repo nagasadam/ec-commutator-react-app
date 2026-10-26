@@ -298,7 +298,7 @@ export default function Invoices({ newInv = 0 }) {
     <>
       <div className="phead">
         <div>
-          <h2>Invoices &amp; bills</h2>
+          <h2 className="ptitle"><span className="hico"><Icon n="inv" /></span>Invoices &amp; bills</h2>
           <p className="muted">Everything you sell — firms get INV, persons get BILL</p>
         </div>
         <div className="r">

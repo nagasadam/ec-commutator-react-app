@@ -430,7 +430,10 @@ export default function App() {
             <div className="crumb">
               {b.name} / {title}
             </div>
-            <h1>{title}</h1>
+            <h1 className="ptitle">
+              <span className="hico"><Icon n={tab} /></span>
+              {title}
+            </h1>
           </div>
           <div className="r">
             <span className="chip">

@@ -218,7 +218,7 @@ export default function Purchases() {
     <>
       <div className="phead">
         <div>
-          <h2>Purchases</h2>
+          <h2 className="ptitle"><span className="hico"><Icon n="pur" /></span>Purchases</h2>
           <p className="muted">Raw material you buy — firms add GST, persons do not</p>
         </div>
         <div className="r">
