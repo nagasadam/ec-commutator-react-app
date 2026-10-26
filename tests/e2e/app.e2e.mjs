@@ -207,7 +207,7 @@ test('cash & GPay people: pin shows up first and adds no transaction', async () 
 
 test('firm rules: a firm-based business refuses persons and cash', async () => {
   const p = await open()
-  await p.click('button:has-text("Manage")')
+  await p.click('button[aria-label="Manage businesses"]')
   await p.fill('label:has-text("Name") input', 'Firm Co')
   await p.selectOption('label:has-text("Type") select >> nth=0', 'firm')
   await p.click('button:text-is("Add")')
@@ -222,7 +222,7 @@ test('firm rules: a firm-based business refuses persons and cash', async () => {
 
 test('backup: export downloads JSON, import of bad file shows an error toast and changes nothing', async () => {
   const p = await open()
-  await p.click('button:has-text("Manage")')
+  await p.click('button[aria-label="Manage businesses"]')
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('button:has-text("Export all data")')])
   const j = JSON.parse((await import('node:fs')).readFileSync(await dl.path(), 'utf8'))
   assert.equal(j.format, 'ec-commutator-backup')

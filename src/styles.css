@@ -1754,9 +1754,7 @@ tr.neg td {
 }
 @media (max-width: 880px) {
   nav,
-  .top .bsel .who select,
-  .top .live .lt,
-  .top .manage {
+  .top .live .lt {
     display: none;
   }
   .top {
@@ -2271,3 +2269,19 @@ input:focus, select:focus, textarea:focus { box-shadow: inset 0 2px 4px var(--gl
 .brand:hover .logo-wrap::after { animation-duration: 1.2s; }
 @keyframes logo-shine { 0%, 62% { left: -70%; } 82%, 100% { left: 130%; } }
 @media (prefers-reduced-motion: reduce) { .logo-wrap::after { animation: none; display: none; } }
+
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button.avatar-btn { border: 0; padding: 0; cursor: pointer; transition: transform 0.2s var(--ease), box-shadow 0.2s; }
+button.avatar-btn:hover { transform: scale(1.06); box-shadow: 0 4px 12px -4px rgba(192, 111, 51, 0.7); }
+button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); outline-offset: 2px; }
+
+/* Desktop header: the logo is as tall as the pill that holds the page tabs */
+@media (min-width: 881px) {
+  .top .brand .logo { width: auto; height: var(--nav-h, 48px); }
+}
+/* pill-shaped logo in the header (desktop and phone) */
+.top .brand .logo-wrap { border-radius: 999px; }
+/* Phone: the logo is as tall as the EC circle, pill shape too, scaled proportionally */
+@media (max-width: 880px) {
+  .top .brand .logo { width: auto; height: 34px; }
+}
