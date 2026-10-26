@@ -2275,9 +2275,9 @@ button.avatar-btn { border: 0; padding: 0; cursor: pointer; transition: transfor
 button.avatar-btn:hover { transform: scale(1.06); box-shadow: 0 4px 12px -4px rgba(192, 111, 51, 0.7); }
 button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); outline-offset: 2px; }
 
-/* Desktop header: the logo is as tall as the pill that holds the page tabs */
+/* Desktop header: the logo is as tall as the EC circle */
 @media (min-width: 881px) {
-  .top .brand .logo { width: auto; height: var(--nav-h, 48px); }
+  .top .brand .logo { width: auto; height: 34px; }
 }
 /* pill-shaped logo in the header (desktop and phone) */
 .top .brand .logo-wrap { border-radius: 999px; }
@@ -2285,3 +2285,4 @@ button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); out
 @media (max-width: 880px) {
   .top .brand .logo { width: auto; height: 34px; }
 }
+@media (max-width: 880px) { .top nav ~ .right { margin-left: auto; } }
