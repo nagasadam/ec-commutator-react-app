@@ -2103,7 +2103,7 @@ tr.neg td {
 .icards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .icard { background: var(--soft); border-radius: 18px; padding: 16px; display: grid; gap: 4px; animation: rise 0.4s var(--ease) backwards; transition: transform 0.3s var(--ease); }
 .icard:hover { transform: translateY(-3px); }
-.icard .top, .icard .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.icard .ictop, .icard .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .icard .who { font-weight: 650; margin-top: 6px; }
 .icard .amt { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; margin: 6px 0; }
 .icard .foot { color: var(--muted); font-size: 12.5px; }
@@ -2286,3 +2286,19 @@ button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); out
   .top .brand .logo { width: auto; height: 34px; }
 }
 @media (max-width: 880px) { .top nav ~ .right { margin-left: auto; } }
+
+/* Inventory: on phones each item becomes a small card instead of a sideways-scrolling table */
+@media (max-width: 560px) {
+  table.stk, table.stk tbody { display: block; }
+  table.stk thead { display: none; }
+  table.stk tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; background: var(--soft); border-radius: 16px; padding: 14px; margin-bottom: 10px; animation: none; }
+  table.stk td { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0; border: 0; background: none !important; font-size: 13.5px; }
+  table.stk td[data-l]::before { content: attr(data-l); color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  table.stk td.nm { grid-column: 1 / -1; font-weight: 700; font-size: 15px; }
+  table.stk td.bomc { grid-column: 1 / -1; justify-content: flex-end; }
+  table.stk td.bomc:empty { display: none; }
+  table.stk td input.mini { width: 90px; }
+  table.stk tr.tot { display: flex; justify-content: space-between; background: none; padding: 6px 4px; }
+  table.stk tr.tot td { border: 0; font-size: 15px; }
+  table.stk tr.tot td:empty { display: none; }
+}

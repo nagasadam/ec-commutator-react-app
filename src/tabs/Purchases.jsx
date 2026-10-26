@@ -306,7 +306,7 @@ export default function Purchases() {
               <div className="icards">
                 {rows.map((r) => (
                   <div className="icard" key={r.p.id}>
-                    <div className="top">
+                    <div className="ictop">
                       <b>{r.p.no}</b>
                       {badge(r)}
                     </div>

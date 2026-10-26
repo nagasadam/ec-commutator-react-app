@@ -386,7 +386,7 @@ export default function Invoices({ newInv = 0 }) {
               <div className="icards">
                 {rows.map((r) => (
                   <div className="icard" key={r.i.id}>
-                    <div className="top">
+                    <div className="ictop">
                       <b>{r.i.no}</b>
                       {r.isPaid ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}
                     </div>
