@@ -200,7 +200,7 @@ p {
 }
 .logo {
   display: block;
-  width: 29px;
+  width: 33px;
   height: auto;
   object-fit: contain;
   border-radius: 7px;
@@ -2150,7 +2150,7 @@ input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 
 .login .card .fld { text-align: left; }
 .login h1 { font-size: 24px; margin: 6px 0 0; }
 .login .sub-t { margin: -6px 0 6px; color: var(--muted); }
-.login .logo.big { width: 56px; }
+.login .logo.big { width: 65px; }
 .login .logo-wrap.big { margin: 0 auto; animation: rise 0.7s var(--ease) both; }
 .login .foot-t { margin: 4px 0 0; color: var(--faint); font-size: 12px; }
 .btn.block { width: 100%; padding: 12px 18px; }
