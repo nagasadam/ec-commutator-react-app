@@ -70,7 +70,7 @@ export default function Inventory() {
         <h3>Stock</h3>
         <p className="muted">Stock is derived from opening + purchases + production − sales ± returns/rejects. Cost is moving average.</p>
         <div className="tw">
-          <table>
+          <table className="stk">
             <thead>
               <tr>
                 <th>Item</th>
@@ -86,18 +86,18 @@ export default function Inventory() {
             <tbody>
               {b.items.map((i) => (
                 <tr key={i.id} className={v.qty[i.id] < 0 ? 'neg' : ''}>
-                  <td>{i.name}</td>
-                  <td>{i.type === 'fg' ? 'Finished' : i.type === 'raw' ? 'Raw' : 'By-product'}</td>
-                  <td>{i.hsn}</td>
-                  <td className="r">
+                  <td className="nm">{i.name}</td>
+                  <td data-l="Type">{i.type === 'fg' ? 'Finished' : i.type === 'raw' ? 'Raw' : 'By-product'}</td>
+                  <td data-l="HSN">{i.hsn}</td>
+                  <td className="r nw" data-l="In stock">
                     {qtyFmt(v.qty[i.id])} {i.unit}
                   </td>
-                  <td className="r">{inr(v.avg[i.id])}</td>
-                  <td className="r">{inr(v.val[i.id])}</td>
-                  <td className="r">
+                  <td className="r nw" data-l="Avg cost">{inr(v.avg[i.id])}</td>
+                  <td className="r nw" data-l="Value">{inr(v.val[i.id])}</td>
+                  <td className="r nw" data-l="Sale rate">
                     {i.type !== 'raw' ? <input className="mini" type="number" min="0" step="any" value={i.rate} onChange={(e) => setRate(i.id, e.target.value)} /> : '—'}
                   </td>
-                  <td className="r">
+                  <td className="r bomc">
                     {i.type === 'fg' && (
                       <button className="btn ghost" onClick={() => setBom(i)}>
                         BOM
