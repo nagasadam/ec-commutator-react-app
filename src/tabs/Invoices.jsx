@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { find, invTot, srTot, paidFor, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
@@ -314,22 +314,22 @@ export default function Invoices({ newInv = 0 }) {
       <div className="stats s4">
         <div className="stat">
           <div className="l"><i className="dot" />Invoices</div>
-          <div className="v">{all.length}</div>
+          <div className="v"><Rolling n={all.length} count /></div>
           <div className="s">{b.inv.length ? 'Recorded in this business' : 'None yet'}</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-good" />Paid</div>
-          <div className="v">{inr(paidRows.reduce((n, r) => n + r.t.total, 0))}</div>
+          <div className="v"><Rolling n={paidRows.reduce((n, r) => n + r.t.total, 0)} /></div>
           <div className="s">{paidRows.length} invoice{paidRows.length === 1 ? '' : 's'}</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-warn" />Due</div>
-          <div className="v">{inr(dueRows.reduce((n, r) => n + r.open, 0))}</div>
+          <div className="v"><Rolling n={dueRows.reduce((n, r) => n + r.open, 0)} /></div>
           <div className="s">{dueRows.length} invoice{dueRows.length === 1 ? '' : 's'} outstanding</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-dark" />GST collected</div>
-          <div className="v">{inr(gstSum)}</div>
+          <div className="v"><Rolling n={gstSum} /></div>
           <div className="s">CGST+SGST · IGST</div>
         </div>
       </div>
