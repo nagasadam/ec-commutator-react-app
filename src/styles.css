@@ -2286,3 +2286,16 @@ button.avatar-btn:focus-visible { outline: 2px solid var(--accent, #c06f33); out
   .top .brand .logo { width: 34px; height: 34px; }
 }
 @media (max-width: 880px) { .top nav ~ .right { margin-left: auto; } }
+
+/* Glossy ball finish for the round logo */
+.logo-wrap { box-shadow: inset 0 -3px 5px rgba(20, 30, 90, 0.28), inset 0 1.5px 1px rgba(255, 255, 255, 0.95), 0 6px 14px -5px rgba(20, 40, 120, 0.6), 0 0 0 1px rgba(90, 110, 190, 0.45); }
+.logo-wrap::before { mix-blend-mode: normal; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(ellipse 38% 24% at 32% 20%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.16) 44%, rgba(255, 255, 255, 0) 52%),
+    radial-gradient(circle at 50% 108%, rgba(30, 60, 160, 0.28), rgba(30, 60, 160, 0) 55%); }
+
+/* Glossier logo: glass dome highlight, edge shading and a bright rim */
+.logo-wrap { box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(30, 50, 140, 0.3), 0 7px 16px -6px rgba(20, 40, 120, 0.6), 0 0 0 1px rgba(110, 130, 200, 0.35); }
+.logo-wrap::before { background: radial-gradient(110% 62% at 50% -6%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 58%), radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0) 64%, rgba(40, 60, 150, 0.16) 100%); mix-blend-mode: normal; }
+.login .logo-wrap.big { box-shadow: inset 0 3px 3px rgba(255, 255, 255, 0.95), inset 0 -5px 10px rgba(30, 50, 140, 0.3), 0 14px 28px -10px rgba(20, 40, 120, 0.6), 0 0 0 1px rgba(110, 130, 200, 0.35); }
