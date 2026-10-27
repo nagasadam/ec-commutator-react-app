@@ -5,6 +5,10 @@ import l180 from './logo-light-180.png'
 import l240 from './logo-light-240.png'
 import l360 from './logo-light-360.png'
 import l480 from './logo-light-480.png'
+import l720 from './logo-light-720.png'
+import l960 from './logo-light-960.png'
+import h720 from './logo-hd-720.png'
+import h960 from './logo-hd-960.png'
 import d60 from './logo-dark-60.png'
 import d90 from './logo-dark-90.png'
 import d120 from './logo-dark-120.png'
@@ -12,6 +16,8 @@ import d180 from './logo-dark-180.png'
 import d240 from './logo-dark-240.png'
 import d360 from './logo-dark-360.png'
 import d480 from './logo-dark-480.png'
+import d720 from './logo-dark-720.png'
+import d960 from './logo-dark-960.png'
 
-export const light = { src: l240, srcSet: [[l60, 60], [l90, 90], [l120, 120], [l180, 180], [l240, 240], [l360, 360], [l480, 480]].map(([u, w]) => u + ' ' + w + 'w').join(', ') }
-export const dark = { src: d240, srcSet: [[d60, 60], [d90, 90], [d120, 120], [d180, 180], [d240, 240], [d360, 360], [d480, 480]].map(([u, w]) => u + ' ' + w + 'w').join(', ') }
+export const light = { src: l240, srcSet: [[l60, 60], [l90, 90], [l120, 120], [l180, 180], [l240, 240], [l360, 360], [l480, 480], [l720, 720], [l960, 960]].map(([u, w]) => u + ' ' + w + 'w').join(', ') }
+export const dark = { src: d240, srcSet: [[d60, 60], [d90, 90], [d120, 120], [d180, 180], [d240, 240], [d360, 360], [d480, 480], [d720, 720], [d960, 960]].map(([u, w]) => u + ' ' + w + 'w').join(', ') }
