@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctOptions, find, paidFor, prrTot, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
@@ -218,7 +218,7 @@ export default function Purchases() {
     <>
       <div className="phead">
         <div>
-          <h2>Purchases</h2>
+          <h2 className="ptitle"><span className="hico"><Icon n="pur" /></span>Purchases</h2>
           <p className="muted">Raw material you buy — firms add GST, persons do not</p>
         </div>
         <div className="r">
@@ -234,22 +234,22 @@ export default function Purchases() {
       <div className="stats s4">
         <div className="stat">
           <div className="l"><i className="dot" />Purchases</div>
-          <div className="v">{all.length}</div>
+          <div className="v"><Rolling n={all.length} count /></div>
           <div className="s">{all.length ? 'Recorded in this business' : 'None yet'}</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-good" />Paid</div>
-          <div className="v">{inr(paidRows.reduce((n, r) => n + r.t.total, 0))}</div>
+          <div className="v"><Rolling n={paidRows.reduce((n, r) => n + r.t.total, 0)} /></div>
           <div className="s">{paidRows.length} purchase{paidRows.length === 1 ? '' : 's'}</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-warn" />To pay</div>
-          <div className="v">{inr(dueRows.reduce((n, r) => n + r.open, 0))}</div>
+          <div className="v"><Rolling n={dueRows.reduce((n, r) => n + r.open, 0)} /></div>
           <div className="s">{dueRows.length} purchase{dueRows.length === 1 ? '' : 's'} outstanding</div>
         </div>
         <div className="stat">
           <div className="l"><i className="dot dot-dark" />GST input</div>
-          <div className="v">{inr(gstSum)}</div>
+          <div className="v"><Rolling n={gstSum} /></div>
           <div className="s">Credit on purchases</div>
         </div>
       </div>
@@ -306,7 +306,7 @@ export default function Purchases() {
               <div className="icards">
                 {rows.map((r) => (
                   <div className="icard" key={r.p.id}>
-                    <div className="top">
+                    <div className="ictop">
                       <b>{r.p.no}</b>
                       {badge(r)}
                     </div>

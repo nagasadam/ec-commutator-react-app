@@ -21,9 +21,12 @@ const P = {
   up: 'M12 20V8M7 13l5-5 5 5M5 4h14',
   warn: 'M12 4l9 16H3zM12 10v4M12 17h.01',
   tax: 'M6 18L18 6M8 8h.01M16 16h.01',
+  pdf: 'M14 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V7zM14 3v4h4M12 17v-5M9.8 14l2.2-2.2 2.2 2.2',
+  gdrive: 'M10.5 19H5a2 2 0 01-2-2V7a2 2 0 012-2h3.8l2 2.2H19a2 2 0 012 2v1.3M15 20a2.6 2.6 0 01-.3-5.2 3.7 3.7 0 017 .9A2.3 2.3 0 0121 20z',
 }
-export const Icon = ({ n }) => (
+// `duo` adds a soft tint fill inside the outline (modern duotone look); the tint follows the text colour.
+export const Icon = ({ n, duo }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={P[n] || P.dash} />
+    <path d={P[n] || P.dash} fill={duo ? 'currentColor' : 'none'} fillOpacity={duo ? 0.16 : undefined} />
   </svg>
 )

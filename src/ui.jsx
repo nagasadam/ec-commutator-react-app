@@ -86,6 +86,12 @@ export function useMedia(query) {
 
 export { useCountUp }
 
+// Numbers that roll up to their value (₹ amounts, or plain counts with `count`).
+export const Rolling = ({ n, count }) => {
+  const v = useCountUp(n ?? 0)
+  return <>{count ? Math.round(v).toLocaleString('en-IN') : inr(v)}</>
+}
+
 export function Stat({ label, value, n, sub, tone, dot, meter }) {
   const counted = useCountUp(n ?? 0)
   const text = n != null ? inr(counted) : value
