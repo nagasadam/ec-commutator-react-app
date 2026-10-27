@@ -59,7 +59,9 @@ export function StoreProvider({ children }) {
   }, [S]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Synchronous: Sref is always the latest state, so cloud merges never see a stale copy.
-  const upd = useCallback((fn) => {
+  // `{ quiet: true }` skips the "Saved" toast (used for switching the selected business).
+  const upd = useCallback((fn, opts) => {
+    if (opts?.quiet) silent.current = true
     const n = structuredClone(Sref.current)
     fn(n)
     Sref.current = n

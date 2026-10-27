@@ -2302,3 +2302,6 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 .hico { flex: none; width: 1.35em; height: 1.35em; border-radius: 0.45em; display: inline-grid; place-items: center; background: color-mix(in srgb, var(--a) 14%, transparent); color: var(--a); }
 .hico svg { width: 0.72em; height: 0.72em; }
 .phead h2.ptitle { font-size: 22px; }
+
+.mgr-err { margin: -4px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--bad); }
+.mgr-sec .btn:disabled { opacity: 0.5; cursor: default; }
