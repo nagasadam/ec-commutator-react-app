@@ -27,6 +27,18 @@ export function parseBackup(text) {
 // Add businesses from a backup, giving a fresh id to any that would clash.
 export function mergeBackup(S, incoming, newId) {
   const have = new Set(S.biz.map((b) => b.id))
-  const add = incoming.biz.map((b) => (have.has(b.id) ? { ...b, id: newId(), name: b.name + ' (imported)' } : b))
+  const names = new Set(S.biz.map((b) => String(b.name).trim().toLowerCase()))
+  // Names stay unique: a clash becomes "X (imported)", then "X (imported 2)" and so on.
+  const free = (name) => {
+    let n = name
+    for (let k = 1; names.has(n.trim().toLowerCase()); k++) n = `${name} (imported${k > 1 ? ' ' + k : ''})`
+    names.add(n.trim().toLowerCase())
+    return n
+  }
+  const add = incoming.biz.map((b) => {
+    const clash = have.has(b.id)
+    const name = free(b.name)
+    return clash || name !== b.name ? { ...b, ...(clash ? { id: newId() } : {}), name } : b
+  })
   return { biz: [...S.biz, ...add], cur: S.cur }
 }

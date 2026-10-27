@@ -7,7 +7,7 @@ import { Field, Modal, useDialog } from './ui.jsx'
 import { useToast } from './toast.jsx'
 import { useCloud } from './cloud.jsx'
 import { exportJson, mergeBackup, parseBackup } from './lib/backup.js'
-import { kindSwitchError } from './lib/rules.js'
+import { bizNameTaken, kindSwitchError } from './lib/rules.js'
 import { uid } from './lib/format.js'
 import Ledgers from './tabs/Ledgers.jsx'
 import CashPeople from './tabs/CashPeople.jsx'
@@ -70,6 +70,62 @@ function Sec({ tone, icon, title, hint, children }) {
   )
 }
 
+function Settings() {
+  const { S, b, updB } = useStore()
+  const { tell } = useDialog()
+  const [name, setName] = useState(b.name)
+  const [kind, setKind] = useState(b.kind)
+  const [sc, setSc] = useState(b.stateCode)
+  const [err, setErr] = useState('')
+  const dirty = name !== b.name || kind !== b.kind || sc !== b.stateCode
+
+  const save = (e) => {
+    e.preventDefault()
+    const n = name.trim()
+    if (!n) return setErr('Enter a name for the business.')
+    if (bizNameTaken(S.biz, n, b.id)) return setErr(`Another business is already named "${n}". Use a different name.`)
+    if (kind !== b.kind) {
+      const bad = kindSwitchError(b, kind)
+      if (bad) return tell(bad)
+    }
+    updB((x) => {
+      x.name = n
+      x.kind = kind
+      x.stateCode = sc
+    })
+    setName(n)
+    setErr('')
+  }
+  return (
+    <Sec icon="⚙" title={b.name} hint="Settings for this business">
+      <form onSubmit={save}>
+        <Field label="Business name">
+          <input value={name} onChange={(e) => (setName(e.target.value), setErr(''))} aria-invalid={!!err} />
+        </Field>
+        {err && <p className="mgr-err" role="alert">{err}</p>}
+        <Field label="Business type">
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="person">Person based (BILL, cash/GPay and firms)</option>
+            <option value="firm">Firm based (firms with GSTIN, bank only)</option>
+          </select>
+        </Field>
+        <Field label="Your GST state code (first 2 digits of your GSTIN)">
+          <input value={sc} maxLength={2} onChange={(e) => setSc(e.target.value.replace(/\D/g, ''))} />
+        </Field>
+        <p className="muted">Sales to a customer with the same state code get CGST + SGST; otherwise IGST.</p>
+        <div className="mgr-acts">
+          <button className="btn" disabled={!dirty}>Save changes</button>
+          {dirty && (
+            <button type="button" className="btn ghost" onClick={() => (setName(b.name), setKind(b.kind), setSc(b.stateCode), setErr(''))}>
+              Discard
+            </button>
+          )}
+        </div>
+      </form>
+    </Sec>
+  )
+}
+
 function Manage({ onClose }) {
   const { S, upd, b, updB } = useStore()
   const { ask, tell } = useDialog()
@@ -78,10 +134,12 @@ function Manage({ onClose }) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState('person')
   const [typed, setTyped] = useState('')
+  const [addErr, setAddErr] = useState('')
 
   const add = (e) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim()) return setAddErr('Enter a name for the business.')
+    if (bizNameTaken(S.biz, name)) return setAddErr(`A business named "${name.trim()}" already exists. Use a different name.`)
     upd((s) => {
       const nb = mkBiz(name.trim(), kind)
       s.biz.push(nb)
@@ -90,6 +148,8 @@ function Manage({ onClose }) {
     onClose()
   }
   const demo = () => {
+    const dn = demoBiz().name
+    if (bizNameTaken(S.biz, dn)) return setAddErr(`A business named "${dn}" already exists, so the demo data was not added.`)
     upd((s) => {
       const d = demoBiz()
       s.biz.push(d)
@@ -152,7 +212,7 @@ function Manage({ onClose }) {
       <div className="mgr">
         <div className="mgr-list" role="group" aria-label="Switch business">
           {S.biz.map((x) => (
-            <button key={x.id} type="button" className={'mgr-biz' + (x.id === S.cur ? ' on' : '')} onClick={() => upd((s) => (s.cur = x.id))}>
+            <button key={x.id} type="button" className={'mgr-biz' + (x.id === S.cur ? ' on' : '')} onClick={() => x.id !== S.cur && upd((s) => (s.cur = x.id), { quiet: true })}>
               <span className="avatar" aria-hidden="true">{initials(x.name)}</span>
               <span>
                 {x.name}
@@ -166,8 +226,9 @@ function Manage({ onClose }) {
           <Sec icon="＋" title="Add business" hint="Start a separate set of books">
             <form onSubmit={add}>
               <Field label="Name">
-                <input value={name} onChange={(e) => setName(e.target.value)} />
+                <input value={name} onChange={(e) => (setName(e.target.value), setAddErr(''))} aria-invalid={!!addErr} />
               </Field>
+              {addErr && <p className="mgr-err" role="alert">{addErr}</p>}
               <Field label="Type">
                 <select value={kind} onChange={(e) => setKind(e.target.value)}>
                   <option value="person">Person based (BILL, cash/GPay and firms)</option>
@@ -181,21 +242,7 @@ function Manage({ onClose }) {
             </form>
           </Sec>
 
-          <Sec icon="⚙" title={b.name} hint="Settings for this business">
-            <Field label="Business name">
-              <input value={b.name} onChange={(e) => updB((x) => (x.name = e.target.value))} />
-            </Field>
-            <Field label="Business type">
-              <select value={b.kind} onChange={(e) => setKind2(e.target.value)}>
-                <option value="person">Person based (BILL, cash/GPay and firms)</option>
-                <option value="firm">Firm based (firms with GSTIN, bank only)</option>
-              </select>
-            </Field>
-            <Field label="Your GST state code (first 2 digits of your GSTIN)">
-              <input value={b.stateCode} maxLength={2} onChange={(e) => updB((x) => (x.stateCode = e.target.value.replace(/\D/g, '')))} />
-            </Field>
-            <p className="muted">Sales to a customer with the same state code get CGST + SGST; otherwise IGST.</p>
-          </Sec>
+          <Settings key={b.id} />
 
           <Sec icon="⇅" title="Backup" hint="Download everything, or bring a backup back in">
             <div className="mgr-acts">

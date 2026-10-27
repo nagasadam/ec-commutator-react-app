@@ -45,3 +45,9 @@ export function kindSwitchError(b, kind) {
 }
 
 export const partyOf = (b, id) => find(b.cust, id) || find(b.sup, id)
+
+// Business names must be unique (ignoring case and surrounding spaces). `exceptId` skips the business being renamed.
+export const bizNameTaken = (biz, name, exceptId) => {
+  const n = String(name || '').trim().toLowerCase()
+  return biz.some((x) => x.id !== exceptId && String(x.name || '').trim().toLowerCase() === n)
+}

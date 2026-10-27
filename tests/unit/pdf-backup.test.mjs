@@ -5,6 +5,7 @@ import { exportJson, parseBackup, mergeBackup } from '../../src/lib/backup.js'
 import { ledger } from '../../src/lib/reports.js'
 import { demoBiz } from '../../src/lib/seed.js'
 import { mkBiz } from '../../src/lib/model.js'
+import { bizNameTaken } from '../../src/lib/rules.js'
 
 const text = (u8) => new TextDecoder().decode(u8)
 
@@ -58,4 +59,22 @@ test('merge import never overwrites an existing business id', () => {
   assert.equal(m.biz[1].id, 'new1')
   assert.match(m.biz[1].name, /imported/)
   assert.equal(m.biz[0].name, 'A')
+})
+
+test('business names are unique ignoring case and spaces', () => {
+  const a = mkBiz('E.C Commutators')
+  const b = mkBiz('Other')
+  assert.equal(bizNameTaken([a, b], '  e.c commutators '), true)
+  assert.equal(bizNameTaken([a, b], 'E.C Commutators', a.id), false) // renaming itself is fine
+  assert.equal(bizNameTaken([a, b], 'Third'), false)
+})
+
+test('importing a backup never creates duplicate names', () => {
+  const a = mkBiz('A')
+  const S = { biz: [a], cur: a.id }
+  const once = mergeBackup(S, { biz: [{ ...mkBiz('A') }] }, () => 'n1')
+  const twice = mergeBackup(once, { biz: [{ ...mkBiz('A') }] }, () => 'n2')
+  const names = twice.biz.map((x) => x.name.toLowerCase())
+  assert.equal(new Set(names).size, names.length)
+  assert.deepEqual(twice.biz.map((x) => x.name), ['A', 'A (imported)', 'A (imported 2)'])
 })
