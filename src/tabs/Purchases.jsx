@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons.jsx'
 import { useStore } from '../lib/store.jsx'
-import { acctOptions, find, paidFor, prrTot, purTot } from '../lib/calc.js'
+import { acctOptions, find, purRows, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
@@ -159,17 +159,7 @@ export default function Purchases() {
     )
   }
 
-  const all = useMemo(
-    () =>
-      [...b.pur].reverse().map((p) => {
-        const sp = find(b.sup, p.sup)
-        const t = purTot(b, p)
-        const dn = b.prr.filter((r) => r.pur === p.id).reduce((n, r) => n + prrTot(b, r).total, 0)
-        const open = Math.max(0, t.total - dn - paidFor(b, p.id))
-        return { p, sp, t, open, isPaid: open < 0.5, person: !sp?.company }
-      }),
-    [b],
-  )
+  const all = useMemo(() => purRows(b), [b])
   const paidRows = all.filter((r) => r.isPaid)
   const dueRows = all.filter((r) => !r.isPaid)
   const billed = all.reduce((n, r) => n + r.t.total, 0)

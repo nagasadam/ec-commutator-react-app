@@ -110,6 +110,55 @@ const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0)
 
 export const paidFor = (b, ref) => r2(sum(b.tx.filter((t) => t.ref === ref), (t) => t.amt))
 
+// ---------- Document rows (indexed: one pass instead of a search per document) ----------
+// Payments received/made per document ref, in ledger order (same arithmetic as paidFor).
+function paidIndex(b) {
+  const m = new Map()
+  for (const t of b.tx) if (t.ref != null) m.set(t.ref, (m.get(t.ref) || 0) + (+t.amt || 0))
+  return m
+}
+const byId = (arr) => new Map(arr.map((x) => [x.id, x]))
+
+// Invoices newest first, with customer, totals, credit notes and what is still open.
+export function saleRows(b) {
+  const cust = byId(b.cust)
+  const invs = byId(b.inv)
+  const paid = paidIndex(b)
+  const cn = new Map()
+  for (const r of b.sr) {
+    const inv = invs.get(r.inv)
+    const l = inv?.lines.find((x) => x.item === r.item)
+    const t = taxOf(b, cust.get(inv?.cust), (+r.qty || 0) * (l?.rate || 0)).total
+    cn.set(r.inv, (cn.get(r.inv) || 0) + t)
+  }
+  return [...b.inv].reverse().map((i) => {
+    const c = cust.get(i.cust)
+    const t = taxOf(b, c, lineSum(i.lines))
+    const open = Math.max(0, t.total - (cn.get(i.id) || 0) - r2(paid.get(i.id) || 0))
+    return { i, c, t, open, isPaid: open < 0.5, person: !c?.company }
+  })
+}
+
+// Purchases newest first, with supplier, totals, debit notes and what is still open.
+export function purRows(b) {
+  const sup = byId(b.sup)
+  const purs = byId(b.pur)
+  const paid = paidIndex(b)
+  const dn = new Map()
+  for (const r of b.prr) {
+    const p = purs.get(r.pur)
+    const l = p?.lines.find((x) => x.item === r.item)
+    const t = taxOf(b, sup.get(p?.sup), (+r.qty || 0) * (l?.rate || 0)).total
+    dn.set(r.pur, (dn.get(r.pur) || 0) + t)
+  }
+  return [...b.pur].reverse().map((p) => {
+    const sp = sup.get(p.sup)
+    const t = taxOf(b, sp, lineSum(p.lines))
+    const open = Math.max(0, t.total - (dn.get(p.id) || 0) - r2(paid.get(p.id) || 0))
+    return { p, sp, t, open, isPaid: open < 0.5, person: !sp?.company }
+  })
+}
+
 export const custBal = (b, c) =>
   r2(
     (+c.open || 0) +
@@ -125,6 +174,25 @@ export const supBal = (b, s) =>
       sum(b.prr.filter((r) => find(b.pur, r.pur)?.sup === s.id), (r) => prrTot(b, r).total) -
       sum(b.tx.filter((t) => t.kind === 'pay' && t.party === s.id), (t) => t.amt),
   )
+
+// Every party's balance in one pass (same sums, same order, as custBal / supBal one party at a time).
+const bump = (m, k, v) => m.set(k, (m.get(k) || 0) + v)
+export function custBals(b) {
+  const inv = new Map(), cn = new Map(), rc = new Map()
+  const invs = byId(b.inv)
+  for (const i of b.inv) bump(inv, i.cust, invTot(b, i).total)
+  for (const r of b.sr) bump(cn, invs.get(r.inv)?.cust, srTot(b, r).total)
+  for (const t of b.tx) if (t.kind === 'recv') bump(rc, t.party, t.amt)
+  return new Map(b.cust.map((c) => [c.id, r2((+c.open || 0) + (inv.get(c.id) || 0) - (cn.get(c.id) || 0) - (rc.get(c.id) || 0))]))
+}
+export function supBals(b) {
+  const pur = new Map(), dn = new Map(), py = new Map()
+  const purs = byId(b.pur)
+  for (const p of b.pur) bump(pur, p.sup, purTot(b, p).total)
+  for (const r of b.prr) bump(dn, purs.get(r.pur)?.sup, prrTot(b, r).total)
+  for (const t of b.tx) if (t.kind === 'pay') bump(py, t.party, t.amt)
+  return new Map(b.sup.map((s) => [s.id, r2((+s.open || 0) + (pur.get(s.id) || 0) - (dn.get(s.id) || 0) - (py.get(s.id) || 0))]))
+}
 
 // Accounts: a bank id, 'cash' or 'gpay'.
 export const acctOpen = (b, a) => (a === 'cash' ? +b.cashOpen || 0 : a === 'gpay' ? +b.gpayOpen || 0 : +find(b.banks, a)?.open || 0)
@@ -163,8 +231,8 @@ export function calc(b) {
   const gstIn = r2(sum(purs, (x) => x.gst) - sum(drs, (x) => x.gst))
   const expenses = r2(sum(b.exp, (e) => e.amt))
   const profit = r2(sales + v.closing - v.opening - purNet - expenses)
-  const receivable = r2(sum(b.cust.map((c) => custBal(b, c)).filter((x) => x > 0), (x) => x))
-  const payable = r2(sum(b.sup.map((s) => supBal(b, s)).filter((x) => x > 0), (x) => x))
+  const receivable = r2(sum([...custBals(b).values()].filter((x) => x > 0), (x) => x))
+  const payable = r2(sum([...supBals(b).values()].filter((x) => x > 0), (x) => x))
   const banks = Object.fromEntries(b.banks.map((k) => [k.id, acctBal(b, k.id)]))
   return {
     sales,
