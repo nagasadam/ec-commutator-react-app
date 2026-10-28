@@ -511,7 +511,7 @@ export default function App() {
         </div>
         )}
         <motion.main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''} initial={tab === 'inv' && newInv ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: EASE }}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<div className="pageload" role="status" aria-label="Loading page" />}>
             <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
           </Suspense>
         </motion.main>

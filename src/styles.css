@@ -2318,3 +2318,9 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 
 .mgr-err { margin: -4px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--bad); }
 .mgr-sec .btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Shown for a moment the first time a page's code is fetched */
+.pageload { height: 3px; margin: 18px 0; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--a) 14%, transparent); position: relative; }
+.pageload::after { content: ''; position: absolute; inset: 0; width: 40%; border-radius: inherit; background: var(--a); animation: pageload 1s var(--ease) infinite; }
+@keyframes pageload { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .pageload::after { animation: none; width: 100%; opacity: 0.5; } }
