@@ -2324,3 +2324,11 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 .pageload::after { content: ''; position: absolute; inset: 0; width: 40%; border-radius: inherit; background: var(--a); animation: pageload 1s var(--ease) infinite; }
 @keyframes pageload { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @media (prefers-reduced-motion: reduce) { .pageload::after { animation: none; width: 100%; opacity: 0.5; } }
+
+/* Phones: iOS Safari zooms the page when a field with text under 16px gets focus. Keep fields at 16px so
+   tapping email/password (and every other input) never zooms or shifts the layout. */
+@media (pointer: coarse), (max-width: 880px) {
+  input, select, textarea { font-size: 16px; }
+}
+/* The sign-in page tracks the visible screen, so the on-screen keyboard does not jump the card around. */
+.login { min-height: 100vh; min-height: 100dvh; overflow-x: clip; }
