@@ -124,6 +124,28 @@ export function Stat({ label, value, n, sub, tone, dot, meter }) {
 
 export const Empty = ({ children }) => <p className="empty">{children}</p>
 
+// Long lists show 50 rows at a time: a thousand rows at once makes the page slow to open and to type in.
+export function usePaged(rows, key, size = 50) {
+  const [n, setN] = useState(size)
+  useEffect(() => setN(size), [key, size])
+  return {
+    shown: rows.length > n ? rows.slice(0, n) : rows,
+    total: rows.length,
+    left: Math.max(0, rows.length - n),
+    size,
+    more: () => setN((x) => x + size),
+    all: () => setN(Infinity),
+  }
+}
+export const MoreRows = ({ pg }) =>
+  pg.left > 0 ? (
+    <div className="morerows">
+      <span>Showing {(pg.total - pg.left).toLocaleString('en-IN')} of {pg.total.toLocaleString('en-IN')}</span>
+      <button type="button" className="btn ghost" onClick={pg.more}>Show {Math.min(pg.size, pg.left)} more</button>
+      <button type="button" className="btn ghost" onClick={pg.all}>Show all</button>
+    </div>
+  ) : null
+
 export const ErrBar = ({ msg }) => (msg ? <div className="err">{msg}</div> : null)
 
 export const blankLine = () => ({ item: '', qty: '', rate: '' })
