@@ -2332,3 +2332,7 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 }
 /* The sign-in page tracks the visible screen, so the on-screen keyboard does not jump the card around. */
 .login { min-height: 100vh; min-height: 100dvh; overflow-x: clip; }
+
+/* "Show more" under long lists */
+.morerows { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; padding: 16px 0 4px; font-size: 13px; color: var(--muted); }
+.morerows .btn { padding: 8px 16px; }

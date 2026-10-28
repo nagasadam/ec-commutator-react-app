@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctOptions, find, purRows, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
@@ -172,6 +172,7 @@ export default function Purchases() {
     if (flt === 'person' && !r.person) return false
     return !needle || (r.sp?.name || '').toLowerCase().includes(needle) || r.p.no.toLowerCase().includes(needle)
   })
+  const pg = usePaged(rows, flt + '|' + needle)
   const openReview = (x) => {
     setF(x.snap.f)
     setNewSup(x.snap.newSup)
@@ -274,7 +275,7 @@ export default function Purchases() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r) => (
+                    {pg.shown.map((r) => (
                       <tr key={r.p.id}>
                         <td>
                           <b>{r.sp?.name}</b>
@@ -286,7 +287,7 @@ export default function Purchases() {
                         <td className="r nw">{inr(r.t.gst)}</td>
                         <td className="r nw"><b>{inr(r.t.total)}</b></td>
                         <td>{badge(r)}</td>
-                        <td className="r"><Menu r={r} /></td>
+                        <td className="r">{Menu({ r })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -294,7 +295,7 @@ export default function Purchases() {
               </div>
             ) : (
               <div className="icards">
-                {rows.map((r) => (
+                {pg.shown.map((r) => (
                   <div className="icard" key={r.p.id}>
                     <div className="ictop">
                       <b>{r.p.no}</b>
@@ -305,12 +306,13 @@ export default function Purchases() {
                     <div className="amt">{inr(r.t.total)}</div>
                     <div className="foot">
                       <span>GST {inr(r.t.gst)}</span>
-                      <Menu r={r} />
+                      {Menu({ r })}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+            <MoreRows pg={pg} />
           </div>
         </div>
 

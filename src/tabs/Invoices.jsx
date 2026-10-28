@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { find, invTot, saleRows, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
@@ -251,6 +251,7 @@ export default function Invoices({ newInv = 0 }) {
     if (flt === 'person' && !r.person) return false
     return !needle || (r.c?.name || '').toLowerCase().includes(needle) || r.i.no.toLowerCase().includes(needle)
   })
+  const pg = usePaged(rows, flt + '|' + needle)
   const open = (r) => setView(r.i)
   const openReview = (x) => {
     setF(x.snap.f)
@@ -353,7 +354,7 @@ export default function Invoices({ newInv = 0 }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r) => (
+                    {pg.shown.map((r) => (
                       <tr key={r.i.id}>
                         <td>
                           <b>{r.c?.name}</b>
@@ -365,7 +366,7 @@ export default function Invoices({ newInv = 0 }) {
                         <td className="r nw">{inr(r.t.gst)}</td>
                         <td className="r nw"><b>{inr(r.t.total)}</b></td>
                         <td>{r.isPaid ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}</td>
-                        <td className="r"><Menu r={r} /></td>
+                        <td className="r">{Menu({ r })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -373,7 +374,7 @@ export default function Invoices({ newInv = 0 }) {
               </div>
             ) : (
               <div className="icards">
-                {rows.map((r) => (
+                {pg.shown.map((r) => (
                   <div className="icard" key={r.i.id}>
                     <div className="ictop">
                       <b>{r.i.no}</b>
@@ -384,12 +385,13 @@ export default function Invoices({ newInv = 0 }) {
                     <div className="amt">{inr(r.t.total)}</div>
                     <div className="foot">
                       <span>GST {inr(r.t.gst)}</span>
-                      <Menu r={r} />
+                      {Menu({ r })}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+            <MoreRows pg={pg} />
           </div>
         </div>
 
