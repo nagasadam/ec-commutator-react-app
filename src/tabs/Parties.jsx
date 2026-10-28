@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
-import { custBal, supBal } from '../lib/calc.js'
+import { custBals, supBals } from '../lib/calc.js'
 import { inr, uid } from '../lib/format.js'
 import { partyError } from '../lib/rules.js'
 import { Empty, ErrBar, Field, useDialog } from '../ui.jsx'
@@ -11,7 +11,7 @@ function PartyBlock({ kind }) {
   const { ask, tell } = useDialog()
   const isCust = kind === 'cust'
   const list = isCust ? b.cust : b.sup
-  const bal = isCust ? custBal : supBal
+  const bals = useMemo(() => (isCust ? custBals(b) : supBals(b)), [b, isCust])
   const [f, setF] = useState({ name: '', company: true, gstin: '', phone: '', address: '', open: '' })
   const [err, setErr] = useState('')
 
@@ -80,7 +80,7 @@ function PartyBlock({ kind }) {
                   <td>{p.name}</td>
                   <td>{p.company ? 'Firm' : 'Person'}</td>
                   <td>{p.gstin}</td>
-                  <td className="r">{inr(bal(b, p))}</td>
+                  <td className="r">{inr(bals.get(p.id) ?? 0)}</td>
                   <td className="r">
                     <button
                       className="btn ghost"

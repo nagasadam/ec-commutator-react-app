@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useDragControls, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
 import { mkBiz } from './lib/model.js'
@@ -9,20 +9,35 @@ import { useCloud } from './cloud.jsx'
 import { exportJson, mergeBackup, parseBackup } from './lib/backup.js'
 import { bizNameTaken, kindSwitchError } from './lib/rules.js'
 import { uid } from './lib/format.js'
-import Ledgers from './tabs/Ledgers.jsx'
-import CashPeople from './tabs/CashPeople.jsx'
 import Invoices from './tabs/Invoices.jsx'
-import Inventory from './tabs/Inventory.jsx'
-import Production from './tabs/Production.jsx'
-import Purchases from './tabs/Purchases.jsx'
-import Expenses from './tabs/Expenses.jsx'
-import Returns from './tabs/Returns.jsx'
-import Parties from './tabs/Parties.jsx'
-import Banking from './tabs/Banking.jsx'
-import Reports from './tabs/Reports.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
 import { Icon } from './icons.jsx'
 import { light as logoLight, dark as logoDark } from './assets/logos.js'
+
+// Dashboard and Invoices load with the app; the other pages download the first time they are opened
+// (and are fetched in the background once the app is idle, so they still open instantly).
+const loaders = {
+  Ledgers: () => import('./tabs/Ledgers.jsx'),
+  CashPeople: () => import('./tabs/CashPeople.jsx'),
+  Inventory: () => import('./tabs/Inventory.jsx'),
+  Production: () => import('./tabs/Production.jsx'),
+  Purchases: () => import('./tabs/Purchases.jsx'),
+  Expenses: () => import('./tabs/Expenses.jsx'),
+  Returns: () => import('./tabs/Returns.jsx'),
+  Parties: () => import('./tabs/Parties.jsx'),
+  Banking: () => import('./tabs/Banking.jsx'),
+  Reports: () => import('./tabs/Reports.jsx'),
+}
+const Ledgers = lazy(loaders.Ledgers)
+const CashPeople = lazy(loaders.CashPeople)
+const Inventory = lazy(loaders.Inventory)
+const Production = lazy(loaders.Production)
+const Purchases = lazy(loaders.Purchases)
+const Expenses = lazy(loaders.Expenses)
+const Returns = lazy(loaders.Returns)
+const Parties = lazy(loaders.Parties)
+const Banking = lazy(loaders.Banking)
+const Reports = lazy(loaders.Reports)
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
 const MOBILE = ['dash', 'inv', 'par', 'pur']
@@ -47,8 +62,8 @@ function Logo({ big }) {
   const sizes = big ? '72px' : '34px'
   return (
     <span className={'logo-wrap' + (big ? ' big' : '')} aria-hidden="true">
-      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" />
-      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={sizes} alt="" />
+      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" decoding="async" loading="lazy" />
+      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={sizes} alt="" decoding="async" loading="lazy" />
     </span>
   )
 }
@@ -362,6 +377,12 @@ export default function App() {
   const cloud = useCloud()
   const { ask } = useDialog()
   const [tab, setTab] = useState('dash')
+  // Once the app is idle, fetch the other pages' code in the background.
+  useEffect(() => {
+    const run = () => Object.values(loaders).forEach((load) => load().catch(() => {}))
+    const id = window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: 4000 }) : setTimeout(run, 2500)
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id))
+  }, [])
   const [manage, setManage] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [sheet, setSheet] = useState(false)
@@ -490,7 +511,9 @@ export default function App() {
         </div>
         )}
         <motion.main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''} initial={tab === 'inv' && newInv ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: EASE }}>
-          <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
+          <Suspense fallback={<div className="pageload" role="status" aria-label="Loading page" />}>
+            <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
+          </Suspense>
         </motion.main>
       </div>
       <div className="tabbar" role="navigation" aria-label="Quick tabs">

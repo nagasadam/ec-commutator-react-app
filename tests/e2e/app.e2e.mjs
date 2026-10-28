@@ -76,7 +76,12 @@ async function open({ drive, driveState, ...opts } = {}) {
 const PRIMARY = ['Dashboard', 'Invoices', 'Inventory', 'Purchases', 'Reports']
 const onPhone = (p) => p.evaluate(() => matchMedia('(max-width: 880px)').matches)
 // Desktop: pill bar + More menu. Phone (<= 880px): the pill bar is hidden, so use the bottom bar and the More sheet.
+// Pages other than Dashboard/Invoices are fetched the first time they open: wait for that to finish.
 async function tab(p, t) {
+  await goTab(p, t)
+  await p.locator('.pageload').waitFor({ state: 'detached' })
+}
+async function goTab(p, t) {
   if (await onPhone(p)) {
     const bar = p.locator(`.tabbar > button:text-is("${t}")`)
     if (await bar.count()) return bar.click()

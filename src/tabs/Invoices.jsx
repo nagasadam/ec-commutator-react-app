@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons.jsx'
 import { useStore } from '../lib/store.jsx'
-import { find, invTot, srTot, paidFor, valuation } from '../lib/calc.js'
+import { find, invTot, saleRows, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling } from '../ui.jsx'
@@ -238,18 +238,7 @@ export default function Invoices({ newInv = 0 }) {
     ask(`Delete ${i.no}?`, () => updB((x) => (x.inv = x.inv.filter((y) => y.id !== i.id))), 'Delete')
   }
 
-  const all = useMemo(
-    () =>
-      [...b.inv].reverse().map((i) => {
-        const c = find(b.cust, i.cust)
-        const t = invTot(b, i)
-        const cn = b.sr.filter((x) => x.inv === i.id).reduce((n, r) => n + srTot(b, r).total, 0)
-        const paid = paidFor(b, i.id)
-        const open = Math.max(0, t.total - cn - paid)
-        return { i, c, t, open, isPaid: open < 0.5, person: !c?.company }
-      }),
-    [b],
-  )
+  const all = useMemo(() => saleRows(b), [b])
   const paidRows = all.filter((r) => r.isPaid)
   const dueRows = all.filter((r) => !r.isPaid)
   const billed = all.reduce((n, r) => n + r.t.total, 0)

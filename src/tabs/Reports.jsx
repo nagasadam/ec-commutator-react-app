@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
-import { calc, custBal, find, invTot, paidFor, srTot, supBal } from '../lib/calc.js'
+import { calc, custBals, find, invTot, paidFor, srTot, supBals } from '../lib/calc.js'
 import { GUIDE } from '../lib/seed.js'
 import { dmy, inr } from '../lib/format.js'
 import { Empty, Stat } from '../ui.jsx'
@@ -24,7 +24,9 @@ function Overview() {
   const { b } = useStore()
   const c = useMemo(() => calc(b), [b])
   const pct = (x) => (c.sales > 0 ? Math.round((x / c.sales) * 1000) / 10 : 0)
-  const supCount = b.sup.filter((s) => supBal(b, s) > 0).length
+  const cBal = useMemo(() => custBals(b), [b])
+  const sBal = useMemo(() => supBals(b), [b])
+  const supCount = [...sBal.values()].filter((x) => x > 0).length
 
   // money on hand: one donut slice per account (negative balances draw no slice)
   const accts = [...b.banks.map((k) => ({ label: k.name, val: c.banks[k.id] })), { label: 'Cash', val: c.cash }, { label: 'GPay', val: c.gpay }]
@@ -156,7 +158,7 @@ function Overview() {
                   <td>
                     {p.name} <span className="dim">· customer</span>
                   </td>
-                  <td className="r">{inr(custBal(b, p))}</td>
+                  <td className="r">{inr(cBal.get(p.id) ?? 0)}</td>
                 </tr>
               ))}
               {b.sup.map((p) => (
@@ -164,7 +166,7 @@ function Overview() {
                   <td>
                     {p.name} <span className="dim">· supplier</span>
                   </td>
-                  <td className="r">{inr(supBal(b, p))}</td>
+                  <td className="r">{inr(sBal.get(p.id) ?? 0)}</td>
                 </tr>
               ))}
             </tbody>
