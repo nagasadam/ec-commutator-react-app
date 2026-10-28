@@ -172,6 +172,24 @@ function Manage({ onClose }) {
     })
     onClose()
   }
+  const [loadingBig, setLoadingBig] = useState(false)
+  // 3,000 test records (invoices, purchases, payments...) as a separate business, for trying the app at scale.
+  const bigSample = async () => {
+    setAddErr('')
+    setLoadingBig(true)
+    try {
+      const { bigSampleBiz } = await import('./lib/sample.js')
+      const nb = bigSampleBiz()
+      if (bizNameTaken(S.biz, nb.name)) return setAddErr(`A business named "${nb.name}" already exists, so the test records were not added.`)
+      upd((s) => {
+        s.biz.push(nb)
+        s.cur = nb.id
+      })
+      onClose()
+    } finally {
+      setLoadingBig(false)
+    }
+  }
   const reset = () =>
     ask(
       `Reset "${b.name}"? All its entries are cleared and items go back to the defaults.`,
@@ -253,6 +271,7 @@ function Manage({ onClose }) {
               <div className="mgr-acts">
                 <button className="btn">Add</button>
                 <button type="button" className="btn ghost" onClick={demo}>Load E.C Commutators demo data</button>
+                <button type="button" className="btn ghost" onClick={bigSample} disabled={loadingBig}>{loadingBig ? 'Adding…' : 'Load 3,000 test records'}</button>
               </div>
             </form>
           </Sec>
