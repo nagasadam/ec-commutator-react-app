@@ -2092,7 +2092,7 @@ tr.neg td {
 @media (max-width: 880px) { .phead .r { flex-wrap: wrap; } }
 @media (max-width: 560px) { .stats.s4 { grid-template-columns: 1fr 1fr; } .stats.s4 .stat .v { font-size: 20px; } }
 
-@media (max-width: 880px) { .seg.hidephone { display: none; } }
+@media (max-width: 1180px) { .seg.hidephone { display: none; } }
 
 /* Arriving through "+" opens the form straight away: skip the page and list entrance so nothing moves behind the dialog. */
 main.nofx, .nofx .stat, .nofx tbody tr, .nofx .icard, .nofx .card:not(.modal) { animation: none; }
@@ -2336,3 +2336,11 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 /* "Show more" under long lists */
 .morerows { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; padding: 16px 0 4px; font-size: 13px; color: var(--muted); }
 .morerows .btn { padding: 8px 16px; }
+
+/* Invoice / purchase tables: fit the card instead of sliding sideways. Tighter cells, names wrap, and the
+   less important columns step aside as the card narrows (below 1180px the page shows cards instead). */
+.work .tw th, .work .tw td { padding-inline: 8px; }
+.work .tw td:first-child { min-width: 140px; max-width: 190px; white-space: normal; overflow-wrap: anywhere; }
+.work .tw td:first-child .sub { font-size: 11.5px; overflow-wrap: anywhere; }
+@media (max-width: 1999px) { .work .tw .c-tax { display: none; } }
+@media (max-width: 1300px) { .work .tw .c-gst { display: none; } }
