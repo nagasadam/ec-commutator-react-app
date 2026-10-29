@@ -2344,3 +2344,11 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 .work .tw td:first-child .sub { font-size: 11.5px; overflow-wrap: anywhere; }
 @media (max-width: 1999px) { .work .tw .c-tax { display: none; } }
 @media (max-width: 1300px) { .work .tw .c-gst { display: none; } }
+
+/* Big dashboard amounts: shrink to fit the card instead of clipping (8-digit rupee values on phones) */
+.d-sales, .d-recv, .d-pay, .d-gst { container-type: inline-size; }
+.d-recv .big, .d-pay .big, .d-sales .big, .d-gst .big {
+  font-size: clamp(16px, 9cqw, 46px);
+  max-width: 100%;
+  white-space: nowrap;
+}
