@@ -31,7 +31,7 @@ export default function Purchases() {
   const [q, setQ] = useState('')
   const [flt, setFlt] = useState('all')
   const [pick, setMode] = useState('table')
-  const phone = useMedia('(max-width: 880px)')
+  const phone = useMedia('(max-width: 1180px)')
   const mode = phone ? 'cards' : pick
   const [menu, setMenu] = useState(null)
   const [review, setReview] = useState([]) // PDFs read but not saved: { id, name, why, snap }
@@ -267,8 +267,8 @@ export default function Purchases() {
                       <th>Supplier</th>
                       <th>No</th>
                       <th>Date</th>
-                      <th className="r">Taxable</th>
-                      <th className="r">GST</th>
+                      <th className="r c-tax">Taxable</th>
+                      <th className="r c-gst">GST</th>
                       <th className="r">Total</th>
                       <th>Status</th>
                       <th />
@@ -283,8 +283,8 @@ export default function Purchases() {
                         </td>
                         <td className="nw">{r.p.no}</td>
                         <td className="nw">{dmy(r.p.date)}</td>
-                        <td className="r nw">{inr(r.t.taxable)}</td>
-                        <td className="r nw">{inr(r.t.gst)}</td>
+                        <td className="r nw c-tax">{inr(r.t.taxable)}</td>
+                        <td className="r nw c-gst">{inr(r.t.gst)}</td>
                         <td className="r nw"><b>{inr(r.t.total)}</b></td>
                         <td>{badge(r)}</td>
                         <td className="r">{Menu({ r })}</td>
