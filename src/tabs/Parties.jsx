@@ -3,7 +3,7 @@ import { useStore } from '../lib/store.jsx'
 import { custBals, supBals } from '../lib/calc.js'
 import { inr, uid } from '../lib/format.js'
 import { partyError } from '../lib/rules.js'
-import { Empty, ErrBar, Field, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
 
 
 function PartyBlock({ kind }) {
@@ -14,6 +14,8 @@ function PartyBlock({ kind }) {
   const bals = useMemo(() => (isCust ? custBals(b) : supBals(b)), [b, isCust])
   const [f, setF] = useState({ name: '', company: true, gstin: '', phone: '', address: '', open: '' })
   const [err, setErr] = useState('')
+  const tf = useTableFilter()
+  const shownList = list.filter((p) => tf.test('', [p.name, p.gstin, p.phone].join(' ')))
 
   const used = (id) =>
     isCust ? b.inv.some((i) => i.cust === id) || b.tx.some((t) => t.party === id) : b.pur.some((p) => p.sup === id) || b.tx.some((t) => t.party === id)
@@ -60,8 +62,11 @@ function PartyBlock({ kind }) {
         <ErrBar msg={err} />
         <button className="btn">Add</button>
       </form>
+      {list.length > 6 && <FilterBar f={tf} label={isCust ? 'customers' : 'suppliers'} dates={false} shown={shownList.length} total={list.length} />}
       {list.length === 0 ? (
         <Empty>None yet.</Empty>
+      ) : shownList.length === 0 ? (
+        <Empty>No match.</Empty>
       ) : (
         <div className="tw">
           <table>
@@ -75,7 +80,7 @@ function PartyBlock({ kind }) {
               </tr>
             </thead>
             <tbody>
-              {list.map((p) => (
+              {shownList.map((p) => (
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.company ? 'Firm' : 'Person'}</td>

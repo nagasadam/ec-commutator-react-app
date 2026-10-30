@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctOptions, find, purRows, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
@@ -30,6 +30,7 @@ export default function Purchases() {
   const [showForm, setShowForm] = useState(false)
   const [q, setQ] = useState('')
   const [flt, setFlt] = useState('all')
+  const df = useTableFilter() // date range
   const [pick, setMode] = useState('table')
   const phone = useMedia('(max-width: 1180px)')
   const mode = phone ? 'cards' : pick
@@ -170,9 +171,10 @@ export default function Purchases() {
     if (flt === 'due' && r.isPaid) return false
     if (flt === 'paid' && !r.isPaid) return false
     if (flt === 'person' && !r.person) return false
+    if (!df.test(r.p.date, '')) return false
     return !needle || (r.sp?.name || '').toLowerCase().includes(needle) || r.p.no.toLowerCase().includes(needle)
   })
-  const pg = usePaged(rows, flt + '|' + needle)
+  const pg = usePaged(rows, flt + '|' + needle + '|' + df.key)
   const openReview = (x) => {
     setF(x.snap.f)
     setNewSup(x.snap.newSup)
@@ -257,6 +259,7 @@ export default function Purchases() {
                 {chip('person', 'Persons', all.filter((r) => r.person).length)}
               </div>
             </div>
+            <FilterBar f={df} label="purchases" search={false} shown={rows.length} total={all.length} />
             {rows.length === 0 ? (
               <Empty>{all.length ? 'No purchases match.' : 'No purchases yet.'}</Empty>
             ) : mode === 'table' ? (

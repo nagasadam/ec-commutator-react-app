@@ -3,11 +3,13 @@ import { useStore } from '../lib/store.jsx'
 import { find, prrTot, srTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field } from '../ui.jsx'
+import { Empty, ErrBar, Field, useTableFilter, FilterBar } from '../ui.jsx'
 
 function SalesReturn() {
   const { b, updB } = useStore()
   const [f, setF] = useState({ inv: '', item: '', qty: '', date: today() })
+  const tf = useTableFilter()
+  const srRows = b.sr.filter((s) => tf.test(s.date, [s.no, find(b.inv, s.inv)?.no, find(b.items, s.item)?.name].join(' ')))
   const [err, setErr] = useState('')
   const inv = find(b.inv, f.inv)
   const sold = inv?.lines.find((l) => l.item === f.item)?.qty || 0
@@ -55,8 +57,11 @@ function SalesReturn() {
       </div>
       <ErrBar msg={err} />
       <button className="btn">Issue credit note</button>
+      {b.sr.length > 0 && <FilterBar f={tf} label="credit notes" shown={srRows.length} total={b.sr.length} />}
       {b.sr.length === 0 ? (
         <Empty>No credit notes.</Empty>
+      ) : srRows.length === 0 ? (
+        <Empty>No credit notes match.</Empty>
       ) : (
         <div className="tw">
           <table>
@@ -71,7 +76,7 @@ function SalesReturn() {
               </tr>
             </thead>
             <tbody>
-              {b.sr.map((s) => (
+              {srRows.map((s) => (
                 <tr key={s.id}>
                   <td>{s.no}</td>
                   <td>{dmy(s.date)}</td>
@@ -92,6 +97,8 @@ function SalesReturn() {
 function PurchaseReturn() {
   const { b, updB } = useStore()
   const [f, setF] = useState({ pur: '', item: '', qty: '', date: today() })
+  const tf = useTableFilter()
+  const prrRows = b.prr.filter((s) => tf.test(s.date, [s.no, find(b.pur, s.pur)?.no, find(b.items, s.item)?.name].join(' ')))
   const [err, setErr] = useState('')
   const p = find(b.pur, f.pur)
   const bought = p?.lines.find((l) => l.item === f.item)?.qty || 0
@@ -139,8 +146,11 @@ function PurchaseReturn() {
       </div>
       <ErrBar msg={err} />
       <button className="btn">Issue debit note</button>
+      {b.prr.length > 0 && <FilterBar f={tf} label="debit notes" shown={prrRows.length} total={b.prr.length} />}
       {b.prr.length === 0 ? (
         <Empty>No debit notes.</Empty>
+      ) : prrRows.length === 0 ? (
+        <Empty>No debit notes match.</Empty>
       ) : (
         <div className="tw">
           <table>
@@ -155,7 +165,7 @@ function PurchaseReturn() {
               </tr>
             </thead>
             <tbody>
-              {b.prr.map((s) => (
+              {prrRows.map((s) => (
                 <tr key={s.id}>
                   <td>{s.no}</td>
                   <td>{dmy(s.date)}</td>
@@ -176,6 +186,8 @@ function PurchaseReturn() {
 function Rejects() {
   const { b, updB } = useStore()
   const [f, setF] = useState({ item: '', qty: '', date: today(), note: '' })
+  const tf = useTableFilter()
+  const rejRows = b.rej.filter((r) => tf.test(r.date, [find(b.items, r.item)?.name, r.note].join(' ')))
   const [err, setErr] = useState('')
 
   const submit = (e) => {
@@ -212,8 +224,11 @@ function Rejects() {
       </div>
       <ErrBar msg={err} />
       <button className="btn">Record reject</button>
+      {b.rej.length > 0 && <FilterBar f={tf} label="rejects" shown={rejRows.length} total={b.rej.length} />}
       {b.rej.length === 0 ? (
         <Empty>No rejects.</Empty>
+      ) : rejRows.length === 0 ? (
+        <Empty>No rejects match.</Empty>
       ) : (
         <div className="tw">
           <table>
@@ -227,7 +242,7 @@ function Rejects() {
               </tr>
             </thead>
             <tbody>
-              {b.rej.map((r) => (
+              {rejRows.map((r) => (
                 <tr key={r.id}>
                   <td>{dmy(r.date)}</td>
                   <td>{find(b.items, r.item)?.name}</td>

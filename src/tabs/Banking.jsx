@@ -3,7 +3,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctBal, acctName, acctOptions, custBal, find, supBal } from '../lib/calc.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
 import { settleError } from '../lib/rules.js'
-import { Empty, ErrBar, Field, Stat, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, Stat, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
 
 function Settle({ kind }) {
   const { b, updB } = useStore()
@@ -78,6 +78,10 @@ export default function Banking() {
   const { b, updB } = useStore()
   const { ask } = useDialog()
   const [bank, setBank] = useState({ name: '', open: '' })
+  const tf = useTableFilter()
+  const txRows = [...b.tx]
+    .sort((a, c) => (a.date < c.date ? 1 : -1))
+    .filter((t) => tf.test(t.date, [find(b.cust, t.party)?.name || find(b.sup, t.party)?.name, acctName(b, t.acct), t.amt].join(' ')))
 
   const addBank = (e) => {
     e.preventDefault()
@@ -125,10 +129,11 @@ export default function Banking() {
 
       <div className="card">
         <h3>Receipts &amp; payments</h3>
+        {b.tx.length > 0 && <FilterBar f={tf} label="payments" shown={txRows.length} total={b.tx.length} />}
         {b.tx.length === 0 ? (
           <Empty>No transactions yet.</Empty>
         ) : (
-          <div className="tw">
+          txRows.length === 0 ? <Empty>No entries match.</Empty> : <div className="tw">
             <table>
               <thead>
                 <tr>
@@ -141,9 +146,7 @@ export default function Banking() {
                 </tr>
               </thead>
               <tbody>
-                {[...b.tx]
-                  .sort((a, c) => (a.date < c.date ? 1 : -1))
-                  .map((t) => (
+                {txRows.map((t) => (
                     <tr key={t.id}>
                       <td>{dmy(t.date)}</td>
                       <td>{find(b.cust, t.party)?.name || find(b.sup, t.party)?.name}</td>
