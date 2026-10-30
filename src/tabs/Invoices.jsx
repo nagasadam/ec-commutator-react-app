@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { find, invTot, saleRows, valuation } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
@@ -120,6 +120,7 @@ export default function Invoices({ newInv = 0 }) {
   }, [newInv])
   const [q, setQ] = useState('')
   const [flt, setFlt] = useState('all')
+  const df = useTableFilter() // date range
   const [pick, setMode] = useState('table')
   const phone = useMedia('(max-width: 1180px)')
   const mode = phone ? 'cards' : pick
@@ -249,9 +250,10 @@ export default function Invoices({ newInv = 0 }) {
     if (flt === 'due' && r.isPaid) return false
     if (flt === 'paid' && !r.isPaid) return false
     if (flt === 'person' && !r.person) return false
+    if (!df.test(r.i.date, '')) return false
     return !needle || (r.c?.name || '').toLowerCase().includes(needle) || r.i.no.toLowerCase().includes(needle)
   })
-  const pg = usePaged(rows, flt + '|' + needle)
+  const pg = usePaged(rows, flt + '|' + needle + '|' + df.key)
   const open = (r) => setView(r.i)
   const openReview = (x) => {
     setF(x.snap.f)
@@ -336,6 +338,7 @@ export default function Invoices({ newInv = 0 }) {
                 {chip('person', 'Persons', all.filter((r) => r.person).length)}
               </div>
             </div>
+            <FilterBar f={df} label="invoices" search={false} shown={rows.length} total={all.length} />
             {rows.length === 0 ? (
               <Empty>{all.length ? 'No invoices match.' : 'No invoices yet.'}</Empty>
             ) : mode === 'table' ? (

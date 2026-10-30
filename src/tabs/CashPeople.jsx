@@ -1,19 +1,24 @@
 import { useStore } from '../lib/store.jsx'
 import { cashPeople, togglePin } from '../lib/reports.js'
 import { inr } from '../lib/format.js'
-import { Empty } from '../ui.jsx'
+import { Empty, useTableFilter, FilterBar } from '../ui.jsx'
 
 // View only: built from existing Cash/GPay receipts and payments, plus pinned parties.
 export default function CashPeople() {
   const { b, updB } = useStore()
-  const rows = cashPeople(b)
-  const all = [...b.cust, ...b.sup].filter((p) => !rows.some((r) => r.id === p.id))
+  const tf = useTableFilter()
+  const allRows = cashPeople(b)
+  const rows = allRows.filter((p) => tf.test('', p.name))
+  const all = [...b.cust, ...b.sup].filter((p) => !allRows.some((r) => r.id === p.id))
   return (
     <>
       <div className="card">
         <h3>Cash &amp; GPay people <span>{rows.length}</span></h3>
-        {rows.length === 0 ? (
+        {allRows.length > 6 && <FilterBar f={tf} label="people" dates={false} shown={rows.length} total={allRows.length} />}
+        {allRows.length === 0 ? (
           <Empty>No cash or GPay receipts or payments yet. Pin someone below to keep them here.</Empty>
+        ) : rows.length === 0 ? (
+          <Empty>No match.</Empty>
         ) : (
           <div className="tw">
             <table>

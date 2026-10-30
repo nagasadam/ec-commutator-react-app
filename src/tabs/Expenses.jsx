@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctName, acctOptions } from '../lib/calc.js'
 import { inr, today, uid, dmy, r2 } from '../lib/format.js'
-import { Empty, ErrBar, Field, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
 
 const HEADS = ['Rent', 'Electricity', 'Wages', 'Freight', 'Packing', 'Repairs', 'Transport', 'Office', 'Other']
 
@@ -13,6 +13,8 @@ export default function Expenses() {
   const [err, setErr] = useState('')
   const opts = acctOptions(b, null)
   const total = r2(b.exp.reduce((s, e) => s + e.amt, 0))
+  const f2 = useTableFilter()
+  const expRows = [...b.exp].reverse().filter((e) => f2.test(e.date, [e.head, e.note, acctName(b, e.acct), e.amt].join(' ')))
 
   const submit = (e) => {
     e.preventDefault()
@@ -27,11 +29,12 @@ export default function Expenses() {
       <div className="work">
         <div className="main">
       <div className="card">
-        <h3>Expenses · {inr(total)}</h3>
+        <h3>Expenses · {inr(total)}{f2.active ? ` (filtered ${inr(expRows.reduce((n, e) => n + e.amt, 0))})` : ''}</h3>
+        {b.exp.length > 0 && <FilterBar f={f2} label="expenses" shown={expRows.length} total={b.exp.length} />}
         {b.exp.length === 0 ? (
           <Empty>No expenses yet.</Empty>
         ) : (
-          <div className="tw">
+          expRows.length === 0 ? <Empty>No expenses match.</Empty> : <div className="tw">
             <table>
               <thead>
                 <tr>
@@ -44,7 +47,7 @@ export default function Expenses() {
                 </tr>
               </thead>
               <tbody>
-                {[...b.exp].reverse().map((e) => (
+                {expRows.map((e) => (
                   <tr key={e.id}>
                     <td>{dmy(e.date)}</td>
                     <td>{e.head}</td>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { valuation } from '../lib/calc.js'
 import { inr, qtyFmt, uid } from '../lib/format.js'
-import { Empty, ErrBar, Field, Modal } from '../ui.jsx'
+import { Empty, ErrBar, Field, Modal, useTableFilter, FilterBar } from '../ui.jsx'
 
 const blank = { name: '', type: 'raw', unit: 'kg', hsn: '', open: '', openCost: '', rate: '' }
 
@@ -60,6 +60,8 @@ export default function Inventory() {
     setF(blank)
   }
 
+  const tf = useTableFilter()
+  const itemRows = b.items.filter((i) => tf.test('', [i.name, i.hsn, i.type === 'fg' ? 'finished' : i.type === 'raw' ? 'raw' : 'by-product'].join(' ')))
   const setRate = (id, rate) => updB((x) => (x.items.find((i) => i.id === id).rate = +rate || 0))
 
   return (
@@ -68,6 +70,7 @@ export default function Inventory() {
         <div className="main">
       <div className="card">
         <h3>Stock</h3>
+        {b.items.length > 6 && <FilterBar f={tf} label="items" dates={false} shown={itemRows.length} total={b.items.length} />}
         <p className="muted">Stock is derived from opening + purchases + production − sales ± returns/rejects. Cost is moving average.</p>
         <div className="tw">
           <table className="stk">
@@ -84,7 +87,7 @@ export default function Inventory() {
               </tr>
             </thead>
             <tbody>
-              {b.items.map((i) => (
+              {itemRows.map((i) => (
                 <tr key={i.id} className={v.qty[i.id] < 0 ? 'neg' : ''}>
                   <td className="nm">{i.name}</td>
                   <td data-l="Type">{i.type === 'fg' ? 'Finished' : i.type === 'raw' ? 'Raw' : 'By-product'}</td>

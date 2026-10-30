@@ -146,6 +146,43 @@ export const MoreRows = ({ pg }) =>
     </div>
   ) : null
 
+// Shared table filter: free-text search + a from/to date range (dates are YYYY-MM-DD, so plain string compares work).
+export function useTableFilter() {
+  const [q, setQ] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const needle = q.trim().toLowerCase()
+  return {
+    q, from, to, setQ, setFrom, setTo, needle,
+    active: !!(needle || from || to),
+    key: needle + '|' + from + '|' + to,
+    clear: () => (setQ(''), setFrom(''), setTo('')),
+    // date: row date string (or undefined for undated tables); text: searchable text of the row
+    test: (date, text) =>
+      (!from || (date || '') >= from) && (!to || (date || '') <= to) && (!needle || String(text || '').toLowerCase().includes(needle)),
+  }
+}
+
+export function FilterBar({ f, label = 'rows', search = true, dates = true, shown, total }) {
+  return (
+    <div className="fbar" role="search">
+      {search && <input className="search" type="search" placeholder={'Search ' + label} aria-label={'Search ' + label} value={f.q} onChange={(e) => f.setQ(e.target.value)} />}
+      {dates && (
+        <>
+          <label className="fdate">From<input type="date" value={f.from} max={f.to || undefined} onChange={(e) => f.setFrom(e.target.value)} aria-label={label + ' from date'} /></label>
+          <label className="fdate">To<input type="date" value={f.to} min={f.from || undefined} onChange={(e) => f.setTo(e.target.value)} aria-label={label + ' to date'} /></label>
+        </>
+      )}
+      {f.active && (
+        <>
+          <span className="fcount">{shown} of {total}</span>
+          <button type="button" className="btn ghost" onClick={f.clear}>Clear</button>
+        </>
+      )}
+    </div>
+  )
+}
+
 export const ErrBar = ({ msg }) => (msg ? <div className="err">{msg}</div> : null)
 
 export const blankLine = () => ({ item: '', qty: '', rate: '' })

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { find, valuation } from '../lib/calc.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, useDialog } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
 
 export default function Production() {
   const { b, updB } = useStore()
@@ -11,6 +11,8 @@ export default function Production() {
   const [f, setF] = useState({ item: '', qty: '', date: today() })
   const [err, setErr] = useState('')
   const v = useMemo(() => valuation(b), [b])
+  const tf = useTableFilter()
+  const runs = [...b.prod].reverse().filter((r) => tf.test(r.date, find(b.items, r.item)?.name))
 
   const submit = (e) => {
     e.preventDefault()
@@ -35,10 +37,11 @@ export default function Production() {
         <div className="main">
       <div className="card">
         <h3>Production runs</h3>
+        {b.prod.length > 0 && <FilterBar f={tf} label="production" shown={runs.length} total={b.prod.length} />}
         {b.prod.length === 0 ? (
           <Empty>No production yet.</Empty>
         ) : (
-          <div className="tw">
+          runs.length === 0 ? <Empty>No runs match.</Empty> : <div className="tw">
             <table>
               <thead>
                 <tr>
@@ -52,7 +55,7 @@ export default function Production() {
                 </tr>
               </thead>
               <tbody>
-                {[...b.prod].reverse().map((r) => {
+                {runs.map((r) => {
                   const p = v.prod[r.id]
                   return (
                     <tr key={r.id}>
