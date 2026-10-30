@@ -294,7 +294,6 @@ export default function Invoices({ newInv = 0 }) {
           <p className="muted">Everything you sell — firms get INV, persons get BILL</p>
         </div>
         <div className="r">
-          <input className="search" type="search" placeholder="Search invoices" aria-label="Search invoices" value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="seg hidephone" role="group" aria-label="View">
             <button className={pick === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
             <button className={pick === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
@@ -338,7 +337,7 @@ export default function Invoices({ newInv = 0 }) {
                 {chip('person', 'Persons', all.filter((r) => r.person).length)}
               </div>
             </div>
-            <FilterBar f={df} label="invoices" search={false} shown={rows.length} total={all.length} />
+            <FilterBar f={df} label="invoices" q={q} setQ={setQ} shown={rows.length} total={all.length} active={!!needle} />
             {rows.length === 0 ? (
               <Empty>{all.length ? 'No invoices match.' : 'No invoices yet.'}</Empty>
             ) : mode === 'table' ? (

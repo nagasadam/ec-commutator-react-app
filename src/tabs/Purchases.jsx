@@ -215,7 +215,6 @@ export default function Purchases() {
           <p className="muted">Raw material you buy — firms add GST, persons do not</p>
         </div>
         <div className="r">
-          <input className="search" type="search" placeholder="Search purchases" aria-label="Search purchases" value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="seg hidephone" role="group" aria-label="View">
             <button className={pick === 'table' ? 'on' : ''} onClick={() => setMode('table')}>☰ Table</button>
             <button className={pick === 'cards' ? 'on' : ''} onClick={() => setMode('cards')}>▦ Cards</button>
@@ -259,7 +258,7 @@ export default function Purchases() {
                 {chip('person', 'Persons', all.filter((r) => r.person).length)}
               </div>
             </div>
-            <FilterBar f={df} label="purchases" search={false} shown={rows.length} total={all.length} />
+            <FilterBar f={df} label="purchases" q={q} setQ={setQ} shown={rows.length} total={all.length} active={!!needle} />
             {rows.length === 0 ? (
               <Empty>{all.length ? 'No purchases match.' : 'No purchases yet.'}</Empty>
             ) : mode === 'table' ? (

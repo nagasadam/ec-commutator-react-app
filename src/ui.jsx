@@ -163,20 +163,25 @@ export function useTableFilter() {
   }
 }
 
-export function FilterBar({ f, label = 'rows', search = true, dates = true, shown, total }) {
+// q/setQ: optional external search state (Invoices/Purchases keep their own); active: extra flag for "filtered"
+export function FilterBar({ f, label = 'rows', search = true, dates = true, shown, total, q, setQ, active }) {
+  const ext = setQ !== undefined
+  const sv = ext ? q : f.q
+  const on = ext ? (v) => setQ(v) : f.setQ
+  const isActive = f.active || !!active
   return (
     <div className="fbar" role="search">
-      {search && <input className="search" type="search" placeholder={'Search ' + label} aria-label={'Search ' + label} value={f.q} onChange={(e) => f.setQ(e.target.value)} />}
+      {search && <input className="search" type="search" placeholder={'Search ' + label} aria-label={'Search ' + label} value={sv} onChange={(e) => on(e.target.value)} />}
       {dates && (
         <>
           <label className="fdate">From<input type="date" value={f.from} max={f.to || undefined} onChange={(e) => f.setFrom(e.target.value)} aria-label={label + ' from date'} /></label>
           <label className="fdate">To<input type="date" value={f.to} min={f.from || undefined} onChange={(e) => f.setTo(e.target.value)} aria-label={label + ' to date'} /></label>
         </>
       )}
-      {f.active && (
+      {isActive && (
         <>
           <span className="fcount">{shown} of {total}</span>
-          <button type="button" className="btn ghost" onClick={f.clear}>Clear</button>
+          <button type="button" className="btn ghost" onClick={() => (f.clear(), ext && setQ(''))}>Clear</button>
         </>
       )}
     </div>
