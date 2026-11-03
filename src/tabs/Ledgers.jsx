@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { ledger } from '../lib/reports.js'
 import { statementPdf, downloadBytes } from '../lib/pdf.js'
 import { dmy, inr } from '../lib/format.js'
-import { Empty, Field, Stat } from '../ui.jsx'
+import { Empty, Field, MoreRows, Stat, usePaged } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 
 export default function Ledgers() {
@@ -13,7 +13,8 @@ export default function Ledgers() {
   const [id, setId] = useState('')
   const list = kind === 'cust' ? b.cust : b.sup
   const party = list.find((p) => p.id === id)
-  const led = party ? ledger(b, party, kind) : null
+  const led = useMemo(() => (party ? ledger(b, party, kind) : null), [b, party, kind])
+  const pg = usePaged(led?.rows || [], id + kind)
 
   const pdf = () => {
     try {
@@ -77,7 +78,7 @@ export default function Ledgers() {
                     <td colSpan={5} className="dim">Opening balance</td>
                     <td className="r">{inr(led.opening)}</td>
                   </tr>
-                  {led.rows.map((r, i) => (
+                  {pg.shown.map((r, i) => (
                     <tr key={i}>
                       <td className="nw">{dmy(r.date)}</td>
                       <td className="nw">{r.ref}</td>
@@ -90,6 +91,7 @@ export default function Ledgers() {
                 </tbody>
               </table>
             </div>
+            <MoreRows pg={pg} />
           </div>
         </>
       )}

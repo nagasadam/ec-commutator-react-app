@@ -3,7 +3,7 @@ import { useStore } from '../lib/store.jsx'
 import { custBals, supBals } from '../lib/calc.js'
 import { inr, uid } from '../lib/format.js'
 import { partyError } from '../lib/rules.js'
-import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 
 function PartyBlock({ kind }) {
@@ -16,6 +16,7 @@ function PartyBlock({ kind }) {
   const [err, setErr] = useState('')
   const tf = useTableFilter()
   const shownList = list.filter((p) => tf.test('', [p.name, p.gstin, p.phone].join(' ')))
+  const pg = usePaged(shownList, tf.key)
 
   const used = (id) =>
     isCust ? b.inv.some((i) => i.cust === id) || b.tx.some((t) => t.party === id) : b.pur.some((p) => p.sup === id) || b.tx.some((t) => t.party === id)
@@ -80,7 +81,7 @@ function PartyBlock({ kind }) {
               </tr>
             </thead>
             <tbody>
-              {shownList.map((p) => (
+              {pg.shown.map((p) => (
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.company ? 'Firm' : 'Person'}</td>
@@ -103,6 +104,7 @@ function PartyBlock({ kind }) {
           </table>
         </div>
       )}
+      <MoreRows pg={pg} />
     </div>
   )
 }

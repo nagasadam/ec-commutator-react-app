@@ -12,10 +12,12 @@ import { uid } from './lib/format.js'
 import Invoices from './tabs/Invoices.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
 import { Icon } from './icons.jsx'
+import ErrorBoundary from './errorboundary.jsx'
 import { light as logoLight, dark as logoDark } from './assets/logos.js'
 
 // Dashboard and Invoices load with the app; the other pages download the first time they are opened
 // (and are fetched in the background once the app is idle, so they still open instantly).
+const retry = (load) => load().catch(() => new Promise((r) => setTimeout(r, 600)).then(load)) // one retry for a flaky connection
 const loaders = {
   Ledgers: () => import('./tabs/Ledgers.jsx'),
   CashPeople: () => import('./tabs/CashPeople.jsx'),
@@ -28,16 +30,16 @@ const loaders = {
   Banking: () => import('./tabs/Banking.jsx'),
   Reports: () => import('./tabs/Reports.jsx'),
 }
-const Ledgers = lazy(loaders.Ledgers)
-const CashPeople = lazy(loaders.CashPeople)
-const Inventory = lazy(loaders.Inventory)
-const Production = lazy(loaders.Production)
-const Purchases = lazy(loaders.Purchases)
-const Expenses = lazy(loaders.Expenses)
-const Returns = lazy(loaders.Returns)
-const Parties = lazy(loaders.Parties)
-const Banking = lazy(loaders.Banking)
-const Reports = lazy(loaders.Reports)
+const Ledgers = lazy(() => retry(loaders.Ledgers))
+const CashPeople = lazy(() => retry(loaders.CashPeople))
+const Inventory = lazy(() => retry(loaders.Inventory))
+const Production = lazy(() => retry(loaders.Production))
+const Purchases = lazy(() => retry(loaders.Purchases))
+const Expenses = lazy(() => retry(loaders.Expenses))
+const Returns = lazy(() => retry(loaders.Returns))
+const Parties = lazy(() => retry(loaders.Parties))
+const Banking = lazy(() => retry(loaders.Banking))
+const Reports = lazy(() => retry(loaders.Reports))
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
 const MOBILE = ['dash', 'inv', 'par', 'pur']
@@ -62,8 +64,8 @@ function Logo({ big }) {
   const sizes = big ? '72px' : '34px'
   return (
     <span className={'logo-wrap' + (big ? ' big' : '')} aria-hidden="true">
-      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" decoding="async" loading="lazy" />
-      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={sizes} alt="" decoding="async" loading="lazy" />
+      <img className={c + ' lt'} src={logoLight.src} srcSet={logoLight.srcSet} sizes={sizes} alt="" decoding="async" />
+      <img className={c + ' dk'} src={logoDark.src} srcSet={logoDark.srcSet} sizes={sizes} alt="" decoding="async" />
     </span>
   )
 }
@@ -530,9 +532,11 @@ export default function App() {
         </div>
         )}
         <motion.main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''} initial={tab === 'inv' && newInv ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: EASE }}>
-          <Suspense fallback={<div className="pageload" role="status" aria-label="Loading page" />}>
-            <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<div className="pageload" role="status" aria-label="Loading page" />}>
+              <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />
+            </Suspense>
+          </ErrorBoundary>
         </motion.main>
       </div>
       <div className="tabbar" role="navigation" aria-label="Quick tabs">

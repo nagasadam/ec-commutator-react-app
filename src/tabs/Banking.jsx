@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctBal, acctName, acctOptions, custBal, find, supBal } from '../lib/calc.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
 import { settleError } from '../lib/rules.js'
-import { Empty, ErrBar, Field, Stat, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, Stat, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 function Settle({ kind }) {
   const { b, updB } = useStore()
@@ -79,9 +79,9 @@ export default function Banking() {
   const { ask } = useDialog()
   const [bank, setBank] = useState({ name: '', open: '' })
   const tf = useTableFilter()
-  const txRows = [...b.tx]
-    .sort((a, c) => (a.date < c.date ? 1 : -1))
-    .filter((t) => tf.test(t.date, [find(b.cust, t.party)?.name || find(b.sup, t.party)?.name, acctName(b, t.acct), t.amt].join(' ')))
+  const sortedTx = useMemo(() => [...b.tx].sort((a, c) => (a.date < c.date ? 1 : -1)), [b.tx])
+  const txRows = sortedTx.filter((t) => tf.test(t.date, [find(b.cust, t.party)?.name || find(b.sup, t.party)?.name, acctName(b, t.acct), t.amt].join(' ')))
+  const pg = usePaged(txRows, tf.key)
 
   const addBank = (e) => {
     e.preventDefault()
@@ -146,7 +146,7 @@ export default function Banking() {
                 </tr>
               </thead>
               <tbody>
-                {txRows.map((t) => (
+                {pg.shown.map((t) => (
                     <tr key={t.id}>
                       <td>{dmy(t.date)}</td>
                       <td>{find(b.cust, t.party)?.name || find(b.sup, t.party)?.name}</td>
@@ -164,6 +164,7 @@ export default function Banking() {
             </table>
           </div>
         )}
+        <MoreRows pg={pg} />
       </div>
     </>
   )

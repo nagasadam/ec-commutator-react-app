@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { find, valuation } from '../lib/calc.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 export default function Production() {
   const { b, updB } = useStore()
@@ -13,6 +13,7 @@ export default function Production() {
   const v = useMemo(() => valuation(b), [b])
   const tf = useTableFilter()
   const runs = [...b.prod].reverse().filter((r) => tf.test(r.date, find(b.items, r.item)?.name))
+  const pg = usePaged(runs, tf.key)
 
   const submit = (e) => {
     e.preventDefault()
@@ -55,7 +56,7 @@ export default function Production() {
                 </tr>
               </thead>
               <tbody>
-                {runs.map((r) => {
+                {pg.shown.map((r) => {
                   const p = v.prod[r.id]
                   return (
                     <tr key={r.id}>
@@ -79,6 +80,7 @@ export default function Production() {
             </table>
           </div>
         )}
+        <MoreRows pg={pg} />
       </div>
         </div>
         <div className="side">

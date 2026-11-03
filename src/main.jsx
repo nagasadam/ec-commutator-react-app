@@ -6,6 +6,7 @@ import { CloudProvider } from './cloud.jsx'
 import { DialogProvider } from './ui.jsx'
 import { Motion } from './motion.jsx'
 import App from './App.jsx'
+import ErrorBoundary from './errorboundary.jsx'
 import './styles.css'
 
 createRoot(document.getElementById('root')).render(
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')).render(
         <CloudProvider>
           <DialogProvider>
             <Motion>
-              <App />
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
             </Motion>
           </DialogProvider>
         </CloudProvider>

@@ -3,13 +3,14 @@ import { useStore } from '../lib/store.jsx'
 import { find, prrTot, srTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 function SalesReturn() {
   const { b, updB } = useStore()
   const [f, setF] = useState({ inv: '', item: '', qty: '', date: today() })
   const tf = useTableFilter()
   const srRows = b.sr.filter((s) => tf.test(s.date, [s.no, find(b.inv, s.inv)?.no, find(b.items, s.item)?.name].join(' ')))
+  const sg = usePaged(srRows, tf.key)
   const [err, setErr] = useState('')
   const inv = find(b.inv, f.inv)
   const sold = inv?.lines.find((l) => l.item === f.item)?.qty || 0
@@ -76,7 +77,7 @@ function SalesReturn() {
               </tr>
             </thead>
             <tbody>
-              {srRows.map((s) => (
+              {sg.shown.map((s) => (
                 <tr key={s.id}>
                   <td>{s.no}</td>
                   <td>{dmy(s.date)}</td>
@@ -90,6 +91,7 @@ function SalesReturn() {
           </table>
         </div>
       )}
+      <MoreRows pg={sg} />
     </form>
   )
 }
@@ -99,6 +101,7 @@ function PurchaseReturn() {
   const [f, setF] = useState({ pur: '', item: '', qty: '', date: today() })
   const tf = useTableFilter()
   const prrRows = b.prr.filter((s) => tf.test(s.date, [s.no, find(b.pur, s.pur)?.no, find(b.items, s.item)?.name].join(' ')))
+  const pgp = usePaged(prrRows, tf.key)
   const [err, setErr] = useState('')
   const p = find(b.pur, f.pur)
   const bought = p?.lines.find((l) => l.item === f.item)?.qty || 0
@@ -165,7 +168,7 @@ function PurchaseReturn() {
               </tr>
             </thead>
             <tbody>
-              {prrRows.map((s) => (
+              {pgp.shown.map((s) => (
                 <tr key={s.id}>
                   <td>{s.no}</td>
                   <td>{dmy(s.date)}</td>
@@ -179,6 +182,7 @@ function PurchaseReturn() {
           </table>
         </div>
       )}
+      <MoreRows pg={pgp} />
     </form>
   )
 }
@@ -188,6 +192,7 @@ function Rejects() {
   const [f, setF] = useState({ item: '', qty: '', date: today(), note: '' })
   const tf = useTableFilter()
   const rejRows = b.rej.filter((r) => tf.test(r.date, [find(b.items, r.item)?.name, r.note].join(' ')))
+  const rg = usePaged(rejRows, tf.key)
   const [err, setErr] = useState('')
 
   const submit = (e) => {
@@ -242,7 +247,7 @@ function Rejects() {
               </tr>
             </thead>
             <tbody>
-              {rejRows.map((r) => (
+              {rg.shown.map((r) => (
                 <tr key={r.id}>
                   <td>{dmy(r.date)}</td>
                   <td>{find(b.items, r.item)?.name}</td>
@@ -259,6 +264,7 @@ function Rejects() {
           </table>
         </div>
       )}
+      <MoreRows pg={rg} />
     </form>
   )
 }

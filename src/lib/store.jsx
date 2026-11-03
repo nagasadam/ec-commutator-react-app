@@ -32,6 +32,34 @@ export function StoreProvider({ children }) {
   const [saveErr, setSaveErr] = useState('')
   const [rev, setRev] = useState(0) // bumps on every local edit (drives cloud sync scheduling)
   const first = useRef(true)
+  const timer = useRef(0)
+  const cost = useRef(0) // ms the last write took
+  const wantToast = useRef(false)
+
+  function persist() {
+    clearTimeout(timer.current)
+    timer.current = 0
+    try {
+      const t0 = performance.now()
+      localStorage.setItem(KEY, JSON.stringify(Sref.current))
+      cost.current = performance.now() - t0
+      setSaveErr('')
+      if (wantToast.current) toast.push('Saved', 'ok', { key: 'saved', ms: 1400 })
+    } catch (e) {
+      const msg = 'Not saved: this device refused the write (' + (e?.name || 'storage error') + '). Free some space or export a backup.'
+      setSaveErr(msg)
+      toast.push(msg, 'err', { key: 'save-fail' })
+    }
+    wantToast.current = false
+  }
+  // Never lose a batched edit: write it when the page is hidden or closed.
+  useEffect(() => {
+    const flush = () => timer.current && persist()
+    const vis = () => document.visibilityState === 'hidden' && flush()
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', vis)
+    return () => (window.removeEventListener('pagehide', flush), document.removeEventListener('visibilitychange', vis))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (first.current) {
@@ -46,16 +74,13 @@ export function StoreProvider({ children }) {
       }
       return
     }
-    try {
-      localStorage.setItem(KEY, JSON.stringify(S))
-      setSaveErr('')
-      if (!silent.current) toast.push('Saved', 'ok', { key: 'saved', ms: 1400 })
-    } catch (e) {
-      const msg = 'Not saved: this device refused the write (' + (e?.name || 'storage error') + '). Free some space or export a backup.'
-      setSaveErr(msg)
-      toast.push(msg, 'err', { key: 'save-fail' })
-    }
+    // Small businesses are written at once. When a write is slow (a lot of records) edits are batched into one
+    // write 300 ms after the last change, so typing in a field does not re-save everything on every keystroke.
+    if (!silent.current) wantToast.current = true
     silent.current = false
+    clearTimeout(timer.current)
+    if (cost.current > 8) timer.current = setTimeout(persist, 300)
+    else persist()
   }, [S]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Synchronous: Sref is always the latest state, so cloud merges never see a stale copy.
