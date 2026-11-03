@@ -12,8 +12,9 @@ cloud settings the app still works fully on one device.
 | Supabase free | 500 MB Postgres, 50k users | Projects **pause after a week of inactivity**: bad for a books app you open monthly |
 
 Firebase is already wired in (`src/lib/firebase.js`, `firestore.rules`). One business is
-one Firestore document, capped at 1 MiB; the app warns you at ~700 KB. At the demo's record
-sizes that is thousands of invoices, so start a new business each financial year.
+one Firestore document up to ~600 KB; bigger ones are stored in pieces (collection `recparts`, 1 MiB per
+piece), up to about 3 MB per business, and the app warns you at ~2.4 MB. At the demo's record
+sizes that is tens of thousands of invoices. Publish the updated `firestore.rules` (step 2.6) so the pieces can be saved.
 Everyone you add shares the same books; there is no per-user separation.
 
 ## 2. Create the Firebase project (about 10 minutes)

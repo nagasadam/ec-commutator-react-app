@@ -16,6 +16,15 @@ service cloud.firestore {
         && (request.resource.data.data == null || request.resource.data.data is string);
       allow delete: if false;
     }
+    // Big businesses are stored in pieces (see src/lib/firebase.js); same access rule as /rec.
+    match /recparts/{id} {
+      allow read: if allowed();
+      allow create, update: if allowed()
+        && request.resource.data.keys().hasOnly(['rev', 'data', 'at'])
+        && request.resource.data.rev is int
+        && request.resource.data.data is string;
+      allow delete: if false;
+    }
     match /allow/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;
       allow write: if false;

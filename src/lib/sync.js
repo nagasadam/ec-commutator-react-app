@@ -7,8 +7,10 @@
 import { ARRAYS } from './model.js'
 
 export const BASE_KEY = 'booksmith10base'
-export const MAX_BYTES = 900_000 // Firestore documents are capped at 1 MiB
-export const WARN_BYTES = 700_000
+// A business is stored as one cloud document, or several when it is big (see firebase.js). The cap keeps one
+// save within Firestore's transaction size limit and well inside what a browser can store locally.
+export const MAX_BYTES = 3_000_000
+export const WARN_BYTES = 2_400_000
 
 const json = (x) => JSON.stringify(x)
 const isConflict = (e) => e?.code === 'conflict'
