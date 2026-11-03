@@ -512,7 +512,7 @@ export default function App() {
             <button className="btn ghost" onClick={() => ask('Discard the entries that exist only on this device?', () => cloud.resolveChoice('discard'), 'Discard')}>Discard</button>
           </div>
         )}
-        {cloud.sizeWarn && <div className="cloudbar">This business is nearing the cloud size limit. Export a backup and start a new business for the next year.</div>}
+        {cloud.sizeWarn && <div className="cloudbar">This business is nearing the size limit for cloud sync. Export a backup and start a new business for the next year.</div>}
         {tab !== 'inv' && tab !== 'pur' && (
         <div className="head">
           <div>

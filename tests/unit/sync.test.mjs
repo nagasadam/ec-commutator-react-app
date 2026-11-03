@@ -186,26 +186,36 @@ test('isPristine', () => {
   assert.ok(!isPristine(b))
 })
 
-test('firebase adapter: put is a transaction that enforces the revision', async () => {
-  const store = new Map()
-  const sdk = {
+function fakeSdk(store, hooks = {}) {
+  return {
     initializeApp: () => ({}),
     getAuth: () => ({ currentUser: { email: 'a@b.c' } }),
     getFirestore: () => ({}),
-    collection: () => 'col',
-    doc: (_d, _c, id) => id,
-    getDocs: async () => ({ docs: [...store].map(([id, v]) => ({ id, data: () => v })) }),
+    collection: (_d, name) => name,
+    doc: (_d, c, id) => c + '/' + id,
+    getDocs: async (c) => {
+      hooks.onList?.(c)
+      return { docs: [...store].filter(([k]) => k.startsWith(c + '/')).map(([k, v]) => ({ id: k.slice(c.length + 1), data: () => v })) }
+    },
     onSnapshot: (_c, cb) => (cb(), () => {}),
-    runTransaction: async (_db, fn) =>
-      fn({
-        get: async (id) => ({ exists: () => store.has(id), data: () => store.get(id) }),
-        set: (id, v) => store.set(id, v),
-      }),
+    runTransaction: async (_db, fn) => {
+      const writes = []
+      const r = await fn({
+        get: async (k) => ({ exists: () => store.has(k), data: () => store.get(k) }),
+        set: (k, v) => writes.push([k, v]),
+      })
+      writes.forEach(([k, v]) => store.set(k, v))
+      return r
+    },
     signInWithEmailAndPassword: async () => ({}),
     signOut: async () => {},
     onAuthStateChanged: (_a, cb) => (cb({ email: 'a@b.c', uid: '1' }), () => {}),
   }
-  const fb = await createFirebase({ apiKey: 'k' }, sdk)
+}
+
+test('firebase adapter: put is a transaction that enforces the revision', async () => {
+  const store = new Map()
+  const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))
   assert.deepEqual(await fb.backend.put('x', '{}', 0), { rev: 1 })
   await assert.rejects(fb.backend.put('x', '{}', 0), (e) => e.code === 'conflict')
   assert.deepEqual(await fb.backend.put('x', null, 1), { rev: 2 })
@@ -214,6 +224,45 @@ test('firebase adapter: put is a transaction that enforces the revision', async 
   let user
   fb.onUser((u) => (user = u))
   assert.equal(user.email, 'a@b.c')
+})
+
+test('firebase adapter: a small business stays one document, a big one is split and comes back whole', async () => {
+  const store = new Map()
+  const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))
+  const small = JSON.stringify({ id: 's', note: 'x'.repeat(1000) })
+  await fb.backend.put('s', small, 0)
+  assert.equal([...store.keys()].filter((k) => k.startsWith('recparts/')).length, 0)
+  // 1.2 MB with non-ASCII text: must be cut into pieces that each fit one document
+  const big = JSON.stringify({ id: 'b', note: 'é₹'.repeat(600_000) })
+  assert.deepEqual(await fb.backend.put('b', big, 0), { rev: 1 })
+  const parts = [...store].filter(([k]) => k.startsWith('recparts/b.'))
+  assert.ok(parts.length >= 5)
+  for (const [, v] of parts) assert.ok(Buffer.byteLength(v.data) < 1_000_000 && v.rev === 1)
+  assert.ok(Buffer.byteLength(JSON.stringify(store.get('rec/b'))) < 1000)
+  const rows = await fb.backend.list()
+  assert.equal(rows.find((r) => r.id === 'b').data, big)
+  assert.equal(rows.find((r) => r.id === 's').data, small)
+  // rewrite: new revision replaces every piece, a stale revision is refused
+  const big2 = JSON.stringify({ id: 'b', note: 'ab'.repeat(700_000) })
+  await assert.rejects(fb.backend.put('b', big2, 0), (e) => e.code === 'conflict')
+  assert.deepEqual(await fb.backend.put('b', big2, 1), { rev: 2 })
+  assert.equal((await fb.backend.list()).find((r) => r.id === 'b').data, big2)
+})
+
+test('firebase adapter: a read that straddles a write is retried, then reported as unavailable', async () => {
+  const store = new Map()
+  let writeDuringRead = 0
+  const sdk = fakeSdk(store, {
+    onList: (c) => {
+      if (c === 'recparts' && writeDuringRead-- > 0) for (const [k, v] of store) if (k.startsWith('recparts/') || k.startsWith('rec/')) store.set(k, { ...v, rev: v.rev + 1 }) // a writer got in between our two reads
+    },
+  })
+  const fb = await createFirebase({ apiKey: 'k' }, sdk)
+  await fb.backend.put('b', JSON.stringify({ id: 'b', note: 'y'.repeat(700_000) }), 0)
+  writeDuringRead = 1
+  assert.equal((await fb.backend.list()).length, 1) // second attempt is consistent
+  writeDuringRead = 99
+  await assert.rejects(fb.backend.list(), (e) => e.code === 'unavailable')
 })
 
 test('firebase config and auth messages', () => {
