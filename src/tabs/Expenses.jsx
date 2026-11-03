@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctName, acctOptions } from '../lib/calc.js'
 import { inr, today, uid, dmy, r2 } from '../lib/format.js'
-import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 const HEADS = ['Rent', 'Electricity', 'Wages', 'Freight', 'Packing', 'Repairs', 'Transport', 'Office', 'Other']
 
@@ -15,6 +15,7 @@ export default function Expenses() {
   const total = r2(b.exp.reduce((s, e) => s + e.amt, 0))
   const f2 = useTableFilter()
   const expRows = [...b.exp].reverse().filter((e) => f2.test(e.date, [e.head, e.note, acctName(b, e.acct), e.amt].join(' ')))
+  const pg = usePaged(expRows, f2.key)
 
   const submit = (e) => {
     e.preventDefault()
@@ -47,7 +48,7 @@ export default function Expenses() {
                 </tr>
               </thead>
               <tbody>
-                {expRows.map((e) => (
+                {pg.shown.map((e) => (
                   <tr key={e.id}>
                     <td>{dmy(e.date)}</td>
                     <td>{e.head}</td>
@@ -65,6 +66,7 @@ export default function Expenses() {
             </table>
           </div>
         )}
+        <MoreRows pg={pg} />
       </div>
         </div>
         <div className="side">
