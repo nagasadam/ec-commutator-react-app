@@ -10,7 +10,8 @@ import { find, valuation } from './calc.js'
 import { nextNo } from './model.js'
 import { partyError } from './rules.js'
 import { uid } from './format.js'
-import { OCR_MAX_PAGES, ocrText, ocrToLines } from './ocr.js'
+import { OCR_MAX_PAGES, PHOTO_MAX_BYTES, ocrImage, ocrText, ocrToLines } from './ocr.js'
+import { readInvoiceQr } from './qr.js'
 
 export const MAX_BYTES = 10 * 1024 * 1024
 export const MAX_PAGES = 5
@@ -71,9 +72,24 @@ export function itemsToLines(items) {
 // opts.ocrPage(page, { onProgress }) -> raw text of one page; defaults to the browser OCR in ocr.js.
 // opts.onProgress({ stage: 'ocr', page, pages, pct }) is called while a scan is being read.
 // The returned array has `.ocr = true` when the lines came from OCR rather than a text layer.
+// A photo (JPEG, PNG, WebP) is recognised by its first bytes, whatever its file name or type says.
+const isPhoto = (data) =>
+  (data[0] === 0xff && data[1] === 0xd8) || (data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e) || (String.fromCharCode(...data.subarray(0, 4)) === 'RIFF' && String.fromCharCode(...data.subarray(8, 12)) === 'WEBP')
+
 export async function extractLines(file, pdfjs, opts = {}) {
-  if (file.size > MAX_BYTES) throw err('too-big', 'This PDF is larger than 10 MB.')
+  if (file.size > PHOTO_MAX_BYTES) throw err('too-big', 'This file is larger than 25 MB.')
   const data = new Uint8Array(await file.arrayBuffer())
+  if (isPhoto(data)) {
+    // A photo of a printed bill: read it with text recognition (opts.ocrImage replaces the browser one in tests).
+    opts.onProgress?.({ stage: 'ocr', page: 1, pages: 1, pct: 0 })
+    const read = opts.ocrImage || ocrImage
+    const lines = ocrToLines(await read(file, { onProgress: (pct) => opts.onProgress?.({ stage: 'ocr', page: 1, pages: 1, pct }) }))
+    if (lines.join('').replace(/\s/g, '').length < 20) throw err('no-text', 'No text could be read from this photo. Take it again in good light with the whole bill in view, or enter the invoice by hand.')
+    lines.ocr = true
+    lines.photo = true
+    return lines
+  }
+  if (file.size > MAX_BYTES) throw err('too-big', 'This PDF is larger than 10 MB.')
   if (String.fromCharCode(...data.subarray(0, 5)) !== '%PDF-') throw err('not-pdf', 'This file is not a PDF.')
   const lib = pdfjs || (await loadPdfjs())
   let doc
@@ -512,12 +528,35 @@ export const exclGst = (rate, company) => (company ? Math.round((+rate / 1.18) *
 // result is { status: 'saved', nos, who, isNew }. Otherwise { status: 'review', draft, issues }
 // so the caller can fill the form. `mark` ({ id, name }) records a Drive file as imported in the
 // same change that saves it, so a crash can never leave one without the other.
-export async function importFile(file, { mode, getB, updB, auto, mark, pdfjs, onProgress, ocrPage }) {
-  const lines = await extractLines(file, pdfjs, { onProgress, ocrPage })
-  const d = buildDraft(getB(), parseDocument(lines, mode), mode)
+// The e-invoice QR (see qr.js) names the supplier's GSTIN and the invoice date exactly: use them over what text
+// recognition made of the same printed numbers. Returns a sentence for the review box, or ''.
+export function applyQr(parsed, qr, mode) {
+  if (!qr) return ''
+  const g = mode === 'purchase' ? qr.sellerGstin : qr.buyerGstin
+  const valid = /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/.test(g || '') && gstinCheck(g.slice(0, 14)) === g[14]
+  const got = []
+  if (valid) {
+    if (parsed.party) parsed.party.gstin = g
+    else parsed.party = { name: '', gstin: g, phone: '', address: '', company: true }
+    got.push(mode === 'purchase' ? 'supplier GSTIN' : 'customer GSTIN')
+  }
+  if (qr.date) {
+    parsed.date = qr.date
+    got.push('invoice date')
+  }
+  if (!got.length) return ''
+  return `The ${got.join(' and ')} came from the bill's QR code${qr.docNo ? ` (invoice no. ${qr.docNo}${qr.total ? ', total ' + qr.total : ''})` : ''}.`
+}
+
+export async function importFile(file, { mode, getB, updB, auto, mark, pdfjs, onProgress, ocrPage, ocrImage, readQr }) {
+  const lines = await extractLines(file, pdfjs, { onProgress, ocrPage, ocrImage })
+  const parsed = parseDocument(lines, mode)
+  const qrNote = lines.photo ? applyQr(parsed, await (readQr || readInvoiceQr)(file), mode) : ''
+  const d = buildDraft(getB(), parsed, mode)
   const issues = autoSaveIssues(getB(), d)
-  // Text recognition can misread a digit, so a scan is never saved without a human check.
-  if (lines.ocr) issues.unshift('This PDF is a scanned image. Its text was read by text recognition and can contain mistakes, so check every field before saving.')
+  // Text recognition can misread a digit, so a scan or a photo is never saved without a human check.
+  if (lines.ocr) issues.unshift(lines.photo ? 'This is a photo of a bill. Its text was read by text recognition and can contain mistakes, so check every field before saving.' : 'This PDF is a scanned image. Its text was read by text recognition and can contain mistakes, so check every field before saving.')
+  if (qrNote) issues.push(qrNote)
   if (!(auto && !issues.length)) return { status: 'review', draft: d, issues }
   let made
   updB((x) => {

@@ -77,7 +77,7 @@ export default function Purchases() {
         updB,
         auto: useAuto,
         mark: opts.mark,
-        onProgress: (p) => setStatus(`Reading scanned PDF, page ${p.page} of ${p.pages}${p.pct ? ' (' + Math.round(p.pct * 100) + '%)' : ''}…`),
+        onProgress: (p) => setStatus(`Reading the bill${p.pages > 1 ? `, page ${p.page} of ${p.pages}` : ''}${p.pct ? ' (' + Math.round(p.pct * 100) + '%)' : ''}…`),
       })
       if (r.status === 'saved') {
         setNote({ kind: 'ok', title: `Saved ${r.nos.join(', ')} as Pay later${r.isNew ? ' (new supplier added)' : ''}.`, lines: [] })

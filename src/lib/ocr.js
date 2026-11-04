@@ -17,7 +17,7 @@ let tessP
 export function loadTesseract() {
   tessP ||= import(/* @vite-ignore */ TESS_URL).catch(() => {
     tessP = null
-    throw err('ocr-offline', 'This PDF is a scan and the text recognition (OCR) could not be loaded from the internet. Check your connection and try again.')
+    throw err('ocr-offline', 'This scan or photo needs text recognition (OCR), which could not be loaded from the internet. Check your connection and try again.')
   })
   return tessP
 }
@@ -33,9 +33,40 @@ async function getWorker() {
     return createWorker('eng', 1, { logger: (m) => m?.status === 'recognizing text' && onProg(m.progress || 0) })
   })().catch((e) => {
     workerP = null
-    throw e.code ? e : err('ocr-offline', 'This PDF is a scan and the text recognition (OCR) could not be started. Check your connection and try again.')
+    throw e.code ? e : err('ocr-offline', 'This scan or photo needs text recognition (OCR), which could not be started. Check your connection and try again.')
   })
   return workerP
+}
+
+export const PHOTO_MAX_BYTES = 25 * 1024 * 1024 // a phone photo is several MB; it is shrunk before it is read
+
+// A photo of a bill -> raw recognised text. The photo is straightened by its camera orientation, scaled so the
+// long side is about 3,200 px (small print stays readable, memory stays low) and made greyscale with a little
+// more contrast, which helps with shadows and paper tint.
+export async function ocrImage(file, { onProgress } = {}) {
+  let bmp
+  try {
+    bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch {
+    throw err('unreadable', 'This photo could not be read. Take it again, or use a JPG or PNG picture.')
+  }
+  const k = Math.min(1.6, 3200 / Math.max(bmp.width, bmp.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(bmp.width * k)
+  canvas.height = Math.round(bmp.height * k)
+  const ctx = canvas.getContext('2d')
+  ctx.filter = 'grayscale(1) contrast(1.3)' // ignored by browsers without canvas filters: the photo is just read as it is
+  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+  bmp.close?.()
+  const worker = await getWorker()
+  onProg = onProgress || (() => {})
+  try {
+    const { data } = await worker.recognize(canvas)
+    return data.text || ''
+  } finally {
+    onProg = () => {}
+    canvas.width = canvas.height = 0
+  }
 }
 
 export async function ocrText(page, { onProgress } = {}) {
