@@ -41,8 +41,9 @@ async function getWorker() {
 export const PHOTO_MAX_BYTES = 25 * 1024 * 1024 // a phone photo is several MB; it is shrunk before it is read
 
 // A photo of a bill -> raw recognised text. The photo is straightened by its camera orientation, scaled so the
-// long side is about 3,200 px (small print stays readable, memory stays low) and made greyscale with a little
-// more contrast, which helps with shadows and paper tint.
+// long side is about 3,200 px (small print stays readable, memory stays low) and made greyscale, which helps with
+// paper tint. (Extra contrast made a tilted, shadowed bill harder to read, so it is not added.) A bill is one block of
+// text and table, so it is read as a single block: page-layout guessing found no text at all on a tilted photo.
 export async function ocrImage(file, { onProgress } = {}) {
   let bmp
   try {
@@ -55,17 +56,19 @@ export async function ocrImage(file, { onProgress } = {}) {
   canvas.width = Math.round(bmp.width * k)
   canvas.height = Math.round(bmp.height * k)
   const ctx = canvas.getContext('2d')
-  ctx.filter = 'grayscale(1) contrast(1.3)' // ignored by browsers without canvas filters: the photo is just read as it is
+  ctx.filter = 'grayscale(1)' // ignored by browsers without canvas filters: the photo is just read as it is
   ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height)
   bmp.close?.()
   const worker = await getWorker()
   onProg = onProgress || (() => {})
   try {
+    await worker.setParameters({ tessedit_pageseg_mode: '6' }) // single uniform block
     const { data } = await worker.recognize(canvas)
     return data.text || ''
   } finally {
     onProg = () => {}
     canvas.width = canvas.height = 0
+    await worker.setParameters({ tessedit_pageseg_mode: '3' }).catch(() => {}) // PDFs go back to automatic layout
   }
 }
 

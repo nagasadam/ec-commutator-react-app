@@ -203,8 +203,20 @@ const noDeliv = (l) => l.replace(DELIV_RE, '').trim()
 // Text from the next column of a two-column header ("ACME LTD. Invoice No. e-Way Bill No.") that
 // the reader put on the same line. It is never part of the party.
 const RIGHT_COL = /\s+(?:invoice\s*no|e-?way|delivery\s*note|mode\/?\s*terms|reference\s*no|buyer'?s?\s*order|dispatch|other\s*ref|dated)\b.*$/i
+// Text recognition puts stray marks at the start of a line ("@ ASHOK ...", "Ee To,(BUYER") and a lone letter or
+// quote at the end ("... WORKS i\""): neither is part of the text.
+const HONOR = /^(?:to|by|m\/s|mr|ms|mrs|dr|sri|shri|smt)$/i
+function lead(s) {
+  let t = s.replace(/^[^\w(]+/, '')
+  for (;;) {
+    const m = t.match(/^(\S{1,2})\s+(?=\S)/)
+    if (!m || HONOR.test(m[1].replace(/[,.:]+$/, '')) || /^[A-Z]{1,2}$/.test(m[1]) || /\d/.test(m[1])) return t
+    t = t.slice(m[0].length).replace(/^[^\w(]+/, '')
+  }
+}
+const trail = (s) => s.replace(/(?:\s+(?:[a-z]|[^\w\s.)]))+["'\u201d]?\s*$/, '')
 const cleanName = (s) =>
-  noDeliv(s)
+  trail(lead(noDeliv(s)))
     .replace(RIGHT_COL, '')
     .replace(/^m\/s\.?\s*/i, '')
     .replace(/\s*(gstin|gst\s*no|gst|ph|phone|mob|mobile|tel)\b.*$/i, '')
@@ -215,6 +227,9 @@ function readBlock(lines, i, first, max = 8) {
   const out = first ? [first] : []
   for (let k = i + 1; k < lines.length && out.length < max; k++) {
     const l = lines[k]
+    // "BUYER DELIVERED ADDRESS: Same as billed address." sits beside the billed block, so on a photo it can fall between
+    // its lines: step over it when it says "same as" (the billed block goes on), end the block when it has its own address.
+    if (isDeliv(l) && /same\s*as/i.test(l)) continue
     if (!l || isDeliv(l) || STOP_RE.test(l) || (SALE_LABEL.test(l) && /^(to|buyer|customer|sold|consignee|bill)/i.test(l) && out.length)) break
     const c = noDeliv(l).replace(RIGHT_COL, '').replace(/\s+billed\s+address\.?$/i, '').trim() // end of a wrapped "...Same as billed address" note
     if (c) out.push(c)
@@ -277,19 +292,37 @@ function triple(nums) {
   return null
 }
 
+// Text recognition sometimes drops one column (the rate, or the HSN). With a quantity and a taxable value the
+// rate follows, and it is trusted only when a tax figure on the same row agrees (5, 12, 18 or 28 % of the
+// taxable value, or half of it for CGST / SGST).
+function pair(nums) {
+  for (let i = 0; i < nums.length - 1; i++) {
+    for (let k = i + 1; k < nums.length; k++) {
+      const q = nums[i]
+      const t = nums[k]
+      const r = t / q
+      if (!(q > 0 && t > q) || Math.abs(r * 100 - Math.round(r * 100)) > 1e-6) continue
+      const taxed = nums.some((x, j) => j > k && [0.05, 0.12, 0.18, 0.28, 0.025, 0.06, 0.09, 0.14].some((g) => Math.abs(x - t * g) <= Math.max(0.5, t * g * 0.002) || Math.abs(x - t * (1 + g)) <= Math.max(0.5, t * (1 + g) * 0.002)))
+      if (taxed) return { qty: q, rate: r, taxable: t }
+    }
+  }
+  return null
+}
+
 function parseRow(text) {
   const s = text
     .replace(/^\s*\d{1,3}[.)]?\s+(?=[A-Za-z])/, '')
     // "1 05 CTNS Mica ..." : serial number and package count come before the description
     .replace(/^\s*(?:\d{1,3}[.)]?\s+)?\d+\s*(?:ctns?|cartons?|bags?|boxes|box|pkgs?|bundles?|rolls?|drums?|cases?)\.?\s+(?=[A-Za-z])/i, '')
   const firstNum = s.search(/\d/)
-  const desc = (firstNum > 0 ? s.slice(0, firstNum) : '').replace(UNITS, '').replace(/[\s,;:|(-]+$/, '').trim()
+  const desc = (firstNum > 0 ? s.slice(0, firstNum) : '').replace(UNITS, '').replace(/[\s,;:|(-]+$/, '').replace(/^(?:[^\w(]+|[a-z]{1,2}\s+(?=[A-Za-z]{3,}))+/, '').trim() // stray marks / a lone "om" before the words
   const rest = firstNum >= 0 ? s.slice(firstNum) : ''
   const hsnM = rest.match(/^\d{4,8}\b(?!\.)/)
   const hsn = hsnM ? hsnM[0] : ''
   const nums = (rest.replace(UNITS, ' ').match(NUM_RE) || []).map(toNum).filter((n) => !isNaN(n))
   const body = hsn ? nums.slice(1) : nums
-  const t = triple(body) || triple(nums)
+  let t = triple(body) || triple(nums) || pair(body)
+  if (!t && (t = pair(nums)) && hsn && +hsn === t.qty) return { desc, hsn: '', ...t } // the quantity was read as the HSN
   if (t) return { desc, hsn, ...t }
   // fallback: a quantity followed by a unit word, then a rate
   const qm = rest.match(/(\d[\d,]*(?:\.\d+)?)\s*(?:nos?|pcs?|kgs?|units?|sets?)\b\.?\s*(\d[\d,]*(?:\.\d+)?)?/i)
@@ -297,11 +330,23 @@ function parseRow(text) {
 }
 
 export function parseDocument(rawLines, mode = 'sale') {
-  const lines = rawLines.map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const lines = rawLines
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .map((l) => {
+      // stray marks before a label: "Ee To,(BUYER BILLED ADDRESS)", "E To,(BUYER ..."
+      const m = l.match(/^(?:\S{1,2}\s+)+(?=(?:to\b|bill|buyer|consignee|customer|sold|m\/s|from\b|supplier|seller|vendor))/i)
+      return m ? l.slice(m[0].length) : l
+    })
   const joined = lines.join('\n')
 
   // supply type from the tax columns
-  const supply = /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
+  let supply = /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
+  if (!supply) {
+    // two different "state code" values (seller 36, buyer 07) mean the sale crosses a state border
+    const codes = [...joined.matchAll(/state\s*code\s*[:\-]?\s*(\d{2})\b/gi)].map((m) => m[1])
+    if (codes.length >= 2) supply = codes.every((c) => c === codes[0]) ? 'intra' : 'inter'
+  }
 
   // date: the invoice date, never a date of supply / due date / order date
   let date = ''
@@ -372,7 +417,10 @@ export function parseDocument(rawLines, mode = 'sale') {
   }
 
   // item rows
-  const h = lines.findIndex((l) => /(description|particulars|item|product|goods)/i.test(l) && /(qty|quantity)/i.test(l))
+  // The table header: its words in any order, and with a word or two lost to text recognition ("Description of goods" was
+  // missing from one photo, "Qty" came out as "aty").
+  const HEAD = [/descr|particulars|\bitems?\b|product|goods/i, /\bhsn\b|\bsac\b/i, /\b(?:qty|aty|ary|quantity)\b/i, /\bunit\b/i, /\brate\b/i, /taxable|\bamount\b/i, /\b[ci]?gst\b|\b1gst\b/i]
+  const h = lines.findIndex((l) => (/(description|particulars|item|product|goods)/i.test(l) && /(qty|quantity)/i.test(l)) || HEAD.filter((re) => re.test(l)).length >= 3)
   const rows = []
   if (h >= 0) {
     let pending = ''
@@ -391,7 +439,15 @@ export function parseDocument(rawLines, mode = 'sale') {
         }
         if (r.desc || r.qty) rows.push(r)
         pending = ''
-      } else if (/[A-Za-z]{3}/.test(l)) pending = (pending ? pending + ' ' : '') + l
+      } else if (/[A-Za-z]{3}/.test(l)) {
+        const last = rows[rows.length - 1]
+        // The description can sit on the line after its numbers ("slot type commutators" / "(Ring Type)"), or run on
+        // to a second line that ends in a bracket.
+        if (last && !nums && !last.cont && !isDeliv(l) && !/^(?:billed\s*address|same\s*as|state\b|e-?mail|invoice\s*total|terms)/i.test(l) && (!last.desc || /^\(|\)\s*$/.test(l))) {
+          last.desc = (last.desc ? last.desc + ' ' : '') + l.replace(/^[^\w(]+/, '').trim()
+          if (last.desc && /\)\s*$/.test(l)) last.cont = true
+        } else pending = (pending ? pending + ' ' : '') + l
+      }
     }
   }
 

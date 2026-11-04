@@ -1,0 +1,41 @@
+c TAX INVOICE Triplecate copy for supplier
+; V4 INDUSTRIES
+: ee | PLOTNO: 35836, SURVEY NO:53&54 ,BAHADURPALLY VILLAGE
+| QUTBULLAPUR MANDAL, RANGAREDDY,TELANGANA-500 055.
+{ emailld; v4_industries@yahoo.com »Ph no :9848360820
+GSTIN: 36AALFV9329A1zz Mode of transport : By road
+y INVOICE NO : 055, date :24.10.2026 Name of transport : V R L logistics Ltd
+ed j Vehicle no: N.A
+pas __ STATE: TELANGANA Date of supply : 24.10.2026
+Pata ir | STATE CODE: 36 | | Place of supply : Gandhi nagar ,new delhi
+ee ia ‘Transport booked : On to pay basis
+all ea Payment: with in 10 days against invoice date
+E To,(BUYER BILLED ADDRESS)
+‘ © ASHOK ENGINEERING WORKS | i BUYER DELIVERED ADDRESS: Same as
+1/424/66-A, SHAHDRA FLYOVER. | billed address.
+% SHAHDRA
+iy: NEW DELHI -110032. |
+ie GSTIN: 07AAKPB7527M1ZF |
+| STATE : DELHI | | i
+ee state code : 07 ph no : 9810209580
+___f.ndDescription of goods | HSN Code [Qty [Unit [Rate |Taxable value | IGST%
+“mu | slot type commutators 8503 4000 | 35 140000 25200 165200
+__L__ [Ring Type) |
+eel Th [| 1000 | | 16520
+| ae {
+| |Invoice total (in words) Total value 16520
+ax | ieee e Lakh Sixty Five Thousand Two Hundred Only
+We || 3 ;
+| | ia |
+|Terms & conditions of supply- |
+fest | brie eet SO
+1 [All dealings subje scted to hyderabad jurisjiction. _
+]2 |Goods once sold ill not be taken back. © ii Ugooie ON
+3 jinterest at 20 percent/P.A. will be charged all bills ‘| y ye
+|remaining unpaid over a month against invoice date. : CS
+a I if |! OTISE ee
+: XY fypce
+K DETAILS : Canara BANK. Ac no :30711400000104 , Nizampet ,Hyderabad=1FSC CODE :CNRB0013071
+I | i}
+” | j
+a |
