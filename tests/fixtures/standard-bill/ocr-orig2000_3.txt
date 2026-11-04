@@ -1,0 +1,53 @@
+TAX INVOICE Triplecate copy for supplier
+
+V4 INDUSTRIES
+
+PLOT NO: 35836, SURVEY NO:53&54 /BAHADURPALLY VILLAGE
+| QUTBULLAPUR MANDAL, RANGAREDDY,TELANGANA-500 055.
+
+email 1d: v4 |_industries@yahoo. com ,ph no :9848360820
+
+GSTIN: 36AALFV9329A1zz
+INVOICE NO : 055, date :24.10.2026
+
+Mode of transport : By road
+
+Name of transport : V R L logistics Ltd
+Vehicle no: N.A
+
+Date of supply : 24.10.2026
+
+Place of supply : Gandhi nagar ,new delhi
+
+‘Transport booked : On to pay basis
+
+Payment: with in 10 days against invoice date
+
+To,(BUYER BILLED ADDRESS)
+
+ASHOK ENGINEERING WORKS
+1/424/66-A, SHAHDRA FLYOVER
+SHAHDRA
+NEW DELHI -110032. |
+GSTIN: O7AAKPB7527M1ZF
+
+STATE : DELHI
+
+state code: 07
+
+STATE: TELANGANA _
+STATE CODE: 36
+
+}
+
+BUYER DELIVERED ADDRESS: Same as
+billed address.
+
+HSN Code [ary [Unit [Rate [Taxable value [IGST% [Total value |
+
+slot type commutators 8503 4000 | | 140000 25200 165200
+(Ring Type) |
+Hl ies.. |
+
+ed to hyderabad jurisjiction.
+ill not be veld back.
