@@ -78,6 +78,11 @@ const isPhoto = (data) =>
 
 export async function extractLines(file, pdfjs, opts = {}) {
   if (file.size > PHOTO_MAX_BYTES) throw err('too-big', 'This file is larger than 25 MB.')
+  if (file.size > MAX_BYTES) {
+    // Over the PDF limit: only a photo may be this big, and the first bytes tell which it is (nothing else is read).
+    const head = file.slice ? new Uint8Array(await file.slice(0, 12).arrayBuffer()) : null
+    if (!head || !isPhoto(head)) throw err('too-big', 'This PDF is larger than 10 MB.')
+  }
   const data = new Uint8Array(await file.arrayBuffer())
   if (isPhoto(data)) {
     // A photo of a printed bill: read it with text recognition (opts.ocrImage replaces the browser one in tests).
@@ -89,7 +94,6 @@ export async function extractLines(file, pdfjs, opts = {}) {
     lines.photo = true
     return lines
   }
-  if (file.size > MAX_BYTES) throw err('too-big', 'This PDF is larger than 10 MB.')
   if (String.fromCharCode(...data.subarray(0, 5)) !== '%PDF-') throw err('not-pdf', 'This file is not a PDF.')
   const lib = pdfjs || (await loadPdfjs())
   let doc

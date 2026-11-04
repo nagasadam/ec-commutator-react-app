@@ -76,3 +76,14 @@ test('importFile: a photo is never saved automatically and uses the QR when ther
   assert.ok(r.issues.some((i) => /photo of a bill/.test(i)))
   assert.ok(r.issues.some((i) => /QR code/.test(i)))
 })
+
+test('a 12 MB photo is accepted (only PDFs are limited to 10 MB); a 12 MB non-photo is refused without being read', async () => {
+  const big = new Uint8Array(12 * 1024 * 1024)
+  big.set([0xff, 0xd8, 0xff, 0xe0])
+  const photo = { size: big.length, slice: (a, b) => ({ arrayBuffer: async () => big.slice(a, b).buffer }), arrayBuffer: async () => big.buffer }
+  const lines = await extractLines(photo, null, { ocrImage: async () => TEXT.join('\n') })
+  assert.equal(lines.photo, true)
+  const notPhoto = new Uint8Array(12 * 1024 * 1024)
+  const file = { size: notPhoto.length, slice: (a, b) => ({ arrayBuffer: async () => notPhoto.slice(a, b).buffer }), arrayBuffer: async () => assert.fail('must not read the whole file') }
+  await assert.rejects(extractLines(file, null, {}), (e) => e.code === 'too-big' && /10 MB/.test(e.message))
+})
