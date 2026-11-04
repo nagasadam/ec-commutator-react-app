@@ -26,6 +26,12 @@ export function usePdfAuto() {
 // Upload button + "Save automatically" checkbox. `onFile(file)` does the work.
 export function PdfUpload({ auto, setAuto, busy, status, onFile, label = 'Upload PDF invoice' }) {
   const ref = useRef(null)
+  const cam = useRef(null)
+  const pick = (e) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (f) onFile(f)
+  }
   return (
     <div className="pdfbar">
       <button type="button" className="btn ghost" disabled={busy} onClick={() => ref.current?.click()}>
@@ -35,15 +41,16 @@ export function PdfUpload({ auto, setAuto, busy, status, onFile, label = 'Upload
       <input
         ref={ref}
         type="file"
-        accept="application/pdf,.pdf"
+        accept="application/pdf,.pdf,image/*"
         hidden
         data-testid="pdf-input"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          e.target.value = ''
-          if (f) onFile(f)
-        }}
+        onChange={pick}
       />
+      <button type="button" className="btn ghost" disabled={busy} onClick={() => cam.current?.click()}>
+        <Icon n="camera" duo />
+        Scan bill
+      </button>
+      <input ref={cam} type="file" accept="image/*" capture="environment" hidden data-testid="cam-input" onChange={pick} />
       <label className="chk">
         <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Save automatically
       </label>

@@ -568,3 +568,15 @@ test('big data: Banking and Expenses show 50 rows at a time; edits still save', 
   await p.locator('header.top').waitFor()
   assert.ok((await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz.length)) >= 2)
 })
+
+test('Scan bill: the camera button takes a photo, and a photo goes through bill reading', async () => {
+  const p = await open({ viewport: { width: 390, height: 800 }, hasTouch: true })
+  await tab(p, 'Purchases')
+  assert.equal(await p.locator('[data-testid=cam-input]').getAttribute('capture'), 'environment')
+  assert.match(await p.locator('[data-testid=cam-input]').getAttribute('accept'), /image/)
+  await p.locator('button:has-text("Scan bill")').waitFor()
+  // a real (tiny) PNG; reading it needs text recognition, which tests cannot download, so only the start is checked
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFUlEQVR4nGP8//8/AzbAhFV00EoAAFbUAw037MyjAAAAAElFTkSuQmCC', 'base64')
+  await p.setInputFiles('[data-testid=cam-input]', { name: 'bill.png', mimeType: 'image/png', buffer: png })
+  await p.locator('.pdfbar button:has-text("Reading the bill")').waitFor()
+})
