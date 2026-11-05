@@ -62,3 +62,16 @@ test('QR text round-trips and rejects tampering', () => {
   assert.equal(parseQr(q.replace('STACKING', 'MOULDING')), null)
   assert.equal(parseQr('hello'), null)
 })
+
+import { qrMatrix, qrSvg } from '../../src/lib/qrcode.js'
+import { pairText, parsePair } from '../../src/lib/process.js'
+test('QR writer: sizes, finder patterns, determinism; pairing text', () => {
+  const m = qrMatrix('V4|STACKING|k29d')
+  assert.equal(m.length, 25) // version 2
+  assert.deepEqual(m[0].slice(0, 7), [1, 1, 1, 1, 1, 1, 1])
+  assert.deepEqual(m[3].slice(0, 7), [1, 0, 1, 1, 1, 0, 1])
+  assert.equal(qrSvg('abc'), qrSvg('abc'))
+  assert.throws(() => qrMatrix('x'.repeat(200)))
+  assert.equal(parsePair(pairText('abc123')), 'abc123')
+  assert.equal(parsePair('nope'), null)
+})

@@ -159,3 +159,11 @@ export function openLots(b) {
   const done = new Set((b.mv || []).filter((m) => m.kind === 'receive').map((m) => m.lot))
   return (b.mv || []).filter((m) => m.kind === 'issue' && !done.has(m.lot)).map((m) => ({ lot: m.lot, type: m.type, sup: m.sup, expected: m.expected, date: m.date }))
 }
+
+// Pairing: the main app shows this once so a phone is linked to one business. It holds no secret; the phone
+// still has to sign in with an allowed account.
+export const pairText = (bizId) => `PAIR|${bizId}`
+export const parsePair = (text) => {
+  const m = String(text || '').trim().match(/^PAIR\|([A-Za-z0-9_-]{3,40})$/)
+  return m ? m[1] : null
+}

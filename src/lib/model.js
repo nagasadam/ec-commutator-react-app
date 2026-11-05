@@ -47,6 +47,8 @@ export function fixBiz(b) {
   // Google Drive folders to import PDFs from (one for invoices, one for purchases)
   b.drive = { sale: '', purchase: '', ...(b.drive || {}) }
   b.stateCode = b.stateCode || '33'
+  // Process Scan: scans wait for approval unless this is switched off
+  b.pscan = { approve: true, ...(b.pscan || {}) }
   return b
 }
 

@@ -1,0 +1,214 @@
+import { useMemo, useState } from 'react'
+import { useStore } from '../lib/store.jsx'
+import { useCloud } from '../cloud.jsx'
+import { useScans } from '../scanbridge.jsx'
+import { valuation } from '../lib/calc.js'
+import { TYPES, PROCESSES, itemId, typeName, previewScan, ensureProcessItems, qrText, bizTag, pairText } from '../lib/process.js'
+import { qrSvg } from '../lib/qrcode.js'
+import { qtyFmt, dmy } from '../lib/format.js'
+import { Empty, Modal } from '../ui.jsx'
+
+const when = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return isNaN(d) ? '' : `${dmy(iso.slice(0, 10))} ${d.toTimeString().slice(0, 5)}`
+}
+const describe = (s) => {
+  if (!s) return 'Unreadable scan'
+  const t = typeName(s.type)
+  if (s.action === 'issue') return `${s.lot} · ${t} issued to vendor · ${qtyFmt(s.qty)} pcs expected`
+  if (s.action === 'receive') return `${s.lot} · ${t} received ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejected` : ''}${+s.charge ? ` · charge ₹${qtyFmt(s.charge)}` : ''}`
+  return `${t} moulded ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejects` : ''}${s.note ? ` · ${s.note}` : ''}`
+}
+
+function Posters({ b, onClose }) {
+  const tag = bizTag(b.id)
+  const items = [
+    ['STACKING', 'Outsourced · issue to the vendor, receive stacked pieces back', qrText(tag, 'stacking')],
+    ['MOULDING', 'In-house · record a run: pieces made and rejects', qrText(tag, 'moulding')],
+    ['PAIR A PHONE', 'Scan this in the Process Scan app on first use', pairText(b.id)],
+  ]
+  const print = () => {
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(
+      `<!doctype html><title>Process QR posters</title><style>body{font-family:system-ui,sans-serif;margin:0}.p{page-break-after:always;text-align:center;padding:48px}h1{font-size:56px;margin:16px 0}p{font-size:20px;color:#444}small{display:block;margin-top:24px;color:#777;font-family:monospace}</style>` +
+        items.map(([h, d, t]) => `<div class="p"><p>${b.name.replace(/</g, '&lt;')}</p>${qrSvg(t, 520)}<h1>${h}</h1><p>${d}</p><small>${t.replace(/</g, '&lt;')}</small></div>`).join(''),
+    )
+    w.document.close()
+    w.focus()
+    w.print()
+  }
+  return (
+    <Modal title="QR posters" onClose={onClose} wide>
+      <p className="muted">Print the first two once and stick them at the vendor counter and by the press. They never change. The third is only for linking a phone.</p>
+      <div className="ps-posters">
+        {items.map(([h, d, t]) => (
+          <div key={h} className="ps-poster">
+            <div dangerouslySetInnerHTML={{ __html: qrSvg(t, 160) }} />
+            <b>{h}</b>
+            <span className="muted">{d}</span>
+          </div>
+        ))}
+      </div>
+      <button className="btn" onClick={print}>Print</button>
+    </Modal>
+  )
+}
+
+export default function ProcessScan() {
+  const { b, updB } = useStore()
+  const cloud = useCloud()
+  const sc = useScans()
+  const [tab, setTab] = useState('waiting')
+  const [posters, setPosters] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const approve = b.pscan?.approve !== false
+
+  const stock = useMemo(() => {
+    const w = structuredClone(b)
+    ensureProcessItems(w)
+    return valuation(w).qty
+  }, [b])
+
+  const groups = {
+    waiting: sc.rows.filter((r) => r.status === 'waiting'),
+    applied: sc.rows.filter((r) => r.status === 'applied'),
+    problem: sc.rows.filter((r) => r.status === 'problem'),
+    rejected: sc.rows.filter((r) => r.status === 'rejected'),
+  }
+  const shown = [...groups[tab]].reverse()
+  const run = async (fn) => {
+    setBusy(true)
+    try {
+      await fn()
+    } finally {
+      setBusy(false)
+    }
+  }
+  const effect = (row) => {
+    if (!row.scan) return null
+    const p = previewScan(b, row.scan)
+    if (p.error) return <span className="ps-bad">{p.error}</span>
+    return (
+      <>
+        {p.lines.map((l) => `${l.name} ${l.qty > 0 ? '+' : '−'}${qtyFmt(Math.abs(l.qty))}`).join(', ')}
+        {p.shortStock.length > 0 && <span className="ps-bad"> · not enough {p.shortStock.map((x) => x.name).join(', ')}</span>}
+      </>
+    )
+  }
+
+  return (
+    <div className="work">
+      <div className="main">
+        <div className="card">
+          <div className="ps-head">
+            <div>
+              <h3>Process scan</h3>
+              <p className="muted">Stacking and moulding scans from the shop-floor phone app.</p>
+            </div>
+            <label className="ps-switch">
+              <span>Approve scans first</span>
+              <input type="checkbox" role="switch" checked={approve} onChange={(e) => updB((x) => (x.pscan = { ...(x.pscan || {}), approve: e.target.checked }))} />
+              <b>{approve ? 'ON' : 'OFF'}</b>
+            </label>
+            <button className="btn ghost" onClick={() => setPosters(true)}>QR posters</button>
+          </div>
+          <p className="muted">
+            {approve ? 'Scans wait here until you apply them.' : 'Scans are applied as soon as they arrive. This app must be open to apply them; otherwise they wait here.'}
+          </p>
+        </div>
+
+        <div className="card">
+          <h3>Stock by type</h3>
+          <div className="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th className="r">At vendor</th>
+                  <th className="r">Stacked</th>
+                  <th className="r">Moulded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TYPES.map((t) => (
+                  <tr key={t.id}>
+                    <td className="nm">{t.name}</td>
+                    <td className="r nw" data-l="At vendor">{qtyFmt(stock[itemId('av', t.id)])}</td>
+                    <td className="r nw" data-l="Stacked">{qtyFmt(stock[itemId('stk', t.id)])}</td>
+                    <td className="r nw" data-l="Moulded">{qtyFmt(stock[itemId('mld', t.id)])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">Bill of materials per piece: set it in Inventory (BOM on each "In process" item). The starting amounts are placeholders.</p>
+        </div>
+
+        <div className="card">
+          {!cloud.configured || !cloud.user ? (
+            <Empty>Sign in to the cloud to receive scans. The phone app sends them through the same account.</Empty>
+          ) : (
+            <>
+              <div className="ps-tabs chips">
+                {[['waiting', 'Waiting'], ['applied', 'Applied'], ['problem', 'Problems'], ['rejected', 'Rejected']].map(([k, l]) => (
+                  <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+                    {l} · {groups[k].length}
+                  </button>
+                ))}
+                <span style={{ flex: 1 }} />
+                {tab === 'waiting' && groups.waiting.length > 1 && (
+                  <button className="btn" disabled={busy} onClick={() => run(async () => { for (const r of groups.waiting) await sc.apply(r) })}>
+                    Apply all {groups.waiting.length}
+                  </button>
+                )}
+                <button className="btn ghost" disabled={busy} onClick={() => run(sc.refresh)}>Refresh</button>
+              </div>
+              {sc.error && <div className="err">{sc.error}</div>}
+              {!shown.length ? (
+                <Empty>{sc.ready ? 'Nothing here.' : 'Loading…'}</Empty>
+              ) : (
+                <div className="tw">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Process</th>
+                        <th>What happened</th>
+                        <th>Stock effect</th>
+                        <th>Scanned</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shown.map((r) => (
+                        <tr key={r.id}>
+                          <td data-l="Process">{r.scan ? `${PROCESSES[r.scan.process]?.name || r.scan.process}${r.scan.action === 'issue' ? ' · issue' : r.scan.action === 'receive' ? ' · receive' : ''}` : '—'}</td>
+                          <td data-l="What happened">
+                            {describe(r.scan)}
+                            {r.scan?.by || r.by ? <span className="muted"> · {r.scan?.by || r.by}</span> : null}
+                          </td>
+                          <td data-l="Stock effect" className="muted">{tab === 'applied' || tab === 'rejected' ? r.note : tab === 'problem' ? <span className="ps-bad">{r.note}</span> : effect(r)}</td>
+                          <td data-l="Scanned" className="nw">{when(r.scan?.at || r.at)}</td>
+                          <td className="r nw">
+                            {(tab === 'waiting' || tab === 'problem') && (
+                              <>
+                                <button className="btn ghost" disabled={busy} onClick={() => run(() => sc.reject(r))}>Reject</button>{' '}
+                                <button className="btn" disabled={busy} onClick={() => run(() => sc.apply(r))}>{tab === 'problem' ? 'Retry' : 'Apply'}</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      {posters && <Posters b={b} onClose={() => setPosters(false)} />}
+    </div>
+  )
+}

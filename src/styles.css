@@ -2361,3 +2361,13 @@ nav button svg { width: 16px; height: 16px; flex: none; }
   white-space: nowrap;
 }
 .errcard { margin-top: 18px; }
+
+/* Process scan */
+.ps-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ps-head>div{flex:1 1 220px}
+.ps-switch{display:flex;align-items:center;gap:10px;font-weight:600;background:var(--bg,#f3f5fb);border-radius:999px;padding:8px 14px}
+.ps-switch input{width:44px;height:26px;accent-color:#2f55f0}
+.ps-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.ps-bad{color:#b3261e}
+.ps-posters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:12px 0}
+.ps-poster{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1px solid #d6defa;border-radius:16px;padding:14px}

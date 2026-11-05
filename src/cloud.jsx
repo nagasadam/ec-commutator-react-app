@@ -115,6 +115,7 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     signOut,
     resolveChoice: (how) => eng.current?.resolveChoice(how),
     syncNow: () => eng.current?.flush(),
+    scans: fb.current?.scans || null,
     sizeWarn: sizeOf(b) > WARN_BYTES,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

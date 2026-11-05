@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { StoreProvider } from './lib/store.jsx'
 import { ToastProvider } from './toast.jsx'
 import { CloudProvider } from './cloud.jsx'
+import { ScanProvider } from './scanbridge.jsx'
 import { DialogProvider } from './ui.jsx'
 import { Motion } from './motion.jsx'
 import App from './App.jsx'
@@ -14,13 +15,15 @@ createRoot(document.getElementById('root')).render(
     <ToastProvider>
       <StoreProvider>
         <CloudProvider>
-          <DialogProvider>
-            <Motion>
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
-            </Motion>
-          </DialogProvider>
+          <ScanProvider>
+            <DialogProvider>
+              <Motion>
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              </Motion>
+            </DialogProvider>
+          </ScanProvider>
         </CloudProvider>
       </StoreProvider>
     </ToastProvider>
