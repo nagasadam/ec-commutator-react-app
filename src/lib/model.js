@@ -2,7 +2,7 @@ import { uid } from './format.js'
 
 // Arrays every business must carry. Add new ones here so old saved data
 // is migrated by fixBiz and new businesses start with them.
-export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp', 'dimp']
+export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp', 'dimp', 'mv']
 
 export const defaultItems = () => [
   { id: 'cu', name: 'Copper coil', type: 'raw', unit: 'kg', hsn: '7408', open: 0, openCost: 0, rate: 0, bom: [] },

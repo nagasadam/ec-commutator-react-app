@@ -74,9 +74,11 @@ export function valuation(b) {
   b.inv.forEach((x) => ev.push({ t: 3, d: x.date, k: 'inv', x }))
   b.sr.forEach((x) => ev.push({ t: 4, d: x.date, k: 'sr', x }))
   b.rej.forEach((x) => ev.push({ t: 5, d: x.date, k: 'rej', x }))
+  ;(b.mv || []).forEach((x) => ev.push({ t: 2, d: x.date, k: 'mv', x })) // stacking / moulding scans (see process.js)
   ev.sort((a, c) => (a.d < c.d ? -1 : a.d > c.d ? 1 : a.t - c.t))
 
   const prod = {}
+  const mv = {}
   const cogs = {}
   for (const { k, x } of ev) {
     if (k === 'pur') x.lines.forEach((l) => add(l.item, +l.qty, l.qty * l.rate))
@@ -93,6 +95,14 @@ export function valuation(b) {
       const cost = used.reduce((s, u) => s + u.cost, 0)
       add(x.item, +x.qty, cost)
       prod[x.id] = { cost, used }
+    } else if (k === 'mv') {
+      // Stock moves from one item to another: what goes out is taken at average cost, and everything it cost (plus
+      // any job-work charge) is spread over the pieces that come out. Pieces lost on the way make the rest dearer.
+      const used = x.out.map((o) => ({ item: o.item, qty: +o.qty, cost: take(o.item, +o.qty) }))
+      const cost = used.reduce((s, u) => s + u.cost, 0) + (+x.extra || 0)
+      const made = x.in.reduce((s, o) => s + (+o.qty || 0), 0)
+      x.in.forEach((o) => add(o.item, +o.qty, made > 0 ? (cost * o.qty) / made : 0))
+      mv[x.id] = { cost, used }
     } else if (k === 'inv') {
       cogs[x.id] = x.lines.reduce((s, l) => s + take(l.item, +l.qty), 0)
     } else if (k === 'sr') add(x.item, +x.qty, x.qty * avg(x.item))
@@ -102,7 +112,7 @@ export function valuation(b) {
   const closing = b.items.reduce((s, i) => s + val[i.id], 0)
   const opening = b.items.reduce((s, i) => s + (+i.open || 0) * (+i.openCost || 0), 0)
   const avgs = Object.fromEntries(b.items.map((i) => [i.id, avg(i.id)]))
-  return { qty, val, avg: avgs, closing: r2(closing), opening: r2(opening), prod, cogs }
+  return { qty, val, avg: avgs, closing: r2(closing), opening: r2(opening), prod, mv, cogs }
 }
 
 // ---------- Parties, payments, accounts ----------

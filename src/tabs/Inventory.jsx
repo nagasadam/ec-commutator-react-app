@@ -14,7 +14,8 @@ function BomEditor({ item, onClose }) {
   const save = () => {
     updB((x) => {
       const it = x.items.find((i) => i.id === item.id)
-      it.bom = raws.filter((r) => +q[r.id] > 0).map((r) => ({ item: r.id, qty: +q[r.id] }))
+      const kept = (it.bom || []).filter((m) => !raws.some((r) => r.id === m.item)) // e.g. the stacked piece a moulded piece is made from
+      it.bom = [...kept, ...raws.filter((r) => +q[r.id] > 0).map((r) => ({ item: r.id, qty: +q[r.id] }))]
     })
     onClose()
   }
@@ -32,6 +33,8 @@ function BomEditor({ item, onClose }) {
     </Modal>
   )
 }
+
+const typeLabel = (i) => (i.type === 'fg' ? 'Finished' : i.type === 'raw' ? 'Raw' : i.type === 'wip' ? 'In process' : 'By-product')
 
 export default function Inventory() {
   const { b, updB } = useStore()
@@ -61,7 +64,7 @@ export default function Inventory() {
   }
 
   const tf = useTableFilter()
-  const itemRows = b.items.filter((i) => tf.test('', [i.name, i.hsn, i.type === 'fg' ? 'finished' : i.type === 'raw' ? 'raw' : 'by-product'].join(' ')))
+  const itemRows = b.items.filter((i) => tf.test('', [i.name, i.hsn, typeLabel(i)].join(' ')))
   const setRate = (id, rate) => updB((x) => (x.items.find((i) => i.id === id).rate = +rate || 0))
 
   return (
@@ -90,7 +93,7 @@ export default function Inventory() {
               {itemRows.map((i) => (
                 <tr key={i.id} className={v.qty[i.id] < 0 ? 'neg' : ''}>
                   <td className="nm">{i.name}</td>
-                  <td data-l="Type">{i.type === 'fg' ? 'Finished' : i.type === 'raw' ? 'Raw' : 'By-product'}</td>
+                  <td data-l="Type">{typeLabel(i)}</td>
                   <td data-l="HSN">{i.hsn}</td>
                   <td className="r nw" data-l="In stock">
                     {qtyFmt(v.qty[i.id])} {i.unit}
@@ -98,10 +101,10 @@ export default function Inventory() {
                   <td className="r nw" data-l="Avg cost">{inr(v.avg[i.id])}</td>
                   <td className="r nw" data-l="Value">{inr(v.val[i.id])}</td>
                   <td className="r nw" data-l="Sale rate">
-                    {i.type !== 'raw' ? <input className="mini" type="number" min="0" step="any" value={i.rate} onChange={(e) => setRate(i.id, e.target.value)} /> : '—'}
+                    {i.type !== 'raw' && i.type !== 'wip' ? <input className="mini" type="number" min="0" step="any" value={i.rate} onChange={(e) => setRate(i.id, e.target.value)} /> : '—'}
                   </td>
                   <td className="r bomc">
-                    {i.type === 'fg' && (
+                    {(i.type === 'fg' || i.type === 'wip') && (
                       <button className="btn ghost" onClick={() => setBom(i)}>
                         BOM
                       </button>
