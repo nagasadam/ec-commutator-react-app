@@ -108,6 +108,7 @@ export function scanToMovement(b, s) {
   const rej = +s.rejects || 0
   const base = { id: s.id, date: s.date, kind: s.action === 'run' ? 'mould' : s.action, type: s.type, by: s.by || '', at: s.at || '', note: s.note || '' }
   if (s.action === 'issue') {
+    if (issueOf(b, s.lot)) return { error: `Lot ${s.lot} already exists. Issue again with a new lot number.` }
     return { ...base, lot: s.lot, sup: s.sup || '', expected: q, out: bomOut(b, itemId('stk', s.type), q), in: [{ item: itemId('av', s.type), qty: q }], extra: 0 }
   }
   if (s.action === 'receive') {
@@ -166,4 +167,10 @@ export const pairText = (bizId) => `PAIR|${bizId}`
 export const parsePair = (text) => {
   const m = String(text || '').trim().match(/^PAIR\|([A-Za-z0-9_-]{3,40})$/)
   return m ? m[1] : null
+}
+
+// Next lot number for the phone: one more than the highest STK-nnnn it knows of (open lots, its own queue).
+export function nextLot(known = []) {
+  const n = known.map((l) => +String(l).replace(/^STK-/, '')).filter((x) => x > 0)
+  return 'STK-' + String((n.length ? Math.max(...n) : 0) + 1).padStart(4, '0')
 }
