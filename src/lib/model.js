@@ -9,6 +9,7 @@ export const defaultItems = () => [
   { id: 'br', name: 'Brass insert', type: 'raw', unit: 'pcs', hsn: '7419', open: 0, openCost: 0, rate: 0, bom: [] },
   { id: 'mi', name: 'Mica', type: 'raw', unit: 'kg', hsn: '2525', open: 0, openCost: 0, rate: 0, bom: [] },
   { id: 'mo', name: 'Moulding powder', type: 'raw', unit: 'kg', hsn: '3907', open: 0, openCost: 0, rate: 0, bom: [] },
+  { id: 'pb', name: 'Plastic bush', type: 'raw', unit: 'pcs', hsn: '3926', open: 0, openCost: 0, rate: 0, bom: [] },
   {
     id: 'cm',
     name: 'Commutator',
@@ -47,6 +48,8 @@ export function fixBiz(b) {
   // Google Drive folders to import PDFs from (one for invoices, one for purchases)
   b.drive = { sale: '', purchase: '', ...(b.drive || {}) }
   b.stateCode = b.stateCode || '33'
+  // Plastic bush is used in stacking (see process.js); add it where it is missing so it can be bought straight away
+  if (!b.items.some((i) => i.id === 'pb')) b.items.push({ id: 'pb', name: 'Plastic bush', type: 'raw', unit: 'pcs', hsn: '3926', open: 0, openCost: 0, rate: 0, bom: [] })
   // Process Scan: scans wait for approval unless this is switched off
   b.pscan = { approve: true, ...(b.pscan || {}) }
   return b

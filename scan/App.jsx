@@ -333,7 +333,7 @@ function Sync({ app }) {
   return (
     <div className="screen">
       <h2>Sync</h2>
-      {denied && <div className="err">This account is not set up for Process Scan. Ask the office to add your email.</div>}
+      {denied && <div className="err">This account is not set up for Process Scan. Ask the office to add your email. <small>(Details: {denied})</small></div>}
       {!configured && <div className="err">The app is not connected to the cloud. Ask the office to check the app settings.</div>}
       <div className="card">
         <label className="small">CONNECTED TO MAIN APP</label>
@@ -376,7 +376,7 @@ export default function App() {
   const [tab, setTab] = useState('scan')
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(false)
-  const [denied, setDenied] = useState(false)
+  const [denied, setDenied] = useState('')
   const [online, setOnline] = useState(navigator.onLine)
   const fb = useRef(window.__scanTestApi || null)
   const cfg = configFromEnv(import.meta.env || {})
@@ -411,18 +411,21 @@ export default function App() {
     const s = stRef.current
     if (!api || !s.biz) return
     setBusy(true)
+    let step = 'sending scans'
     try {
       for (const q of [...s.queue]) {
         await api.add(s.biz, q)
         patch((c) => ({ queue: c.queue.filter((x) => x.id !== q.id) }))
       }
+      step = 'reading vendor list'
       patch({ meta: (await api.getMeta(s.biz)) || stRef.current.meta })
+      step = 'reading your scans'
       const all = await api.list(s.biz, true)
       setRows(all.sort((a, b) => (b.scan?.at || b.at).localeCompare(a.scan?.at || a.at)).slice(0, 40))
-      setDenied(false)
+      setDenied('')
     } catch (e) {
       // offline: the queue is kept and retried on the next sync; a refusal means this account is not set up for scanning
-      if (/permission|insufficient/i.test(String(e?.code || e?.message))) setDenied(true)
+      if (/permission|insufficient/i.test(String(e?.code || e?.message))) setDenied(`${step}: ${e?.code || e?.message}`)
     } finally {
       setBusy(false)
     }
