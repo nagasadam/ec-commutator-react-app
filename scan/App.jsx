@@ -90,14 +90,14 @@ function ScanFlow({ app }) {
   const [process, setProcess] = useState(null)
   const [action, setAction] = useState('')
   const [type, setType] = useState('')
-  const [f, setF] = useState({ qty: '', rejects: '', charge: '', sup: '', lot: '', note: '' })
+  const [f, setF] = useState({ qty: '', rejects: '', bushRejects: '', charge: '', sup: '', lot: '', note: '' })
   const [step, setStep] = useState('aim') // aim | type | form | confirm | done
   const [err, setErr] = useState('')
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(null)
 
   const reset = () => {
-    setProcess(null); setAction(''); setType(''); setF({ qty: '', rejects: '', charge: '', sup: '', lot: '', note: '' }); setStep('aim'); setErr(''); setCode('')
+    setProcess(null); setAction(''); setType(''); setF({ qty: '', rejects: '', bushRejects: '', charge: '', sup: '', lot: '', note: '' }); setStep('aim'); setErr(''); setCode('')
   }
   const onText = useCallback(
     (t) => {
@@ -128,13 +128,13 @@ function ScanFlow({ app }) {
 
   const pickType = (t) => {
     setType(t)
-    setF((x) => ({ ...x, lot: '', qty: '', rejects: '', charge: '' }))
+    setF((x) => ({ ...x, lot: '', qty: '', rejects: '', bushRejects: '', charge: '' }))
     if (process === 'stacking' && action === 'issue') setF((x) => ({ ...x, lot: nextLot([...(meta?.lots || []).map((l) => l.lot), ...queuedLots]) }))
     setStep('form')
   }
   const scan = () => ({
     id: uid(), process, action, type, date: today(), by: user?.email || '', at: new Date().toISOString(),
-    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' ? Number(f.charge || 0) : undefined, note: f.note.trim() || undefined,
+    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), bushRejects: f.bushRejects === '' ? 0 : Number(f.bushRejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' ? Number(f.charge || 0) : undefined, note: f.note.trim() || undefined,
   })
   const review = () => {
     const s = scan()
@@ -233,6 +233,8 @@ function ScanFlow({ app }) {
             </div>
             <Stepper label="Good pieces received" value={f.qty} set={(v) => setF({ ...f, qty: v })} step={10} big />
             <Stepper label="Rejected pieces" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
+            {Number(f.rejects) > 0 && <Stepper label="Plastic bushes damaged (of the rejected pieces)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />}
+            {Number(f.rejects) > 0 && <p className="muted">The other bushes on rejected pieces go back into stock.</p>}
             <div className="field"><label>Job-work charge (₹)</label><input inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder="optional" /></div>
             {chosen && Number(f.qty) + Number(f.rejects || 0) < chosen.expected && <p className="warn">Short by {n(chosen.expected - Number(f.qty || 0) - Number(f.rejects || 0))} pieces.</p>}
           </>
@@ -241,6 +243,8 @@ function ScanFlow({ app }) {
           <>
             <Stepper label="Good pieces moulded" value={f.qty} set={(v) => setF({ ...f, qty: v })} step={10} big />
             <Stepper label="Rejects" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
+            <Stepper label="Plastic bushes rejected (damaged)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />
+            <p className="muted">Plastic bushes are reusable: after moulding they go back into stock, except the ones you reject here.</p>
             <div className="field"><label>Press / note</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Press 2" /></div>
           </>
         )}
@@ -264,6 +268,7 @@ function ScanFlow({ app }) {
           {action === 'issue' && <div><span>Vendor</span><b>{meta?.vendors?.find((v) => v.id === f.sup)?.name}</b></div>}
           <div><span>{action === 'issue' ? 'Expected back' : 'Good pieces'}</span><b>{n(s.qty)}</b></div>
           {action !== 'issue' && <div><span>Rejects</span><b>{n(s.rejects)}</b></div>}
+          {s.bushRejects > 0 && <div><span>Bushes rejected</span><b>{n(s.bushRejects)}</b></div>}
           {s.charge > 0 && <div><span>Charge</span><b>₹{n(s.charge)}</b></div>}
           {s.note && <div><span>Note</span><b>{s.note}</b></div>}
         </div>
@@ -325,7 +330,7 @@ function Activity({ app }) {
 }
 
 function Sync({ app }) {
-  const { st, user, signIn, signOut, sync, busy, pair, online, configured } = app
+  const { st, user, signIn, signOut, sync, busy, pair, online, configured, denied } = app
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
@@ -333,6 +338,7 @@ function Sync({ app }) {
   return (
     <div className="screen">
       <h2>Sync</h2>
+      {denied && <div className="err">This account is not set up for Process Scan. Ask the office to add your email. <small>(Details: {denied})</small></div>}
       {!configured && <div className="err">The app is not connected to the cloud. Ask the office to check the app settings.</div>}
       <div className="card">
         <label className="small">CONNECTED TO MAIN APP</label>
@@ -375,6 +381,7 @@ export default function App() {
   const [tab, setTab] = useState('scan')
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(false)
+  const [denied, setDenied] = useState('')
   const [online, setOnline] = useState(navigator.onLine)
   const fb = useRef(window.__scanTestApi || null)
   const cfg = configFromEnv(import.meta.env || {})
@@ -409,16 +416,21 @@ export default function App() {
     const s = stRef.current
     if (!api || !s.biz) return
     setBusy(true)
+    let step = 'sending scans'
     try {
       for (const q of [...s.queue]) {
         await api.add(s.biz, q)
         patch((c) => ({ queue: c.queue.filter((x) => x.id !== q.id) }))
       }
+      step = 'reading vendor list'
       patch({ meta: (await api.getMeta(s.biz)) || stRef.current.meta })
-      const all = await api.list(s.biz)
+      step = 'reading your scans'
+      const all = await api.list(s.biz, true)
       setRows(all.sort((a, b) => (b.scan?.at || b.at).localeCompare(a.scan?.at || a.at)).slice(0, 40))
-    } catch {
-      /* offline or rejected: the queue is kept and retried on the next sync */
+      setDenied('')
+    } catch (e) {
+      // offline: the queue is kept and retried on the next sync; a refusal means this account is not set up for scanning
+      if (/permission|insufficient/i.test(String(e?.code || e?.message))) setDenied(`${step}: ${e?.code || e?.message}`)
     } finally {
       setBusy(false)
     }
@@ -435,7 +447,7 @@ export default function App() {
     return !stRef.current.queue.some((q) => q.id === scan.id)
   }
   const app = {
-    st, user, rows, busy, online, configured, add,
+    st, user, rows, busy, online, configured, add, denied,
     pair: (biz) => patch({ biz, meta: null }),
     signIn: async (e, p) => { try { await fb.current.signIn(e, p); return '' } catch (x) { return authMessage(x) } },
     signOut: () => fb.current?.signOut(),

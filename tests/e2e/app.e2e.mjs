@@ -578,5 +578,7 @@ test('Scan bill: the camera button takes a photo, and a photo goes through bill 
   // a real (tiny) PNG; reading it needs text recognition, which tests cannot download, so only the start is checked
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFUlEQVR4nGP8//8/AzbAhFV00EoAAFbUAw037MyjAAAAAElFTkSuQmCC', 'base64')
   await p.setInputFiles('[data-testid=cam-input]', { name: 'bill.png', mimeType: 'image/png', buffer: png })
-  await p.locator('.pdfbar button:has-text("Reading the bill")').waitFor()
+  // Reading starts at once, but without a download of the recognition engine it can end in a moment with a result
+  // note, so either the progress label or that note proves the photo went through bill reading.
+  await p.locator('.pdfbar button:has-text("Reading the bill"), .pdfnote').first().waitFor()
 })

@@ -25,12 +25,13 @@ export const typeName = (id) => TYPES.find((t) => t.id === id)?.name || id
 
 export const itemId = (kind, type) => `${kind}_${type}` // kind: av | stk | mld
 
-// Starting bill of materials per piece. These are placeholders (as the finished commutator's was): the real
-// amounts are set per type in Inventory. Raw items are looked up by their usual ids: cu, mi, mo.
+// Bills of materials per piece (amounts are placeholders: set the real ones per type in Inventory).
+//   Stacking: copper segments (cu), mica segments (mi) and a plastic bush (pb).
+//   Moulding: the stacked piece and moulding compound (mo). The plastic bush is already in the stack.
 const BOM = {
-  ec: { cu: 0.015, mi: 0.005, mo: 0.03 },
-  w750: { cu: 0.022, mi: 0.007, mo: 0.045 },
-  hook: { cu: 0.018, mi: 0.006, mo: 0.036 },
+  ec: { cu: 0.015, mi: 0.005, pb: 1, mo: 0.03 },
+  w750: { cu: 0.022, mi: 0.007, pb: 1, mo: 0.045 },
+  hook: { cu: 0.018, mi: 0.006, pb: 1, mo: 0.036 },
 }
 
 // Adds the nine stock items a business needs for stacking and moulding if they are missing. Safe to call any
@@ -38,6 +39,10 @@ const BOM = {
 export function ensureProcessItems(b) {
   let added = false
   const has = (id) => b.items.some((i) => i.id === id)
+  if (!has('pb')) {
+    b.items.push({ id: 'pb', name: 'Plastic bush', type: 'raw', unit: 'pcs', hsn: '3926', open: 0, openCost: 0, rate: 0, bom: [] })
+    added = true
+  }
   const raw = (id, qty) => (has(id) ? [{ item: id, qty }] : [])
   for (const t of TYPES) {
     const mk = (kind, name, bom) => {
@@ -47,7 +52,7 @@ export function ensureProcessItems(b) {
       added = true
     }
     mk('av', `${t.name} at vendor (stacking)`, [])
-    mk('stk', `Stacked ${t.name}`, [...raw('cu', BOM[t.id].cu), ...raw('mi', BOM[t.id].mi)]) // raw sent per piece
+    mk('stk', `Stacked ${t.name}`, [...raw('cu', BOM[t.id].cu), ...raw('mi', BOM[t.id].mi), ...raw('pb', BOM[t.id].pb)]) // raw sent per piece
     mk('mld', `Moulded ${t.name}`, [{ item: itemId('stk', t.id), qty: 1 }, ...raw('mo', BOM[t.id].mo)]) // used per piece
   }
   b.mv = b.mv || []
@@ -80,6 +85,8 @@ export function parseQr(text) {
 //   type 'ec'|'w750'|'hook'          date YYYY-MM-DD                 by (who)      at (ISO time)
 //   qty        pieces: expected back (issue), good pieces received (receive), good pieces made (run)
 //   rejects    pieces rejected (receive, run)
+//   bushRejects  plastic bushes found damaged and thrown away (receive: among the rejected pieces; run: any). The
+//              plastic bush is reusable: the rest come back into stock when the pieces are rejected or moulded.
 //   lot        stacking lot number, made on the phone at issue and quoted again at receive
 //   sup        supplier id of the vendor (stacking)      charge  job-work charge in rupees (receive)
 export function scanProblem(s) {
@@ -92,12 +99,16 @@ export function scanProblem(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date || '')) return 'The scan has no date.'
   if (!(+s.qty > 0)) return 'The quantity must be more than zero.'
   if (s.rejects != null && !(+s.rejects >= 0)) return 'Rejects cannot be negative.'
+  if (s.bushRejects != null && !(+s.bushRejects >= 0)) return 'Rejected bushes cannot be negative.'
+  if (+s.bushRejects > 0 && s.action === 'issue') return 'Bushes are rejected when stacked pieces come back or are moulded.'
   if (s.action === 'issue' && !s.lot) return 'An issue needs a lot number.'
   if (s.action === 'receive' && !s.lot) return 'Choose which lot is coming back.'
   return ''
 }
 
 const bomOut = (b, itemIdOf, qty) => (find(b.items, itemIdOf)?.bom || []).map((m) => ({ item: m.item, qty: m.qty * qty }))
+// plastic bushes carried by one stacked piece (from the stacking BOM)
+const bushPer = (b, type) => find(b.items, itemId('stk', type))?.bom?.find((m) => m.item === 'pb')?.qty || 0
 const issueOf = (b, lot) => (b.mv || []).find((m) => m.kind === 'issue' && m.lot === lot)
 
 // A scan -> the stock movement it stands for ({ out, in, extra, ... }), or { error }.
@@ -116,13 +127,25 @@ export function scanToMovement(b, s) {
     if (!iss) return { error: `Lot ${s.lot} was not issued (or its issue has not been applied yet).` }
     if (iss.type !== s.type) return { error: `Lot ${s.lot} is ${typeName(iss.type)}, not ${typeName(s.type)}.` }
     if ((b.mv || []).some((m) => m.kind === 'receive' && m.lot === s.lot)) return { error: `Lot ${s.lot} has already been received.` }
+    // bushes on rejected pieces come back to stock unless they were damaged; bushes with good pieces stay in the stack
+    // and bushes that never came back from the vendor (short pieces) are lost, so their cost stays in the batch
+    const bpp = bushPer(b, s.type)
+    const bushRej = +s.bushRejects || 0
+    if (bushRej > rej * (bpp || 1)) return { error: 'More bushes rejected than rejected pieces.' }
+    const back = bpp ? Math.max(0, rej * bpp - bushRej) : 0
     return {
-      ...base, lot: s.lot, sup: iss.sup, expected: iss.expected, rejects: rej, short: Math.max(0, iss.expected - q - rej),
+      ...base, lot: s.lot, sup: iss.sup, expected: iss.expected, rejects: rej, bushRejects: bushRej, short: Math.max(0, iss.expected - q - rej),
       out: [{ item: itemId('av', s.type), qty: iss.expected }], in: [{ item: itemId('stk', s.type), qty: q }], extra: r2(+s.charge || 0),
+      ret: back > 0 ? [{ item: 'pb', qty: back }] : [],
     }
   }
   // moulding run: good + rejected pieces are all used up; only the good ones come out
-  return { ...base, rejects: rej, out: bomOut(b, itemId('mld', s.type), q + rej), in: [{ item: itemId('mld', s.type), qty: q }], extra: 0 }
+  // the plastic bush is reusable: every bush in the pieces used comes back into stock, except the rejected ones
+  const bpp = bushPer(b, s.type)
+  const bushRej = +s.bushRejects || 0
+  if (bushRej > (q + rej) * (bpp || 1)) return { error: 'More bushes rejected than pieces moulded.' }
+  const back = bpp ? (q + rej) * bpp - bushRej : 0
+  return { ...base, rejects: rej, bushRejects: bushRej, out: bomOut(b, itemId('mld', s.type), q + rej), in: [{ item: itemId('mld', s.type), qty: q }], extra: 0, ret: back > 0 ? [{ item: 'pb', qty: back }] : [] }
 }
 
 // What a scan will do, for the inbox: [{ item, name, qty }] (negative = leaves stock) plus anything wrong.
@@ -132,7 +155,7 @@ export function previewScan(b, s) {
   const m = scanToMovement(w, s)
   if (m.error) return { error: m.error }
   const name = (id) => find(w.items, id)?.name || id
-  const lines = [...m.out.map((o) => ({ item: o.item, name: name(o.item), qty: -r2(o.qty * 1000) / 1000 })), ...m.in.map((o) => ({ item: o.item, name: name(o.item), qty: +o.qty }))]
+  const lines = [...m.out.map((o) => ({ item: o.item, name: name(o.item), qty: -r2(o.qty * 1000) / 1000 })), ...m.in.map((o) => ({ item: o.item, name: name(o.item), qty: +o.qty })), ...(m.ret || []).map((o) => ({ item: o.item, name: name(o.item), qty: +o.qty }))]
   // anything that would take stock below zero
   const have = valuation(w).qty
   const short = m.out.filter((o) => (have[o.item] || 0) < o.qty - 1e-9).map((o) => ({ item: o.item, name: name(o.item), need: o.qty, have: have[o.item] || 0 }))
