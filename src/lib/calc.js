@@ -182,7 +182,8 @@ export const supBal = (b, s) =>
     (+s.open || 0) +
       sum(b.pur.filter((p) => p.sup === s.id), (p) => purTot(b, p).total) -
       sum(b.prr.filter((r) => find(b.pur, r.pur)?.sup === s.id), (r) => prrTot(b, r).total) -
-      sum(b.tx.filter((t) => t.kind === 'pay' && t.party === s.id), (t) => t.amt),
+      sum((b.jw || []).filter((j) => j.sup === s.id && j.status === 'approved'), (j) => j.amount) + // approved job-work bills
+      -sum(b.tx.filter((t) => t.kind === 'pay' && t.party === s.id), (t) => t.amt),
   )
 
 // Every party's balance in one pass (same sums, same order, as custBal / supBal one party at a time).

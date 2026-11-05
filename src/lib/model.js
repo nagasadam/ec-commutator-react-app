@@ -2,7 +2,7 @@ import { uid } from './format.js'
 
 // Arrays every business must carry. Add new ones here so old saved data
 // is migrated by fixBiz and new businesses start with them.
-export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp', 'dimp', 'mv']
+export const ARRAYS = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp', 'dimp', 'mv', 'jw']
 
 export const defaultItems = () => [
   { id: 'cu', name: 'Copper coil', type: 'raw', unit: 'kg', hsn: '7408', open: 0, openCost: 0, rate: 0, bom: [] },
@@ -49,6 +49,8 @@ export function fixBiz(b) {
   b.stateCode = b.stateCode || '33'
   // Process Scan: scans wait for approval unless this is switched off
   b.pscan = { approve: true, ...(b.pscan || {}) }
+  // job-work rate per stacked piece, by stack type (rupees; no GST on job work)
+  b.pscan.rates = { ec: 0, w750: 0, hook: 0, ...(b.pscan.rates || {}) }
   return b
 }
 
