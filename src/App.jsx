@@ -28,6 +28,7 @@ const loaders = {
   Returns: () => import('./tabs/Returns.jsx'),
   Parties: () => import('./tabs/Parties.jsx'),
   Banking: () => import('./tabs/Banking.jsx'),
+  ProcessScan: () => import('./tabs/ProcessScan.jsx'),
   Reports: () => import('./tabs/Reports.jsx'),
 }
 const Ledgers = lazy(() => retry(loaders.Ledgers))
@@ -39,6 +40,7 @@ const Expenses = lazy(() => retry(loaders.Expenses))
 const Returns = lazy(() => retry(loaders.Returns))
 const Parties = lazy(() => retry(loaders.Parties))
 const Banking = lazy(() => retry(loaders.Banking))
+const ProcessScan = lazy(() => retry(loaders.ProcessScan))
 const Reports = lazy(() => retry(loaders.Reports))
 
 const PRIMARY = ['dash', 'inv', 'pur', 'stk', 'rep']
@@ -56,6 +58,7 @@ const TABS = [
   ['led', 'Ledgers', Ledgers, 'Party statements'],
   ['cg', 'Cash & GPay', CashPeople, 'Cash & GPay people'],
   ['bank', 'Banking', Banking],
+  ['ps', 'Process scan', ProcessScan, 'Stacking & moulding scans'],
 ]
 
 // V4 mark: the white-background artwork on light themes, the original on dark ones.

@@ -90,8 +90,41 @@ export async function createFirebase(cfg, sdk) {
     },
   }
 
+  // Shop-floor scans (see process.js). The phone app appends scan documents; the main app reads them, applies
+  // them to the books and marks them. `scanmeta/<bizId>` is what the main app tells the phone (vendors, open lots,
+  // the approval switch). Scans never edit the books directly, so a phone can never overwrite the main app's data.
+  const scans = {
+    async add(bizId, scan) {
+      const by = auth.currentUser?.email || ''
+      await sdk.setDoc(sdk.doc(db, 'scans', scan.id), { biz: bizId, data: JSON.stringify(scan), status: 'waiting', by, at: new Date().toISOString() })
+    },
+    async list(bizId) {
+      const snap = await sdk.getDocs(sdk.query(sdk.collection(db, 'scans'), sdk.where('biz', '==', bizId)))
+      return snap.docs.map((d) => {
+        const x = d.data()
+        let scan = null
+        try { scan = JSON.parse(x.data) } catch { /* shown as a problem */ }
+        return { id: d.id, scan, status: x.status || 'waiting', note: x.note || '', by: x.by || '', at: x.at || '' }
+      })
+    },
+    async mark(id, status, note = '') {
+      await sdk.updateDoc(sdk.doc(db, 'scans', id), { status, note, done: new Date().toISOString() })
+    },
+    subscribe(bizId, cb) {
+      return sdk.onSnapshot(sdk.query(sdk.collection(db, 'scans'), sdk.where('biz', '==', bizId)), () => cb())
+    },
+    async putMeta(bizId, meta) {
+      await sdk.setDoc(sdk.doc(db, 'scanmeta', bizId), { data: JSON.stringify(meta), at: new Date().toISOString() })
+    },
+    async getMeta(bizId) {
+      const s = await sdk.getDoc(sdk.doc(db, 'scanmeta', bizId))
+      return s.exists() ? JSON.parse(s.data().data) : null
+    },
+  }
+
   return {
     backend,
+    scans,
     signIn: (email, password) => sdk.signInWithEmailAndPassword(auth, email, password),
     signOut: () => sdk.signOut(auth),
     onUser: (cb) => sdk.onAuthStateChanged(auth, (u) => cb(u ? { email: u.email, uid: u.uid } : null)),
