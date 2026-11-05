@@ -25,12 +25,13 @@ export const typeName = (id) => TYPES.find((t) => t.id === id)?.name || id
 
 export const itemId = (kind, type) => `${kind}_${type}` // kind: av | stk | mld
 
-// Starting bill of materials per piece. These are placeholders (as the finished commutator's was): the real
-// amounts are set per type in Inventory. Raw items are looked up by their usual ids: cu, mi, mo.
+// Bills of materials per piece (amounts are placeholders: set the real ones per type in Inventory).
+//   Stacking: copper segments (cu), mica segments (mi) and a plastic bush (pb).
+//   Moulding: the stacked piece and moulding compound (mo). The plastic bush is already in the stack.
 const BOM = {
-  ec: { cu: 0.015, mi: 0.005, mo: 0.03 },
-  w750: { cu: 0.022, mi: 0.007, mo: 0.045 },
-  hook: { cu: 0.018, mi: 0.006, mo: 0.036 },
+  ec: { cu: 0.015, mi: 0.005, pb: 1, mo: 0.03 },
+  w750: { cu: 0.022, mi: 0.007, pb: 1, mo: 0.045 },
+  hook: { cu: 0.018, mi: 0.006, pb: 1, mo: 0.036 },
 }
 
 // Adds the nine stock items a business needs for stacking and moulding if they are missing. Safe to call any
@@ -38,6 +39,10 @@ const BOM = {
 export function ensureProcessItems(b) {
   let added = false
   const has = (id) => b.items.some((i) => i.id === id)
+  if (!has('pb')) {
+    b.items.push({ id: 'pb', name: 'Plastic bush', type: 'raw', unit: 'pcs', hsn: '3926', open: 0, openCost: 0, rate: 0, bom: [] })
+    added = true
+  }
   const raw = (id, qty) => (has(id) ? [{ item: id, qty }] : [])
   for (const t of TYPES) {
     const mk = (kind, name, bom) => {
@@ -47,7 +52,7 @@ export function ensureProcessItems(b) {
       added = true
     }
     mk('av', `${t.name} at vendor (stacking)`, [])
-    mk('stk', `Stacked ${t.name}`, [...raw('cu', BOM[t.id].cu), ...raw('mi', BOM[t.id].mi)]) // raw sent per piece
+    mk('stk', `Stacked ${t.name}`, [...raw('cu', BOM[t.id].cu), ...raw('mi', BOM[t.id].mi), ...raw('pb', BOM[t.id].pb)]) // raw sent per piece
     mk('mld', `Moulded ${t.name}`, [{ item: itemId('stk', t.id), qty: 1 }, ...raw('mo', BOM[t.id].mo)]) // used per piece
   }
   b.mv = b.mv || []

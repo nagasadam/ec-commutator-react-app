@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { find, valuation } from '../lib/calc.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
+import { TYPES, itemId, ensureProcessItems } from '../lib/process.js'
 import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 export default function Production() {
@@ -11,6 +12,11 @@ export default function Production() {
   const [f, setF] = useState({ item: '', qty: '', date: today() })
   const [err, setErr] = useState('')
   const v = useMemo(() => valuation(b), [b])
+  const pitems = useMemo(() => {
+    const w = structuredClone({ items: b.items })
+    ensureProcessItems(w)
+    return w.items
+  }, [b.items])
   const tf = useTableFilter()
   const runs = [...b.prod].reverse().filter((r) => tf.test(r.date, find(b.items, r.item)?.name))
   const pg = usePaged(runs, tf.key)
@@ -36,6 +42,36 @@ export default function Production() {
     <>
       <div className="work">
         <div className="main">
+      <div className="card">
+        <h3>Bill of materials</h3>
+        <p className="muted">Per piece. Stacking (outsourced) uses copper segments, mica segments and a plastic bush. Moulding uses the stack and moulding compound; the bush is already in the stack. Change amounts in Inventory (BOM on each "In process" item).</p>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Stacking BOM</th>
+                <th>Moulding BOM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TYPES.map((t) => {
+                const list = (id) => {
+                  const it = find(pitems, id)
+                  return it ? it.bom.map((m) => `${find(pitems, m.item)?.name || m.item} ${qtyFmt(m.qty)}`).join(', ') : '—'
+                }
+                return (
+                  <tr key={t.id}>
+                    <td className="nm">{t.name}</td>
+                    <td data-l="Stacking BOM">{list(itemId('stk', t.id))}</td>
+                    <td data-l="Moulding BOM">{list(itemId('mld', t.id))}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
       <div className="card">
         <h3>Production runs</h3>
         {b.prod.length > 0 && <FilterBar f={tf} label="production" shown={runs.length} total={b.prod.length} />}
