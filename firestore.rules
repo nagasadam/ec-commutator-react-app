@@ -25,13 +25,20 @@ service cloud.firestore {
         && request.resource.data.data is string;
       allow delete: if false;
     }
-    // Shop-floor scans from the Process Scan phone app. A phone may only append a "waiting" scan; the main app
-    // marks it applied or rejected. Scans are never deleted.
+    // Shop-floor people sign in to the Process Scan phone app with their own accounts, listed in /scanallow/<email>
+    // (created by hand in the Firebase console, like /allow). They can add scans and read the little the phone
+    // needs (/scanmeta), and see their own scans. They can never read or write the books.
+    function scanner() {
+      return request.auth != null && exists(/databases/$(database)/documents/scanallow/$(request.auth.token.email));
+    }
+    // Shop-floor scans from the Process Scan phone app. A phone may only append a "waiting" scan in its own name;
+    // the main app marks it applied or rejected. Scans are never deleted.
     match /scans/{id} {
-      allow read: if allowed();
-      allow create: if allowed()
+      allow read: if allowed() || (scanner() && resource.data.by == request.auth.token.email);
+      allow create: if (allowed() || scanner())
         && request.resource.data.keys().hasOnly(['biz', 'data', 'status', 'by', 'at'])
         && request.resource.data.status == 'waiting'
+        && request.resource.data.by == request.auth.token.email
         && request.resource.data.data is string
         && request.resource.data.data.size() < 5000;
       allow update: if allowed()
@@ -40,11 +47,15 @@ service cloud.firestore {
     }
     // What the main app tells the phone: vendors, open stacking lots, the approval switch.
     match /scanmeta/{id} {
-      allow read: if allowed();
+      allow read: if allowed() || scanner();
       allow create, update: if allowed()
         && request.resource.data.keys().hasOnly(['data', 'at'])
         && request.resource.data.data is string;
       allow delete: if false;
+    }
+    match /scanallow/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false;
     }
     match /allow/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;

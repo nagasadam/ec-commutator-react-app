@@ -98,8 +98,12 @@ export async function createFirebase(cfg, sdk) {
       const by = auth.currentUser?.email || ''
       await sdk.setDoc(sdk.doc(db, 'scans', scan.id), { biz: bizId, data: JSON.stringify(scan), status: 'waiting', by, at: new Date().toISOString() })
     },
-    async list(bizId) {
-      const snap = await sdk.getDocs(sdk.query(sdk.collection(db, 'scans'), sdk.where('biz', '==', bizId)))
+    // mine: only this person's scans (what a shop-floor account is allowed to read)
+    async list(bizId, mine = false) {
+      const q = mine
+        ? sdk.query(sdk.collection(db, 'scans'), sdk.where('biz', '==', bizId), sdk.where('by', '==', auth.currentUser?.email || ''))
+        : sdk.query(sdk.collection(db, 'scans'), sdk.where('biz', '==', bizId))
+      const snap = await sdk.getDocs(q)
       return snap.docs.map((d) => {
         const x = d.data()
         let scan = null

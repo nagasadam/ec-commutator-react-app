@@ -8,7 +8,7 @@ const biz = () => {
   const b = mkBiz ? mkBiz('t') : null
   ensureProcessItems(b)
   // plenty of raw stock at a known cost
-  for (const [id, q, c] of [['cu', 1000, 100], ['mi', 100, 50], ['mo', 500, 20]]) {
+  for (const [id, q, c] of [['cu', 1000, 100], ['mi', 100, 50], ['mo', 500, 20], ['pb', 5000, 2]]) {
     const i = b.items.find((x) => x.id === id)
     if (i) { i.open = q; i.openCost = c }
   }
@@ -21,6 +21,9 @@ test('ensureProcessItems is idempotent and adds 9 items', () => {
   assert.equal(ensureProcessItems(b), false)
   assert.equal(b.items.length, n)
   assert.equal(b.items.filter((i) => i.type === 'wip').length, 9)
+  assert.ok(b.items.some((i) => i.id === 'pb'))
+  assert.deepEqual(b.items.find((i) => i.id === 'stk_ec').bom.map((m) => m.item), ['cu', 'mi', 'pb'])
+  assert.deepEqual(b.items.find((i) => i.id === 'mld_ec').bom.map((m) => m.item), ['stk_ec', 'mo'])
 })
 
 test('issue -> receive -> moulding moves stock and cost along', () => {
@@ -33,7 +36,7 @@ test('issue -> receive -> moulding moves stock and cost along', () => {
   v = valuation(b)
   assert.equal(v.qty.av_ec, 0)
   assert.equal(v.qty.stk_ec, 980)
-  const mat = 15 * 100 + 5 * 50
+  const mat = 15 * 100 + 5 * 50 + 1000 * 2
   assert.ok(Math.abs(v.val.stk_ec - (mat + 1000)) < 0.01, 'all cost lands on good pieces')
   assert.equal(openLots(b).length, 0)
   assert.ok(applyScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 900, rejects: 20 })).ok)

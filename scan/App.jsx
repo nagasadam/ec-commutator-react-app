@@ -325,7 +325,7 @@ function Activity({ app }) {
 }
 
 function Sync({ app }) {
-  const { st, user, signIn, signOut, sync, busy, pair, online, configured } = app
+  const { st, user, signIn, signOut, sync, busy, pair, online, configured, denied } = app
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
@@ -333,6 +333,7 @@ function Sync({ app }) {
   return (
     <div className="screen">
       <h2>Sync</h2>
+      {denied && <div className="err">This account is not set up for Process Scan. Ask the office to add your email.</div>}
       {!configured && <div className="err">The app is not connected to the cloud. Ask the office to check the app settings.</div>}
       <div className="card">
         <label className="small">CONNECTED TO MAIN APP</label>
@@ -375,6 +376,7 @@ export default function App() {
   const [tab, setTab] = useState('scan')
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(false)
+  const [denied, setDenied] = useState(false)
   const [online, setOnline] = useState(navigator.onLine)
   const fb = useRef(window.__scanTestApi || null)
   const cfg = configFromEnv(import.meta.env || {})
@@ -415,10 +417,12 @@ export default function App() {
         patch((c) => ({ queue: c.queue.filter((x) => x.id !== q.id) }))
       }
       patch({ meta: (await api.getMeta(s.biz)) || stRef.current.meta })
-      const all = await api.list(s.biz)
+      const all = await api.list(s.biz, true)
       setRows(all.sort((a, b) => (b.scan?.at || b.at).localeCompare(a.scan?.at || a.at)).slice(0, 40))
-    } catch {
-      /* offline or rejected: the queue is kept and retried on the next sync */
+      setDenied(false)
+    } catch (e) {
+      // offline: the queue is kept and retried on the next sync; a refusal means this account is not set up for scanning
+      if (/permission|insufficient/i.test(String(e?.code || e?.message))) setDenied(true)
     } finally {
       setBusy(false)
     }
@@ -435,7 +439,7 @@ export default function App() {
     return !stRef.current.queue.some((q) => q.id === scan.id)
   }
   const app = {
-    st, user, rows, busy, online, configured, add,
+    st, user, rows, busy, online, configured, add, denied,
     pair: (biz) => patch({ biz, meta: null }),
     signIn: async (e, p) => { try { await fb.current.signIn(e, p); return '' } catch (x) { return authMessage(x) } },
     signOut: () => fb.current?.signOut(),
