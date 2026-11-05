@@ -99,10 +99,14 @@ export function valuation(b) {
       // Stock moves from one item to another: what goes out is taken at average cost, and everything it cost (plus
       // any job-work charge) is spread over the pieces that come out. Pieces lost on the way make the rest dearer.
       const used = x.out.map((o) => ({ item: o.item, qty: +o.qty, cost: take(o.item, +o.qty) }))
-      const cost = used.reduce((s, u) => s + u.cost, 0) + (+x.extra || 0)
+      // Reusable material (the plastic bush) comes back into stock at its current average cost, and what it is
+      // worth is taken off the cost of the pieces. Bushes that were rejected are not returned: their cost stays.
+      const back = (x.ret || []).map((r) => ({ item: r.item, qty: +r.qty, cost: (+r.qty || 0) * avg(r.item) }))
+      const cost = used.reduce((s, u) => s + u.cost, 0) + (+x.extra || 0) - back.reduce((s, r) => s + r.cost, 0)
       const made = x.in.reduce((s, o) => s + (+o.qty || 0), 0)
+      back.forEach((r) => add(r.item, r.qty, r.cost))
       x.in.forEach((o) => add(o.item, +o.qty, made > 0 ? (cost * o.qty) / made : 0))
-      mv[x.id] = { cost, used }
+      mv[x.id] = { cost, used, back }
     } else if (k === 'inv') {
       cogs[x.id] = x.lines.reduce((s, l) => s + take(l.item, +l.qty), 0)
     } else if (k === 'sr') add(x.item, +x.qty, x.qty * avg(x.item))

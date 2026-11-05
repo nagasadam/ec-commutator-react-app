@@ -44,7 +44,7 @@ export default function Production() {
         <div className="main">
       <div className="card">
         <h3>Bill of materials</h3>
-        <p className="muted">Per piece. Stacking (outsourced) uses copper segments, mica segments and a plastic bush. Moulding uses the stack and moulding compound; the bush is already in the stack. Change amounts in Inventory (BOM on each "In process" item).</p>
+        <p className="muted">Per piece. Stacking (outsourced) uses copper segments, mica segments and a plastic bush. Moulding uses the stack and moulding compound; the bush is already in the stack. The plastic bush is reusable: after moulding it goes back into stock, except bushes rejected on the scan. Change amounts in Inventory (BOM on each "In process" item).</p>
         <div className="tw">
           <table>
             <thead>
