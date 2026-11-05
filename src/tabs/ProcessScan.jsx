@@ -17,8 +17,8 @@ const describe = (s) => {
   if (!s) return 'Unreadable scan'
   const t = typeName(s.type)
   if (s.action === 'issue') return `${s.lot} · ${t} issued to vendor · ${qtyFmt(s.qty)} pcs expected`
-  if (s.action === 'receive') return `${s.lot} · ${t} received ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejected` : ''}${+s.charge ? ` · charge ₹${qtyFmt(s.charge)}` : ''}`
-  return `${t} moulded ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejects` : ''}${s.note ? ` · ${s.note}` : ''}`
+  if (s.action === 'receive') return `${s.lot} · ${t} received ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejected` : ''}${+s.bushRejects ? ` · ${qtyFmt(s.bushRejects)} bushes rejected` : ''}${+s.charge ? ` · charge ₹${qtyFmt(s.charge)}` : ''}`
+  return `${t} moulded ${qtyFmt(s.qty)} good${+s.rejects ? `, ${qtyFmt(s.rejects)} rejects` : ''}${+s.bushRejects ? ` · ${qtyFmt(s.bushRejects)} bushes rejected` : ''}${s.note ? ` · ${s.note}` : ''}`
 }
 
 function Posters({ b, onClose }) {

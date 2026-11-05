@@ -90,14 +90,14 @@ function ScanFlow({ app }) {
   const [process, setProcess] = useState(null)
   const [action, setAction] = useState('')
   const [type, setType] = useState('')
-  const [f, setF] = useState({ qty: '', rejects: '', charge: '', sup: '', lot: '', note: '' })
+  const [f, setF] = useState({ qty: '', rejects: '', bushRejects: '', charge: '', sup: '', lot: '', note: '' })
   const [step, setStep] = useState('aim') // aim | type | form | confirm | done
   const [err, setErr] = useState('')
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(null)
 
   const reset = () => {
-    setProcess(null); setAction(''); setType(''); setF({ qty: '', rejects: '', charge: '', sup: '', lot: '', note: '' }); setStep('aim'); setErr(''); setCode('')
+    setProcess(null); setAction(''); setType(''); setF({ qty: '', rejects: '', bushRejects: '', charge: '', sup: '', lot: '', note: '' }); setStep('aim'); setErr(''); setCode('')
   }
   const onText = useCallback(
     (t) => {
@@ -128,13 +128,13 @@ function ScanFlow({ app }) {
 
   const pickType = (t) => {
     setType(t)
-    setF((x) => ({ ...x, lot: '', qty: '', rejects: '', charge: '' }))
+    setF((x) => ({ ...x, lot: '', qty: '', rejects: '', bushRejects: '', charge: '' }))
     if (process === 'stacking' && action === 'issue') setF((x) => ({ ...x, lot: nextLot([...(meta?.lots || []).map((l) => l.lot), ...queuedLots]) }))
     setStep('form')
   }
   const scan = () => ({
     id: uid(), process, action, type, date: today(), by: user?.email || '', at: new Date().toISOString(),
-    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' ? Number(f.charge || 0) : undefined, note: f.note.trim() || undefined,
+    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), bushRejects: f.bushRejects === '' ? 0 : Number(f.bushRejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' ? Number(f.charge || 0) : undefined, note: f.note.trim() || undefined,
   })
   const review = () => {
     const s = scan()
@@ -233,6 +233,8 @@ function ScanFlow({ app }) {
             </div>
             <Stepper label="Good pieces received" value={f.qty} set={(v) => setF({ ...f, qty: v })} step={10} big />
             <Stepper label="Rejected pieces" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
+            {Number(f.rejects) > 0 && <Stepper label="Plastic bushes damaged (of the rejected pieces)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />}
+            {Number(f.rejects) > 0 && <p className="muted">The other bushes on rejected pieces go back into stock.</p>}
             <div className="field"><label>Job-work charge (₹)</label><input inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder="optional" /></div>
             {chosen && Number(f.qty) + Number(f.rejects || 0) < chosen.expected && <p className="warn">Short by {n(chosen.expected - Number(f.qty || 0) - Number(f.rejects || 0))} pieces.</p>}
           </>
@@ -241,6 +243,8 @@ function ScanFlow({ app }) {
           <>
             <Stepper label="Good pieces moulded" value={f.qty} set={(v) => setF({ ...f, qty: v })} step={10} big />
             <Stepper label="Rejects" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
+            <Stepper label="Plastic bushes rejected (damaged)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />
+            <p className="muted">Plastic bushes are reusable: after moulding they go back into stock, except the ones you reject here.</p>
             <div className="field"><label>Press / note</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Press 2" /></div>
           </>
         )}
@@ -264,6 +268,7 @@ function ScanFlow({ app }) {
           {action === 'issue' && <div><span>Vendor</span><b>{meta?.vendors?.find((v) => v.id === f.sup)?.name}</b></div>}
           <div><span>{action === 'issue' ? 'Expected back' : 'Good pieces'}</span><b>{n(s.qty)}</b></div>
           {action !== 'issue' && <div><span>Rejects</span><b>{n(s.rejects)}</b></div>}
+          {s.bushRejects > 0 && <div><span>Bushes rejected</span><b>{n(s.bushRejects)}</b></div>}
           {s.charge > 0 && <div><span>Charge</span><b>₹{n(s.charge)}</b></div>}
           {s.note && <div><span>Note</span><b>{s.note}</b></div>}
         </div>
