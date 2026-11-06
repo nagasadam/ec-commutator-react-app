@@ -33,7 +33,6 @@ export function Login() {
         </Field>
         {err && <div className="err" role="alert">{err}</div>}
         <button className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <button type="button" className="btn ghost block" onClick={() => cloud.setSkip(true)}>Use on this device only</button>
         <p className="foot-t">Billing · Production · Stock</p>
       </form>
     </div>

@@ -9,6 +9,7 @@ import { Icon } from './icons.jsx'
 import ErrorBoundary from './errorboundary.jsx'
 import { Logo } from './shellui.jsx'
 import { Login } from './login.jsx'
+import NoAccess from './noaccess.jsx'
 import { Manage, initials } from './manage.jsx'
 
 // Dashboard and Invoices load with the app; the other pages download the first time they are opened
@@ -142,7 +143,8 @@ export default function App() {
   const title = cur[3] || cur[1]
 
   if (cloud.configured && !cloud.ready) return <div className="login"><p className="muted">Loading…</p></div>
-  if (cloud.configured && !cloud.user && !cloud.skip) return <Login />
+  if (cloud.configured && !cloud.user) return <Login />
+  if (cloud.configured && cloud.user && cloud.access !== 'yes') return <NoAccess />
   const cloudOn = cloud.configured && cloud.user
   const live = saveErr ? 'Not saved' : cloudOn ? CLOUD_TEXT[cloud.status] || 'Saved' : 'Saved on this device'
 
