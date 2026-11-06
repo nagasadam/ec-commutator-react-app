@@ -103,3 +103,36 @@ test('plastic bush is reusable: returned after moulding at cost, rejected bushes
   assert.match(applyScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 10, bushRejects: 99 })).error, /More bushes/)
   assert.match(applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 5, lot: 'Lx', bushRejects: 1 })).error, /rejected when/)
 })
+
+test('receiving a lot makes a draft job-work bill (rate x good pieces, no GST) that counts once approved', async () => {
+  const { supBal, supBals } = await import('../../src/lib/calc.js')
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'Vendor', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 8.5, w750: 0, hook: 0 } }
+  assert.ok(applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 1000, lot: 'STK-1', sup: 's1' })).ok)
+  assert.equal((b.jw || []).length, 0, 'an issue makes no bill')
+  assert.ok(applyScan(b, sc({ process: 'stacking', action: 'receive', type: 'ec', qty: 980, rejects: 0, lot: 'STK-1' })).ok)
+  assert.equal(b.jw.length, 1)
+  const j = b.jw[0]
+  assert.deepEqual([j.no, j.status, j.pcs, j.rate, j.amount, j.sup, j.short], ['JW-0001', 'draft', 980, 8.5, 8330, 's1', 20])
+  assert.equal(supBal(b, b.sup[0]), 0, 'a draft is not owed yet')
+  j.status = 'approved'
+  assert.equal(supBal(b, b.sup[0]), 8330)
+  assert.equal(supBals(b).get('s1'), 8330)
+  b.tx.push({ id: 't', kind: 'pay', party: 's1', amt: 330, date: '2026-11-05' })
+  assert.equal(supBal(b, b.sup[0]), 8000)
+  // the charge goes into the cost of the stacked pieces
+  assert.ok(valuation(b).val.stk_ec > 8330)
+})
+
+test('a typed charge overrides the rate; no rate and no charge makes no bill', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'Vendor', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 8.5, w750: 0, hook: 0 } }
+  applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 100, lot: 'A', sup: 's1' }))
+  applyScan(b, sc({ process: 'stacking', action: 'receive', type: 'ec', qty: 100, lot: 'A', charge: 700 }))
+  assert.equal(b.jw[0].amount, 700)
+  applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'hook', qty: 50, lot: 'B', sup: 's1' }))
+  applyScan(b, sc({ process: 'stacking', action: 'receive', type: 'hook', qty: 50, lot: 'B' }))
+  assert.equal(b.jw.length, 1, 'rate 0 and no charge: no bill')
+})

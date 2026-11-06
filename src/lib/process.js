@@ -11,6 +11,7 @@
 import { find } from './calc.js'
 import { valuation } from './calc.js'
 import { r2 } from './format.js'
+import { nextNo } from './model.js'
 
 export const TYPES = [
   { id: 'ec', name: 'EC' },
@@ -133,9 +134,12 @@ export function scanToMovement(b, s) {
     const bushRej = +s.bushRejects || 0
     if (bushRej > rej * (bpp || 1)) return { error: 'More bushes rejected than rejected pieces.' }
     const back = bpp ? Math.max(0, rej * bpp - bushRej) : 0
+    // job-work charge: what the phone typed, else good pieces x this stack type's rate (no GST on job work)
+    const rate = +b.pscan?.rates?.[s.type] || 0
+    const charge = s.charge != null && String(s.charge).trim() !== '' ? r2(+s.charge) : r2(q * rate)
     return {
       ...base, lot: s.lot, sup: iss.sup, expected: iss.expected, rejects: rej, bushRejects: bushRej, short: Math.max(0, iss.expected - q - rej),
-      out: [{ item: itemId('av', s.type), qty: iss.expected }], in: [{ item: itemId('stk', s.type), qty: q }], extra: r2(+s.charge || 0),
+      out: [{ item: itemId('av', s.type), qty: iss.expected }], in: [{ item: itemId('stk', s.type), qty: q }], extra: charge, rate: r2(rate),
       ret: back > 0 ? [{ item: 'pb', qty: back }] : [],
     }
   }
@@ -175,6 +179,11 @@ export function applyScan(b, s, { force = false } = {}) {
     if (shortStock.length) return { error: 'Not enough stock: ' + shortStock.map((x) => `${x.name} (need ${r2(x.need)}, have ${r2(x.have)})`).join(', '), shortStock }
   }
   b.mv.push(m)
+  // a received lot with a job-work charge makes a draft bill from the vendor (approve it in Job work)
+  if (m.kind === 'receive' && m.extra > 0) {
+    b.jw = b.jw || []
+    b.jw.push({ id: 'jw_' + m.id, no: nextNo(b.jw, 'JW-'), date: m.date, lot: m.lot, type: m.type, sup: m.sup || '', pcs: +s.qty, rate: m.rate || 0, amount: m.extra, expected: m.expected, rejects: m.rejects || 0, short: m.short || 0, vbill: '', status: 'draft', by: m.by })
+  }
   return { ok: true, mv: m }
 }
 
