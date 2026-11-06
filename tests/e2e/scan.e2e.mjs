@@ -88,3 +88,23 @@ test('phone app: refuses junk and other businesses QR codes', async () => {
 test('phone app: no script errors', () => {
   assert.deepEqual(errors, [])
 })
+
+test('phone app: opens with no signal after one visit online', async () => {
+  const b = await chromium.launch()
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } })
+  const p = await ctx.newPage()
+  await p.addInitScript(([biz, meta]) => {
+    if (!localStorage.getItem('processscan1')) localStorage.setItem('processscan1', JSON.stringify({ biz, queue: [], meta }))
+  }, [BIZ, META])
+  await p.goto(url)
+  await p.waitForSelector('text=Scan a process QR')
+  await p.evaluate(() => navigator.serviceWorker.ready)
+  await p.reload() // now controlled by the service worker, and everything the page needs is saved
+  await p.waitForSelector('text=Scan a process QR')
+  await ctx.setOffline(true)
+  await p.reload()
+  await p.waitForSelector('text=Scan a process QR', { timeout: 10000 })
+  const manifest = await p.evaluate(() => document.querySelector('link[rel=manifest]')?.href)
+  assert.match(manifest || '', /manifest\.webmanifest$/)
+  await b.close()
+})
