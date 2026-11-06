@@ -6,7 +6,7 @@ import { valuation } from '../lib/calc.js'
 import { TYPES, PROCESSES, itemId, typeName, previewScan, ensureProcessItems, qrText, bizTag, pairText } from '../lib/process.js'
 import { qrSvg } from '../lib/qrcode.js'
 import { qtyFmt, dmy, inr } from '../lib/format.js'
-import { Empty, Modal } from '../ui.jsx'
+import { Empty, Modal, useDialog } from '../ui.jsx'
 
 const when = (iso) => {
   if (!iso) return ''
@@ -63,6 +63,7 @@ export default function ProcessScan() {
   const { b, updB } = useStore()
   const cloud = useCloud()
   const sc = useScans()
+  const { ask } = useDialog()
   const [tab, setTab] = useState('waiting')
   const [posters, setPosters] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -79,6 +80,7 @@ export default function ProcessScan() {
     applied: sc.rows.filter((r) => r.status === 'applied'),
     problem: sc.rows.filter((r) => r.status === 'problem'),
     rejected: sc.rows.filter((r) => r.status === 'rejected'),
+    undone: sc.rows.filter((r) => r.status === 'undone'),
   }
   const shown = [...groups[tab]].reverse()
   const run = async (fn) => {
@@ -157,7 +159,7 @@ export default function ProcessScan() {
           ) : (
             <>
               <div className="ps-tabs chips" role="tablist" aria-label="Scan status">
-                {[['waiting', 'Waiting'], ['applied', 'Applied'], ['problem', 'Problems'], ['rejected', 'Rejected']].map(([k, l]) => (
+                {[['waiting', 'Waiting'], ['applied', 'Applied'], ['problem', 'Problems'], ['rejected', 'Rejected'], ['undone', 'Undone']].map(([k, l]) => (
                   <button key={k} role="tab" className={tab === k ? 'on' : ''} aria-selected={tab === k} onClick={() => setTab(k)}>
                     {l} · {groups[k].length}
                   </button>
@@ -193,9 +195,12 @@ export default function ProcessScan() {
                             {describe(r.scan)}
                             {r.scan?.by || r.by ? <span className="muted"> · {r.scan?.by || r.by}</span> : null}
                           </td>
-                          <td data-l="Stock effect" className="muted">{tab === 'applied' || tab === 'rejected' ? r.note : tab === 'problem' ? <span className="ps-bad">{r.note}</span> : effect(r)}</td>
+                          <td data-l="Stock effect" className="muted">{tab === 'applied' || tab === 'rejected' || tab === 'undone' ? r.note : tab === 'problem' ? <span className="ps-bad">{r.note}</span> : effect(r)}</td>
                           <td data-l="Scanned" className="nw">{when(r.scan?.at || r.at)}</td>
                           <td className="r nw">
+                            {tab === 'applied' && (
+                              <button className="btn ghost" disabled={busy} onClick={() => ask(`Undo this scan? Its stock changes${r.scan?.action === 'receive' ? ' and its draft job-work bill' : ''} will be taken back out.`, () => run(() => sc.undo(r)), 'Undo')}>Undo</button>
+                            )}
                             {(tab === 'waiting' || tab === 'problem') && (
                               <>
                                 <button className="btn ghost" disabled={busy} onClick={() => run(() => sc.reject(r))}>Reject</button>{' '}

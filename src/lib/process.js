@@ -187,6 +187,34 @@ export function applyScan(b, s, { force = false } = {}) {
   return { ok: true, mv: m }
 }
 
+// Takes an applied scan back out of the stock records (call inside updB): removes its movement and its draft
+// job-work bill. Refuses when the bill is already approved, when an issued lot has been received since, or when
+// later movements need the stock it added. Returns { ok: true } or { error }.
+export function undoScan(b, scanId) {
+  const mv = b.mv || []
+  const m = mv.find((x) => x.id === scanId)
+  if (!m) return { error: 'This scan is not in the stock records.' }
+  if (m.kind === 'issue' && mv.some((x) => x.kind === 'receive' && x.lot === m.lot)) return { error: `Lot ${m.lot} has already been received. Undo that receive first.` }
+  const bill = (b.jw || []).find((j) => j.id === 'jw_' + m.id)
+  if (bill && bill.status !== 'draft') return { error: `Job-work bill ${bill.no} is already approved. Delete it in Job work first.` }
+  const before = valuation(b).qty
+  const w = { ...b, mv: mv.filter((x) => x.id !== scanId) }
+  const after = valuation(w).qty
+  const short = Object.keys(after).filter((k) => after[k] < -1e-9 && after[k] < (before[k] || 0) - 1e-9)
+  if (short.length) return { error: `Undoing would leave ${short.map((k) => find(b.items, k)?.name || k).join(', ')} below zero. Later scans use this stock.` }
+  b.mv = w.mv
+  if (bill) b.jw = b.jw.filter((j) => j.id !== bill.id)
+  return { ok: true }
+}
+
+// Numbers for the dashboard: pieces out with vendors now, and pieces moulded on a given day.
+export function scanActivity(b, day) {
+  const v = valuation(b).qty
+  const atVendors = TYPES.reduce((s, t) => s + Math.max(0, v[itemId('av', t.id)] || 0), 0)
+  const moulded = (b.mv || []).filter((m) => m.kind === 'mould' && m.date === day).reduce((s, m) => s + (m.in || []).reduce((x, o) => x + (+o.qty || 0), 0), 0)
+  return { atVendors, moulded, openLots: openLots(b).length }
+}
+
 // Open stacking lots (issued, not yet received), for the receive screen and the inbox.
 export function openLots(b) {
   const done = new Set((b.mv || []).filter((m) => m.kind === 'receive').map((m) => m.lot))

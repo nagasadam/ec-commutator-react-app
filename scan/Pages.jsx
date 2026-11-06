@@ -28,7 +28,7 @@ export function Activity({ app }) {
           ))}
           {rows.map((r) => (
             <div className="card" key={r.id}>
-              <div className="row"><b className="grow">{r.scan ? `${PROCESSES[r.scan.process]?.name} · ${typeName(r.scan.type)} · ${n(r.scan.qty)}` : 'Scan'}</b><span className={'pill ' + (r.status === 'applied' ? 'ok' : r.status === 'waiting' ? 'warn' : 'bad')}>{r.status.toUpperCase()}</span></div>
+              <div className="row"><b className="grow">{r.scan ? `${PROCESSES[r.scan.process]?.name} · ${typeName(r.scan.type)} · ${n(r.scan.qty)}` : 'Scan'}</b><span className={'pill ' + (r.status === 'applied' ? 'ok' : r.status === 'waiting' || r.status === 'undone' ? 'warn' : 'bad')}>{r.status.toUpperCase()}</span></div>
               <p className="muted">{(r.scan?.at || r.at || '').slice(0, 16).replace('T', ' ')}{r.note ? ' · ' + r.note : ''}</p>
             </div>
           ))}

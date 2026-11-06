@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkBiz } from '../../src/lib/model.js'
 import { valuation } from '../../src/lib/calc.js'
-import { ensureProcessItems, applyScan, previewScan, openLots, qrText, parseQr, bizTag } from '../../src/lib/process.js'
+import { ensureProcessItems, applyScan, undoScan, scanActivity, previewScan, openLots, qrText, parseQr, bizTag } from '../../src/lib/process.js'
 
 const biz = () => {
   const b = mkBiz ? mkBiz('t') : null
@@ -154,4 +154,47 @@ test('the inbox preview shows the draft bill a receive will make', () => {
   const p = previewScan(b, sc({ process: 'stacking', action: 'receive', type: 'ec', qty: 10, lot: 'Q' }))
   assert.deepEqual(p.bill, { amount: 30, rate: 3 })
   assert.equal(previewScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 1 })).bill, null)
+})
+
+test('undoing a receive removes its movement and draft bill, and the lot is open again', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'V', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 2, w750: 0, hook: 0 } }
+  const before = JSON.stringify(valuation(b).qty)
+  applyScan(b, sc({ id: 'i1', process: 'stacking', action: 'issue', type: 'ec', qty: 10, lot: 'U', sup: 's1' }))
+  applyScan(b, sc({ id: 'r1', process: 'stacking', action: 'receive', type: 'ec', qty: 10, lot: 'U' }))
+  assert.equal(b.jw.length, 1)
+  assert.deepEqual(undoScan(b, 'r1'), { ok: true })
+  assert.equal(b.jw.length, 0)
+  assert.equal(openLots(b).length, 1)
+  assert.deepEqual(undoScan(b, 'i1'), { ok: true })
+  assert.equal(JSON.stringify(valuation(b).qty), before, 'stock is back where it started')
+})
+
+test('undo is refused for a received lot, an approved bill, or stock that later scans use', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'V', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 2, w750: 0, hook: 0 } }
+  applyScan(b, sc({ id: 'i1', process: 'stacking', action: 'issue', type: 'ec', qty: 10, lot: 'U', sup: 's1' }))
+  applyScan(b, sc({ id: 'r1', process: 'stacking', action: 'receive', type: 'ec', qty: 10, lot: 'U' }))
+  assert.match(undoScan(b, 'i1').error, /already been received/)
+  b.jw[0].status = 'approved'
+  assert.match(undoScan(b, 'r1').error, /already approved/)
+  b.jw[0].status = 'draft'
+  applyScan(b, sc({ id: 'm1', process: 'moulding', action: 'run', type: 'ec', qty: 10 }))
+  assert.match(undoScan(b, 'r1').error, /below zero/)
+  assert.equal(b.mv.length, 3, 'nothing was removed')
+  assert.match(undoScan(b, 'nope').error, /not in the stock records/)
+})
+
+test('scanActivity counts pieces at vendors and pieces moulded on the day', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'V', open: 0 })
+  b.items.find((i) => i.id === 'stk_ec').open = 200
+  b.items.find((i) => i.id === 'stk_ec').openCost = 10
+  assert.deepEqual(scanActivity(b, '2026-11-05'), { atVendors: 0, moulded: 0, openLots: 0 })
+  applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 40, lot: 'D', sup: 's1' }))
+  applyScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 6 }))
+  applyScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 4, date: '2026-11-04' }))
+  assert.deepEqual(scanActivity(b, '2026-11-05'), { atVendors: 40, moulded: 6, openLots: 1 })
 })

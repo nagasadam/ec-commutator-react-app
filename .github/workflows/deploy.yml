@@ -25,6 +25,11 @@ jobs:
       - run: npm install
       - run: npm run lint
       - run: npm test
+      - uses: actions/setup-java@v4 # the Firebase emulator needs Java
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm run test:rules
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e # builds, serves and tests the production bundle
       - run: npm run build
