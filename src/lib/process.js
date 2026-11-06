@@ -136,7 +136,7 @@ export function scanToMovement(b, s) {
     const back = bpp ? Math.max(0, rej * bpp - bushRej) : 0
     // job-work charge: what the phone typed, else good pieces x this stack type's rate (no GST on job work)
     const rate = +b.pscan?.rates?.[s.type] || 0
-    const charge = s.charge != null && String(s.charge).trim() !== '' ? r2(+s.charge) : r2(q * rate)
+    const charge = +s.charge > 0 ? r2(+s.charge) : r2(q * rate) // a blank or 0 charge from the phone means "use the rate"
     return {
       ...base, lot: s.lot, sup: iss.sup, expected: iss.expected, rejects: rej, bushRejects: bushRej, short: Math.max(0, iss.expected - q - rej),
       out: [{ item: itemId('av', s.type), qty: iss.expected }], in: [{ item: itemId('stk', s.type), qty: q }], extra: charge, rate: r2(rate),
@@ -163,7 +163,7 @@ export function previewScan(b, s) {
   // anything that would take stock below zero
   const have = valuation(w).qty
   const short = m.out.filter((o) => (have[o.item] || 0) < o.qty - 1e-9).map((o) => ({ item: o.item, name: name(o.item), need: o.qty, have: have[o.item] || 0 }))
-  return { lines, extra: m.extra, rejects: m.rejects || 0, short: m.short || 0, shortStock: short }
+  return { bill: m.kind === 'receive' && m.extra > 0 ? { amount: m.extra, rate: m.rate || 0 } : null, lines, extra: m.extra, rejects: m.rejects || 0, short: m.short || 0, shortStock: short }
 }
 
 // Puts a scan into the books (call inside updB). Same scan twice does nothing. Refuses when stock would go

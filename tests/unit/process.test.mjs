@@ -136,3 +136,22 @@ test('a typed charge overrides the rate; no rate and no charge makes no bill', (
   applyScan(b, sc({ process: 'stacking', action: 'receive', type: 'hook', qty: 50, lot: 'B' }))
   assert.equal(b.jw.length, 1, 'rate 0 and no charge: no bill')
 })
+
+test('a charge of 0 from the phone means use the rate', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'V', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 2, w750: 0, hook: 0 } }
+  applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 10, lot: 'Z', sup: 's1' }))
+  applyScan(b, sc({ process: 'stacking', action: 'receive', type: 'ec', qty: 10, lot: 'Z', charge: 0 }))
+  assert.equal(b.jw[0].amount, 20)
+})
+
+test('the inbox preview shows the draft bill a receive will make', () => {
+  const b = biz()
+  b.sup.push({ id: 's1', name: 'V', open: 0 })
+  b.pscan = { approve: true, rates: { ec: 3, w750: 0, hook: 0 } }
+  applyScan(b, sc({ process: 'stacking', action: 'issue', type: 'ec', qty: 10, lot: 'Q', sup: 's1' }))
+  const p = previewScan(b, sc({ process: 'stacking', action: 'receive', type: 'ec', qty: 10, lot: 'Q' }))
+  assert.deepEqual(p.bill, { amount: 30, rate: 3 })
+  assert.equal(previewScan(b, sc({ process: 'moulding', action: 'run', type: 'ec', qty: 1 })).bill, null)
+})
