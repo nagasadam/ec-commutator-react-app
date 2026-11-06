@@ -9,7 +9,8 @@ export const useCloud = () => useContext(Ctx)
 
 // Cloud is optional: with no VITE_FIREBASE_* settings the app is purely local.
 export function CloudProvider({ children, env = import.meta.env || {} }) {
-  const cfg = configFromEnv(env)
+  const testCloud = typeof window !== 'undefined' ? window.__EC_TEST_CLOUD : null // browser tests inject a fake Firebase
+  const cfg = configFromEnv(testCloud?.env || env)
   const { rev, getS, replace, b } = useStore()
   const toast = useToast()
   const [ready, setReady] = useState(!cfg)
@@ -24,7 +25,7 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
   useEffect(() => {
     if (!cfg) return undefined
     let off = () => {}
-    createFirebase(cfg)
+    createFirebase(cfg, testCloud?.sdk)
       .then((x) => {
         fb.current = x
         off = x.onUser((u) => {
