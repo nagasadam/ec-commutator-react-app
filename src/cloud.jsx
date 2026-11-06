@@ -16,7 +16,6 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
   const [user, setUser] = useState(null)
   const [status, setStatus] = useState(cfg ? 'idle' : 'off')
   const [choice, setChoice] = useState(null)
-  const [skip, setSkip] = useState(false) // "use on this device only"
   // Signed in is not enough: the email must be listed in /allow. 'checking' | 'yes' | 'no' | 'unknown' (could not check, see below)
   const [access, setAccess] = useState('checking')
   const fb = useRef(null)
@@ -140,8 +139,6 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     user,
     status,
     choice,
-    skip,
-    setSkip,
     access,
     recheckAccess: () => setRecheck((n) => n + 1),
     signIn,

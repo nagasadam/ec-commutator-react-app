@@ -355,7 +355,6 @@ export function Login() {
         </Field>
         {err && <div className="err" role="alert">{err}</div>}
         <button className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <button type="button" className="btn ghost block" onClick={() => cloud.setSkip(true)}>Use on this device only</button>
         <p className="foot-t">Billing · Production · Stock</p>
       </form>
     </div>
@@ -449,7 +448,7 @@ export default function App() {
   const title = cur[3] || cur[1]
 
   if (cloud.configured && !cloud.ready) return <div className="login"><p className="muted">Loading…</p></div>
-  if (cloud.configured && !cloud.user && !cloud.skip) return <Login />
+  if (cloud.configured && !cloud.user) return <Login />
   if (cloud.configured && cloud.user && cloud.access !== 'yes') return <NoAccess />
   const cloudOn = cloud.configured && cloud.user
   const live = saveErr ? 'Not saved' : cloudOn ? CLOUD_TEXT[cloud.status] || 'Saved' : 'Saved on this device'
