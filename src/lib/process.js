@@ -207,6 +207,14 @@ export function undoScan(b, scanId) {
   return { ok: true }
 }
 
+// Numbers for the dashboard: pieces out with vendors now, and pieces moulded on a given day.
+export function scanActivity(b, day) {
+  const v = valuation(b).qty
+  const atVendors = TYPES.reduce((s, t) => s + Math.max(0, v[itemId('av', t.id)] || 0), 0)
+  const moulded = (b.mv || []).filter((m) => m.kind === 'mould' && m.date === day).reduce((s, m) => s + (m.in || []).reduce((x, o) => x + (+o.qty || 0), 0), 0)
+  return { atVendors, moulded, openLots: openLots(b).length }
+}
+
 // Open stacking lots (issued, not yet received), for the receive screen and the inbox.
 export function openLots(b) {
   const done = new Set((b.mv || []).filter((m) => m.kind === 'receive').map((m) => m.lot))

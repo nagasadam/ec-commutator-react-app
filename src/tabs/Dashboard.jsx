@@ -3,8 +3,10 @@ import { EASE, motion, riseIn } from '../motion.jsx'
 import { useStore } from '../lib/store.jsx'
 import { calc, find, invTot, paidFor, srTot, valuation } from '../lib/calc.js'
 import { monthly } from '../lib/reports.js'
-import { dmy, inr } from '../lib/format.js'
+import { dmy, inr, today } from '../lib/format.js'
 import { Empty } from '../ui.jsx'
+import { useScans } from '../scanbridge.jsx'
+import { scanActivity } from '../lib/process.js'
 import { Icon } from '../icons.jsx'
 import { useCountUp } from '../ui.jsx'
 
@@ -19,6 +21,7 @@ const label = (m) => MON[+m.slice(5, 7) - 1] + ' ' + m.slice(2, 4)
 
 export default function Dashboard({ go }) {
   const { b } = useStore()
+  const sc = useScans()
   const root = useRef(null)
   useEffect(() => {
     const a = riseIn(root.current, '.card')
@@ -33,6 +36,8 @@ export default function Dashboard({ go }) {
     return m
   }, [b])
 
+  const act = useMemo(() => scanActivity(b, today()), [b])
+  const waiting = sc.rows.filter((r) => r.status === 'waiting').length
   const last6 = months.slice(-6)
   const cur = last6[last6.length - 1]
   const prev = last6[last6.length - 2]
@@ -150,6 +155,15 @@ export default function Dashboard({ go }) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card d-scan">
+        <div className="ch"><span className="ico"><Icon n="pro" /></span>Scan activity<span className="tag" style={{ cursor: 'pointer' }} onClick={() => go('ps')}>Open</span></div>
+        <div className="low">
+          <div className="it"><span>Pieces at vendors</span><b>{Math.round(act.atVendors).toLocaleString('en-IN')}</b></div>
+          <div className="it"><span>Moulded today</span><b>{Math.round(act.moulded).toLocaleString('en-IN')}</b></div>
+          <div className="it"><span>Scans waiting</span><b className={waiting > 0 ? 'bad' : ''}>{waiting}</b></div>
         </div>
       </div>
 
