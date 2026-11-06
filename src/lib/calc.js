@@ -185,7 +185,8 @@ export const supBal = (b, s) =>
   r2(
     (+s.open || 0) +
       sum(b.pur.filter((p) => p.sup === s.id), (p) => purTot(b, p).total) -
-      sum(b.prr.filter((r) => find(b.pur, r.pur)?.sup === s.id), (r) => prrTot(b, r).total) -
+      sum(b.prr.filter((r) => find(b.pur, r.pur)?.sup === s.id), (r) => prrTot(b, r).total) +
+      sum((b.jw || []).filter((j) => j.sup === s.id && j.status === 'approved'), (j) => j.amount) - // approved job-work bills are owed too
       sum(b.tx.filter((t) => t.kind === 'pay' && t.party === s.id), (t) => t.amt),
   )
 
@@ -205,7 +206,9 @@ export function supBals(b) {
   for (const p of b.pur) bump(pur, p.sup, purTot(b, p).total)
   for (const r of b.prr) bump(dn, purs.get(r.pur)?.sup, prrTot(b, r).total)
   for (const t of b.tx) if (t.kind === 'pay') bump(py, t.party, t.amt)
-  return new Map(b.sup.map((s) => [s.id, r2((+s.open || 0) + (pur.get(s.id) || 0) - (dn.get(s.id) || 0) - (py.get(s.id) || 0))]))
+  const jw = new Map()
+  for (const j of b.jw || []) if (j.status === 'approved') bump(jw, j.sup, j.amount) // approved job-work bills
+  return new Map(b.sup.map((s) => [s.id, r2((+s.open || 0) + (pur.get(s.id) || 0) + (jw.get(s.id) || 0) - (dn.get(s.id) || 0) - (py.get(s.id) || 0))]))
 }
 
 // Accounts: a bank id, 'cash' or 'gpay'.
