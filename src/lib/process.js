@@ -166,7 +166,7 @@ export function previewScan(b, s) {
   return { bill: m.kind === 'receive' && m.extra > 0 ? { amount: m.extra, rate: m.rate || 0 } : null, lines, extra: m.extra, rejects: m.rejects || 0, short: m.short || 0, shortStock: short }
 }
 
-// Puts a scan into the books (call inside updB). Same scan twice does nothing. Refuses when stock would go
+// Puts a scan into the stock records (call inside updB). Same scan twice does nothing. Refuses when stock would go
 // below zero unless force is set. Returns { ok: true, mv } or { error, shortStock? }.
 export function applyScan(b, s, { force = false } = {}) {
   ensureProcessItems(b)
