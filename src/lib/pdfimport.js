@@ -189,14 +189,14 @@ export function findDate(s) {
 }
 
 const TITLE_RE = /^(tax\s*invoice|invoice|bill\s*of\s*supply|original|duplicate|triplicate|original\s*(copy|for.*)|duplicate\s*(copy|for.*)|e-?invoice|copy|irn\b.*|ack\b.*|page\s*\d.*|\(?\s*(original|duplicate|triplicate)\s*\)?)$/i
-const SALE_LABEL = /^(?:to\b|bill(?:ed)?\s*to\b|buyer\b|customer\b|sold\s*to\b|consignee\b|m\/s\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)$/i
-const PUR_LABEL = /^(?:from\b|supplier\b|seller\b|vendor\b|sold\s*by\b|billed\s*from\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)$/i
+const SALE_LABEL = /^(?:to\b|bill(?:ed)?\s*to\b|buyer\b|customer\b|sold\s*to\b|consignee\b|m\/s\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:-]?\s*(.*)$/i
+const PUR_LABEL = /^(?:from\b|supplier\b|seller\b|vendor\b|sold\s*by\b|billed\s*from\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:-]?\s*(.*)$/i
 const STOP_RE = /^(sl\.?\s*no|s\.?\s*no|sr\.?\s*no|description|particulars|ship(?:ped)?\s*to|invoice\s*(no|date)|place\s*of\s*supply|name\s*of\s*(the\s*)?transport|transporter|l\.?r\.?\s*no|bank\b|delivery)/i
-const PHONE_RE = /(?:ph(?:one)?(?:\s*no)?|mob(?:ile)?(?:\s*no)?|tel|contact|cell)\.?\s*[:\-]?\s*(\+?[\dO][\dO\s-]{8,14}\d)/i
+const PHONE_RE = /(?:ph(?:one)?(?:\s*no)?|mob(?:ile)?(?:\s*no)?|tel|contact|cell)\.?\s*[:-]?\s*(\+?[\dO][\dO\s-]{8,14}\d)/i
 const FIRM_WORDS = /\b(pvt|private|ltd|limited|llp|industries|industry|enterprises?|engineering|engg|works|traders?|motors?|company|co|corporation|corp|associates|& sons|brothers|bros|agencies|electricals?|electric)\b/i
 
 // "BUYER DELIVERED ADDRESS: Same as in the customer name" is a delivery note, not part of the customer.
-const DELIV_RE = /\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:to\s*)?(?:address)?\s*\)?\s*[:\-]?.*$/i
+const DELIV_RE = /\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:to\s*)?(?:address)?\s*\)?\s*[:-]?.*$/i
 const isDeliv = (l) => /^\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:to|address)/i.test(l)
 const noDeliv = (l) => l.replace(DELIV_RE, '').trim()
 
@@ -344,7 +344,7 @@ export function parseDocument(rawLines, mode = 'sale') {
   let supply = /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
   if (!supply) {
     // two different "state code" values (seller 36, buyer 07) mean the sale crosses a state border
-    const codes = [...joined.matchAll(/state\s*code\s*[:\-]?\s*(\d{2})\b/gi)].map((m) => m[1])
+    const codes = [...joined.matchAll(/state\s*code\s*[:-]?\s*(\d{2})\b/gi)].map((m) => m[1])
     if (codes.length >= 2) supply = codes.every((c) => c === codes[0]) ? 'intra' : 'inter'
   }
 
@@ -353,7 +353,7 @@ export function parseDocument(rawLines, mode = 'sale') {
   for (let i = 0; i < lines.length && !date; i++) {
     const l = lines[i]
     if (/(supply|due|order|p\.?o\.?\b|lr\b|l\.r|lorry|dispatch|ack)/i.test(l) && !/invoice\s*date/i.test(l)) continue
-    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\b|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:\-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
+    if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\b|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
   }
 
   // party
@@ -363,7 +363,7 @@ export function parseDocument(rawLines, mode = 'sale') {
   const labelAt = []
   for (let i = 0; i < lines.length; i++) if (!isDeliv(lines[i]) && label.test(lines[i]) && !/^buyer['\u2019]?s?\s*(order|ref)/i.test(lines[i])) labelAt.push(i) // not "Buyer's Order No."
   // An e-way bill page prints a bare "From   To" header: that is a column heading, not the supplier.
-  const bareHeading = (i) => /^(?:from|to)(?:\s+(?:from|to))*\s*[:\-]?$/i.test(lines[i].match(label)?.[0].trim() ?? '') || /^from\s+to\b/i.test(lines[i])
+  const bareHeading = (i) => /^(?:from|to)(?:\s+(?:from|to))*\s*[:-]?$/i.test(lines[i].match(label)?.[0].trim() ?? '') || /^from\s+to\b/i.test(lines[i])
   const li = mode === 'sale' ? labelAt.find((i) => !/^(consignee|ship)/i.test(lines[i])) ?? labelAt[0] : labelAt.find((i) => !bareHeading(i))
   if (li !== undefined) {
     const m = lines[li].match(label)
@@ -389,14 +389,14 @@ export function parseDocument(rawLines, mode = 'sale') {
       }
     }
     if (!transporter && !/mode\s*of\s*transport/i.test(l)) {
-      const m = l.match(/(?:name\s*of\s*(?:the\s*)?transport(?:er)?|transporter|transport\s*name)\s*[:\-]\s*(.+)$/i)
+      const m = l.match(/(?:name\s*of\s*(?:the\s*)?transport(?:er)?|transporter|transport\s*name)\s*[:-]\s*(.+)$/i)
       if (m) transporter = m[1].replace(/\s*(l\.?r\.?\s*no|vehicle|veh).*$/i, '').trim()
     }
   }
 
   // Tally style: the label sits on one line and the value on the next
   const after = (i, re) => {
-    const same = lines[i].replace(re, '').replace(/^[\s:\-]+/, '').trim()
+    const same = lines[i].replace(re, '').replace(/^[\s:-]+/, '').trim()
     return same || lines[i + 1] || ''
   }
   if (!transporter) {
