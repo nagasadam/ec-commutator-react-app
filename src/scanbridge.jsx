@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useStore } from './lib/store.jsx'
 import { useCloud } from './cloud.jsx'
-import { applyScan, openLots, bizTag, ensureProcessItems, TYPES, itemId } from './lib/process.js'
+import { applyScan, undoScan, openLots, bizTag, ensureProcessItems, TYPES, itemId } from './lib/process.js'
 import { valuation } from './lib/calc.js'
 
 // Receives scans from the Process Scan phone app (Firestore `scans`), applies them to the business data or leaves them
@@ -62,6 +62,27 @@ export function ScanProvider({ children }) {
       await refresh()
     },
     [applyOne, refresh],
+  )
+  // take an applied scan back out of stock; the scan stays in history marked 'undone'
+  const undo = useCallback(
+    async (row) => {
+      let res
+      upd((s) => {
+        const biz = s.biz.find((x) => x.id === b.id)
+        const probe = structuredClone(biz)
+        res = undoScan(probe, row.id)
+        if (res.ok) undoScan(biz, row.id)
+      })
+      try {
+        if (res.ok) await api.mark(row.id, 'undone', 'Undone from the office')
+      } catch (e) {
+        setError(e?.message || 'Could not mark the scan')
+      }
+      if (!res.ok) setError(res.error)
+      await refresh()
+      return res
+    },
+    [upd, api, b?.id, refresh],
   )
   const reject = useCallback(
     async (row) => {
@@ -128,5 +149,5 @@ export function ScanProvider({ children }) {
     return () => clearTimeout(t)
   }, [live, b, api])
 
-  return <Ctx.Provider value={{ rows, ready, refresh, apply, reject, error, live }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ rows, ready, refresh, apply, reject, undo, error, live }}>{children}</Ctx.Provider>
 }
