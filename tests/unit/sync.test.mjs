@@ -197,6 +197,7 @@ function fakeSdk(store, hooks = {}) {
       hooks.onList?.(c)
       return { docs: [...store].filter(([k]) => k.startsWith(c + '/')).map(([k, v]) => ({ id: k.slice(c.length + 1), data: () => v })) }
     },
+    getDoc: async (k) => ({ exists: () => store.has(k), data: () => store.get(k) }),
     onSnapshot: (_c, cb) => (cb(), () => {}),
     runTransaction: async (_db, fn) => {
       const writes = []
@@ -270,4 +271,13 @@ test('firebase config and auth messages', () => {
   assert.ok(configFromEnv({ VITE_FIREBASE_API_KEY: 'a', VITE_FIREBASE_PROJECT_ID: 'p', VITE_FIREBASE_APP_ID: 'i' }))
   assert.match(authMessage({ code: 'auth/invalid-credential' }), /Wrong email/)
   assert.match(authMessage({ code: 'auth/too-many-requests' }), /Too many/)
+})
+
+test('firebase adapter: hasAccess is true only for emails listed in /allow (scan-only accounts are not)', async () => {
+  const store = new Map([['allow/boss@x.com', {}], ['scanallow/floor@x.com', { biz: 'b1' }]])
+  const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))
+  assert.equal(await fb.hasAccess('boss@x.com'), true)
+  assert.equal(await fb.hasAccess('Boss@X.com'), true) // looked up in lower case, like the rules
+  assert.equal(await fb.hasAccess('floor@x.com'), false)
+  assert.equal(await fb.hasAccess('nobody@x.com'), false)
 })

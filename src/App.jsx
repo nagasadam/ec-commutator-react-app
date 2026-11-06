@@ -13,6 +13,7 @@ import Invoices from './tabs/Invoices.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
 import { Icon } from './icons.jsx'
 import ErrorBoundary from './errorboundary.jsx'
+import NoAccess from './noaccess.jsx'
 import { light as logoLight, dark as logoDark } from './assets/logos.js'
 
 // Dashboard and Invoices load with the app; the other pages download the first time they are opened
@@ -449,6 +450,7 @@ export default function App() {
 
   if (cloud.configured && !cloud.ready) return <div className="login"><p className="muted">Loading…</p></div>
   if (cloud.configured && !cloud.user && !cloud.skip) return <Login />
+  if (cloud.configured && cloud.user && cloud.access !== 'yes') return <NoAccess />
   const cloudOn = cloud.configured && cloud.user
   const live = saveErr ? 'Not saved' : cloudOn ? CLOUD_TEXT[cloud.status] || 'Saved' : 'Saved on this device'
 

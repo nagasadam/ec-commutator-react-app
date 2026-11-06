@@ -129,6 +129,11 @@ export async function createFirebase(cfg, sdk) {
   return {
     backend,
     scans,
+    // Is this email listed in /allow (the main app)? Scan-only accounts are not. The rules let a person read only their own document.
+    async hasAccess(email) {
+      const s = await sdk.getDoc(sdk.doc(db, 'allow', String(email).toLowerCase()))
+      return s.exists()
+    },
     signIn: (email, password) => sdk.signInWithEmailAndPassword(auth, email, password),
     signOut: () => sdk.signOut(auth),
     onUser: (cb) => sdk.onAuthStateChanged(auth, (u) => cb(u ? { email: u.email, uid: u.uid } : null)),

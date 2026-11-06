@@ -17,6 +17,8 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
   const [status, setStatus] = useState(cfg ? 'idle' : 'off')
   const [choice, setChoice] = useState(null)
   const [skip, setSkip] = useState(false) // "use on this device only"
+  // Signed in is not enough: the email must be listed in /allow. 'checking' | 'yes' | 'no' | 'unknown' (could not check, see below)
+  const [access, setAccess] = useState('checking')
   const fb = useRef(null)
   const eng = useRef(null)
 
@@ -39,8 +41,36 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     return () => off()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [recheck, setRecheck] = useState(0)
   useEffect(() => {
     if (!user || !fb.current) return undefined
+    let live = true
+    const key = 'ecc-access:' + String(user.email).toLowerCase()
+    setAccess('checking')
+    fb.current
+      .hasAccess(user.email)
+      .then((ok) => {
+        try {
+          if (ok) localStorage.setItem(key, '1')
+          else localStorage.removeItem(key)
+        } catch { /* storage blocked: the check simply runs again next time */ }
+        if (live) setAccess(ok ? 'yes' : 'no')
+      })
+      .catch(() => {
+        // Offline or a hiccup: someone who was let in before may carry on; nobody new gets in without the check.
+        let was = false
+        try {
+          was = localStorage.getItem(key) === '1'
+        } catch { /* ignore */ }
+        if (live) setAccess(was ? 'yes' : 'unknown')
+      })
+    return () => {
+      live = false
+    }
+  }, [user, recheck])
+
+  useEffect(() => {
+    if (!user || !fb.current || access !== 'yes') return undefined
     const e = new SyncEngine({
       backend: fb.current.backend,
       storage: localStorage,
@@ -65,7 +95,7 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
       e.stop()
       eng.current = null
     }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, access]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // local edit -> debounced push
   useEffect(() => {
@@ -100,6 +130,7 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
   const signOut = useCallback(async () => {
     await eng.current?.flush() // never leave pending changes behind
     await fb.current?.signOut()
+    setAccess('checking')
     setStatus('idle')
   }, [])
 
@@ -111,6 +142,8 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     choice,
     skip,
     setSkip,
+    access,
+    recheckAccess: () => setRecheck((n) => n + 1),
     signIn,
     signOut,
     resolveChoice: (how) => eng.current?.resolveChoice(how),
