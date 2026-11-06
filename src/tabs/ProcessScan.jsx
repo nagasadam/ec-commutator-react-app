@@ -156,9 +156,9 @@ export default function ProcessScan() {
             <Empty>Sign in to the cloud to receive scans. The phone app sends them through the same account.</Empty>
           ) : (
             <>
-              <div className="ps-tabs chips">
+              <div className="ps-tabs chips" role="tablist" aria-label="Scan status">
                 {[['waiting', 'Waiting'], ['applied', 'Applied'], ['problem', 'Problems'], ['rejected', 'Rejected']].map(([k, l]) => (
-                  <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+                  <button key={k} role="tab" className={tab === k ? 'on' : ''} aria-selected={tab === k} onClick={() => setTab(k)}>
                     {l} · {groups[k].length}
                   </button>
                 ))}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { configFromEnv, createFirebase, authMessage } from '../src/lib/firebase.js'
 import { TYPES, PROCESSES, parseQr, parsePair, bizTag, scanProblem, nextLot, typeName } from '../src/lib/process.js'
 
@@ -63,22 +63,23 @@ function Camera({ onText }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="cam">
-      <video ref={video} playsInline muted />
+      <video ref={video} playsInline muted aria-label="Camera view for scanning a QR code" />
       <div className="reticle" />
-      {msg && <p className="note">{msg}</p>}
+      {msg && <p className="note" role="status">{msg}</p>}
     </div>
   )
 }
 
 function Stepper({ label, value, set, step = 1, big }) {
   const v = Number(value) || 0
+  const id = useId()
   return (
     <div className="field">
-      <label>{label}</label>
-      <div className="stepper">
-        <button type="button" onClick={() => set(String(Math.max(0, v - step)))} aria-label={`less ${label}`}>−</button>
-        <input inputMode="decimal" value={value} placeholder="0" onChange={(e) => set(e.target.value.replace(/[^0-9.]/g, ''))} className={big ? 'big' : ''} />
-        <button type="button" onClick={() => set(String(v + step))} aria-label={`more ${label}`}>+</button>
+      <label htmlFor={id}>{label}</label>
+      <div className="stepper" role="group" aria-label={label}>
+        <button type="button" onClick={() => set(String(Math.max(0, v - step)))} aria-label={`Decrease ${label}`}>−</button>
+        <input id={id} inputMode="decimal" value={value} placeholder="0" onChange={(e) => set(e.target.value.replace(/[^0-9.]/g, ''))} className={big ? 'big' : ''} />
+        <button type="button" onClick={() => set(String(v + step))} aria-label={`Increase ${label}`}>+</button>
       </div>
     </div>
   )
@@ -156,11 +157,11 @@ function ScanFlow({ app }) {
       <div className="screen">
         <h2>Scan a process QR</h2>
         <Camera onText={onText} />
-        {err && <div className="err">{err}</div>}
+        {err && <div className="err" role="alert">{err}</div>}
         <div className="card">
           <label className="small">Camera not working? Type the code under the QR</label>
           <div className="row">
-            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="V4|STACKING|ab12" autoCapitalize="characters" />
+            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="V4|STACKING|ab12" aria-label="Process code under the QR" autoCapitalize="characters" />
             <button className="btn" onClick={() => onText(code)}>Go</button>
           </div>
         </div>
@@ -174,9 +175,9 @@ function ScanFlow({ app }) {
         {process === 'stacking' && (
           <>
             <p className="muted">What are you doing?</p>
-            <div className="seg">
+            <div className="seg" role="group" aria-label="What are you doing?">
               {[['issue', 'Issue to vendor'], ['receive', 'Receive back']].map(([k, l]) => (
-                <button key={k} className={action === k ? 'on' : ''} onClick={() => setAction(k)}>{l}</button>
+                <button key={k} className={action === k ? 'on' : ''} aria-pressed={action === k} onClick={() => setAction(k)}>{l}</button>
               ))}
             </div>
           </>
@@ -206,14 +207,14 @@ function ScanFlow({ app }) {
           <>
             <div className="field">
               <label>Vendor</label>
-              <select value={f.sup} onChange={(e) => setF({ ...f, sup: e.target.value })}>
+              <select aria-label="Vendor" value={f.sup} onChange={(e) => setF({ ...f, sup: e.target.value })}>
                 <option value="">Choose…</option>
                 {(meta?.vendors || []).map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
             </div>
-            <div className="field"><label>Lot number</label><input value={f.lot} onChange={(e) => setF({ ...f, lot: e.target.value.toUpperCase() })} /></div>
+            <div className="field"><label>Lot number</label><input aria-label="Lot number" value={f.lot} onChange={(e) => setF({ ...f, lot: e.target.value.toUpperCase() })} /></div>
             <Stepper label="Pieces expected back" value={f.qty} set={(v) => setF({ ...f, qty: v })} step={100} big />
           </>
         )}
@@ -222,7 +223,7 @@ function ScanFlow({ app }) {
             <div className="field">
               <label>Lot coming back</label>
               {lotsForType.length ? (
-                <select value={f.lot} onChange={(e) => { const l = openLots.find((x) => x.lot === e.target.value); setF({ ...f, lot: e.target.value, qty: l ? String(l.expected) : '' }) }}>
+                <select aria-label="Lot coming back" value={f.lot} onChange={(e) => { const l = openLots.find((x) => x.lot === e.target.value); setF({ ...f, lot: e.target.value, qty: l ? String(l.expected) : '' }) }}>
                   <option value="">Choose…</option>
                   {lotsForType.map((l) => (
                     <option key={l.lot} value={l.lot}>{l.lot} · {n(l.expected)} pcs</option>
@@ -238,7 +239,7 @@ function ScanFlow({ app }) {
             {Number(f.rejects) > 0 && <p className="muted">The other bushes on rejected pieces go back into stock.</p>}
             <div className="field">
               <label>Job-work charge (₹)</label>
-              <input inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder={rate > 0 ? `₹${n(Math.round(Number(f.qty || 0) * rate * 100) / 100)} at ₹${n(rate)} a piece` : 'optional'} />
+              <input aria-label="Job-work charge (₹)" inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder={rate > 0 ? `₹${n(Math.round(Number(f.qty || 0) * rate * 100) / 100)} at ₹${n(rate)} a piece` : 'optional'} />
               <p className="muted">{rate > 0 ? 'Leave blank to use the rate. Only type a charge if the vendor agreed something else.' : 'No rate is set in the office app for this type, so type the charge if there is one.'}</p>
             </div>
             {chosen && Number(f.qty) + Number(f.rejects || 0) < chosen.expected && <p className="warn">Short by {n(chosen.expected - Number(f.qty || 0) - Number(f.rejects || 0))} pieces.</p>}
@@ -250,10 +251,10 @@ function ScanFlow({ app }) {
             <Stepper label="Rejects" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
             <Stepper label="Plastic bushes rejected (damaged)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />
             <p className="muted">Plastic bushes are reusable: after moulding they go back into stock, except the ones you reject here.</p>
-            <div className="field"><label>Press / note</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Press 2" /></div>
+            <div className="field"><label>Press / note</label><input aria-label="Press / note" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Press 2" /></div>
           </>
         )}
-        {err && <div className="err">{err}</div>}
+        {err && <div className="err" role="alert">{err}</div>}
         <div className="row">
           <button className="btn ghost" onClick={() => setStep('type')}>Back</button>
           <button className="btn" onClick={review}>Review</button>
@@ -303,9 +304,9 @@ function Activity({ app }) {
   return (
     <div className="screen">
       <h2>Activity</h2>
-      <div className="seg">
+      <div className="seg" role="tablist" aria-label="Activity view">
         {[['vendor', `At vendor · ${lots.length}`], ['scans', 'Scans']].map(([k, l]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+          <button key={k} role="tab" className={tab === k ? 'on' : ''} aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === 'vendor' &&
@@ -343,8 +344,8 @@ function Sync({ app }) {
   return (
     <div className="screen">
       <h2>Sync</h2>
-      {denied && <div className="err">This account is not set up for Process Scan. Ask the office to add your email. <small>(Details: {denied})</small></div>}
-      {!configured && <div className="err">The app is not connected to the cloud. Ask the office to check the app settings.</div>}
+      {denied && <div className="err" role="alert">This account is not set up for Process Scan. Ask the office to add your email. <small>(Details: {denied})</small></div>}
+      {!configured && <div className="err" role="alert">The app is not connected to the cloud. Ask the office to check the app settings.</div>}
       <div className="card">
         <label className="small">CONNECTED TO MAIN APP</label>
         {user ? (
@@ -355,9 +356,9 @@ function Sync({ app }) {
           </>
         ) : (
           <form onSubmit={async (e) => { e.preventDefault(); setErr(await signIn(email.trim(), pw)) }}>
-            <div className="field"><label>Email</label><input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-            <div className="field"><label>Password</label><input type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
-            {err && <div className="err">{err}</div>}
+            <div className="field"><label>Email</label><input aria-label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div className="field"><label>Password</label><input aria-label="Password" type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+            {err && <div className="err" role="alert">{err}</div>}
             <button className="btn">Sign in</button>
           </form>
         )}
@@ -369,7 +370,7 @@ function Sync({ app }) {
           <li>Scan the <b>Pair a phone</b> QR on the Scan tab (or type its code below).</li>
           <li>Sign in with your usual email and password.</li>
         </ol>
-        <div className="row"><input value={pairCode} onChange={(e) => setPairCode(e.target.value)} placeholder="PAIR|…" /><button className="btn ghost" onClick={() => { const p = parsePair(pairCode); if (p) { pair(p); setPairCode('') } }}>Link</button></div>
+        <div className="row"><input aria-label="Pairing code" value={pairCode} onChange={(e) => setPairCode(e.target.value)} placeholder="PAIR|…" /><button className="btn ghost" onClick={() => { const p = parsePair(pairCode); if (p) { pair(p); setPairCode('') } }}>Link</button></div>
         {st.biz && <p className="muted">Linked to business {bizTag(st.biz)}.</p>}
       </div>
       {st.meta && <div className="card"><label className="small">SETTING (CHANGED IN THE MAIN APP)</label><p>Main app approves scans first: <b>{st.meta.approve ? 'ON' : 'OFF'}</b></p></div>}
@@ -470,10 +471,10 @@ export default function App() {
           <div className="screen center"><h2>Sign in first</h2><p className="muted">Scans are only accepted from signed-in people.</p><button className="btn" onClick={() => setTab('sync')}>Go to Sync</button></div>
         ) : tab === 'scan' ? <ScanFlow app={app} /> : tab === 'act' ? <Activity app={app} /> : <Sync app={app} />}
       </main>
-      <nav>
+      <nav aria-label="Sections">
         {[['scan', 'Scan'], ['act', 'Activity'], ['sync', 'Sync']].map(([k, l]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            <span className="ico" />{l}{k === 'sync' && st.queue.length > 0 ? <i>{st.queue.length}</i> : null}
+          <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} aria-label={k === 'sync' && st.queue.length > 0 ? `Sync, ${st.queue.length} waiting` : undefined} onClick={() => setTab(k)}>
+            <span className="ico" aria-hidden="true" />{l}{k === 'sync' && st.queue.length > 0 ? <i>{st.queue.length}</i> : null}
           </button>
         ))}
       </nav>
