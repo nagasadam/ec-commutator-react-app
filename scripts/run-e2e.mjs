@@ -20,7 +20,7 @@ for (let i = 0; i < 50; i++) {
   }
   await new Promise((r) => setTimeout(r, 200))
 }
-const t = spawn('node', ['--test', 'tests/e2e/app.e2e.mjs'], { stdio: 'inherit', env: { ...process.env, E2E_URL: url } })
+const t = spawn('node', ['--test', 'tests/e2e/app.e2e.mjs', 'tests/e2e/scan.e2e.mjs'], { stdio: 'inherit', env: { ...process.env, E2E_URL: url } })
 t.on('exit', (code) => {
   stop()
   process.exit(code ?? 1)

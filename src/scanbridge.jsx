@@ -117,7 +117,7 @@ export function ScanProvider({ children }) {
       const q = valuation(probe).qty
       const stock = {}
       for (const t of TYPES) for (const k of ['av', 'stk', 'mld']) stock[itemId(k, t.id)] = Math.round((q[itemId(k, t.id)] || 0) * 1000) / 1000
-      const meta = { biz: b.id, name: b.name, tag: bizTag(b.id), approve: b.pscan?.approve !== false, vendors: b.sup.map((s) => ({ id: s.id, name: s.name })), lots: openLots(b), stock }
+      const meta = { biz: b.id, name: b.name, tag: bizTag(b.id), approve: b.pscan?.approve !== false, vendors: b.sup.map((s) => ({ id: s.id, name: s.name })), lots: openLots(b), stock, rates: b.pscan?.rates || {} }
       const j = JSON.stringify(meta)
       if (j === lastMeta.current) return
       lastMeta.current = j

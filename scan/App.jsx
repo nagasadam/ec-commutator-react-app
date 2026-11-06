@@ -125,6 +125,7 @@ function ScanFlow({ app }) {
   const openLots = (meta?.lots || []).concat(st.queue.filter((s) => s.action === 'issue').map((s) => ({ lot: s.lot, type: s.type, sup: s.sup, expected: s.qty }))).filter((l) => !receivedQueued.has(l.lot))
   const lotsForType = openLots.filter((l) => l.type === type)
   const chosen = openLots.find((l) => l.lot === f.lot)
+  const rate = Number(meta?.rates?.[type]) || 0 // job-work rate per piece, from the office app
 
   const pickType = (t) => {
     setType(t)
@@ -134,7 +135,7 @@ function ScanFlow({ app }) {
   }
   const scan = () => ({
     id: uid(), process, action, type, date: today(), by: user?.email || '', at: new Date().toISOString(),
-    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), bushRejects: f.bushRejects === '' ? 0 : Number(f.bushRejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' ? Number(f.charge || 0) : undefined, note: f.note.trim() || undefined,
+    qty: Number(f.qty), rejects: f.rejects === '' ? 0 : Number(f.rejects), bushRejects: f.bushRejects === '' ? 0 : Number(f.bushRejects), lot: f.lot || undefined, sup: action === 'issue' ? f.sup : chosen?.sup || '', charge: action === 'receive' && f.charge !== '' ? Number(f.charge) : undefined, note: f.note.trim() || undefined,
   })
   const review = () => {
     const s = scan()
@@ -235,7 +236,11 @@ function ScanFlow({ app }) {
             <Stepper label="Rejected pieces" value={f.rejects} set={(v) => setF({ ...f, rejects: v })} />
             {Number(f.rejects) > 0 && <Stepper label="Plastic bushes damaged (of the rejected pieces)" value={f.bushRejects} set={(v) => setF({ ...f, bushRejects: v })} />}
             {Number(f.rejects) > 0 && <p className="muted">The other bushes on rejected pieces go back into stock.</p>}
-            <div className="field"><label>Job-work charge (₹)</label><input inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder="optional" /></div>
+            <div className="field">
+              <label>Job-work charge (₹)</label>
+              <input inputMode="decimal" value={f.charge} onChange={(e) => setF({ ...f, charge: e.target.value.replace(/[^0-9.]/g, '') })} placeholder={rate > 0 ? `₹${n(Math.round(Number(f.qty || 0) * rate * 100) / 100)} at ₹${n(rate)} a piece` : 'optional'} />
+              <p className="muted">{rate > 0 ? 'Leave blank to use the rate. Only type a charge if the vendor agreed something else.' : 'No rate is set in the office app for this type, so type the charge if there is one.'}</p>
+            </div>
             {chosen && Number(f.qty) + Number(f.rejects || 0) < chosen.expected && <p className="warn">Short by {n(chosen.expected - Number(f.qty || 0) - Number(f.rejects || 0))} pieces.</p>}
           </>
         )}

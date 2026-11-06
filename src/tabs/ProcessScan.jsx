@@ -5,7 +5,7 @@ import { useScans } from '../scanbridge.jsx'
 import { valuation } from '../lib/calc.js'
 import { TYPES, PROCESSES, itemId, typeName, previewScan, ensureProcessItems, qrText, bizTag, pairText } from '../lib/process.js'
 import { qrSvg } from '../lib/qrcode.js'
-import { qtyFmt, dmy } from '../lib/format.js'
+import { qtyFmt, dmy, inr } from '../lib/format.js'
 import { Empty, Modal } from '../ui.jsx'
 
 const when = (iso) => {
@@ -93,6 +93,7 @@ export default function ProcessScan() {
     return (
       <>
         {p.lines.map((l) => `${l.name} ${l.qty > 0 ? '+' : '−'}${qtyFmt(Math.abs(l.qty))}`).join(', ')}
+        {p.bill && <span> · draft job-work bill {inr(p.bill.amount)}{p.bill.rate > 0 ? ` (₹${qtyFmt(p.bill.rate)} a piece)` : ''}</span>}
         {p.shortStock.length > 0 && <span className="ps-bad"> · not enough {p.shortStock.map((x) => x.name).join(', ')}</span>}
       </>
     )
