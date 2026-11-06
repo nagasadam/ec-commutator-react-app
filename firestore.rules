@@ -25,19 +25,26 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Shop-floor people sign in to the Process Scan phone app with their own accounts, listed in /scanallow/<email>
-    // (created by hand in the Firebase console, like /allow). They can add scans and read the little the phone
-    // needs (/scanmeta), and see their own scans. They can never read or write the books.
+    // (created by hand in the Firebase console, like /allow). Each document has one field, `biz`: the business id
+    // that person may scan for (shown in the main app under Process scan). They can add scans for that business only,
+    // read the little the phone needs (/scanmeta/<that biz>), and see their own scans. They can never read or write the books.
     function scanner() {
-      return request.auth != null && exists(/databases/$(database)/documents/scanallow/$(request.auth.token.email));
+      return request.auth != null
+        && exists(/databases/$(database)/documents/scanallow/$(request.auth.token.email))
+        && get(/databases/$(database)/documents/scanallow/$(request.auth.token.email)).data.biz is string;
+    }
+    function scannerBiz() {
+      return get(/databases/$(database)/documents/scanallow/$(request.auth.token.email)).data.biz;
     }
     // Shop-floor scans from the Process Scan phone app. A phone may only append a "waiting" scan in its own name;
     // the main app marks it applied or rejected. Scans are never deleted.
     match /scans/{id} {
       allow read: if allowed() || (scanner() && resource.data.by == request.auth.token.email);
-      allow create: if (allowed() || scanner())
+      allow create: if (allowed() || (scanner() && request.resource.data.biz == scannerBiz()))
         && request.resource.data.keys().hasOnly(['biz', 'data', 'status', 'by', 'at'])
         && request.resource.data.status == 'waiting'
         && request.resource.data.by == request.auth.token.email
+        && request.resource.data.biz is string
         && request.resource.data.data is string
         && request.resource.data.data.size() < 5000;
       allow update: if allowed()
@@ -46,7 +53,7 @@ service cloud.firestore {
     }
     // What the main app tells the phone: vendors, open stacking lots, the approval switch.
     match /scanmeta/{id} {
-      allow read: if allowed() || scanner();
+      allow read: if allowed() || (scanner() && id == scannerBiz());
       allow create, update: if allowed()
         && request.resource.data.keys().hasOnly(['data', 'at'])
         && request.resource.data.data is string;

@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - run: npm run lint
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e # builds, serves and tests the production bundle

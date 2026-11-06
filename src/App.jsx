@@ -222,11 +222,6 @@ function Manage({ onClose }) {
     onClose()
   }
 
-  const setKind2 = (k) => {
-    const bad = kindSwitchError(b, k)
-    if (bad) return tell(bad)
-    updB((x) => (x.kind = k))
-  }
   const doExport = () => {
     const url = URL.createObjectURL(new Blob([exportJson(S)], { type: 'application/json' }))
     const a = document.createElement('a')
@@ -400,7 +395,7 @@ function useTheme() {
 const CLOUD_TEXT = { idle: 'Cloud connected', syncing: 'Syncing…', saved: 'Saved to cloud', offline: 'Offline: saved on this device', error: 'Cloud error: saved on this device', choice: 'Choose what to do with local data' }
 
 export default function App() {
-  const { S, upd, b, saveErr } = useStore()
+  const { b, saveErr } = useStore()
   const cloud = useCloud()
   const { ask } = useDialog()
   const [tab, setTab] = useState('dash')

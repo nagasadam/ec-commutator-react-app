@@ -25,6 +25,7 @@ test('pdf escapes parentheses and non-ASCII, paginates long tables', () => {
   const rows = Array.from({ length: 120 }, (_, i) => [`2026-01-${i}`, 'R', 'a (b) \\ ₹ é', '1', '2', '3'])
   const s = text(buildPdf({ title: 'T (x)', blocks: [{ table: { cols: ['a', 'b', 'c', 'd', 'e', 'f'].map((t) => ({ t, w: 1 })), rows } }] }))
   assert.match(s, /\\\(x\\\)/)
+  // eslint-disable-next-line no-control-regex -- checking for non-ASCII bytes on purpose
   assert.ok(!/[^\x00-\x7f]/.test(s))
   assert.ok(+s.match(/\/Count (\d+)/)[1] >= 3)
 })
