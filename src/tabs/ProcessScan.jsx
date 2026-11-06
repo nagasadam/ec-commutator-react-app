@@ -51,6 +51,9 @@ function Posters({ b, onClose }) {
           </div>
         ))}
       </div>
+      <p className="muted">
+        Shop-floor accounts: in Firebase, collection <b>scanallow</b>, one document per person with the email as the document ID and a field <b>biz</b> = <b>{b.id}</b>.
+      </p>
       <button className="btn" onClick={print}>Print</button>
     </Modal>
   )

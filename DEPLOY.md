@@ -14,7 +14,7 @@ cloud settings the app still works fully on one device.
 Firebase is already wired in (`src/lib/firebase.js`, `firestore.rules`). One business is
 one Firestore document up to ~600 KB; bigger ones are stored in pieces (collection `recparts`, 1 MiB per
 piece), up to about 3 MB per business, and the app warns you at ~2.4 MB. At the demo's record
-sizes that is tens of thousands of invoices. Publish the updated `firestore.rules` (step 2.6) so the pieces can be saved.
+sizes that is tens of thousands of invoices. Publish the updated `firestore.rules` (step 2.7) so the pieces can be saved.
 Everyone you add shares the same books; there is no per-user separation.
 
 ## 2. Create the Firebase project (about 10 minutes)
@@ -24,10 +24,13 @@ Everyone you add shares the same books; there is no per-user separation.
    (Sign-ups are not offered in the app; this list plus step 5 is the access control.)
 4. Build > **Firestore Database** > Create database > production mode > pick a nearby region (e.g. `asia-south1`).
 5. In Firestore, create collection `allow` and one document per person whose **document ID is their email** (any field, e.g. `ok: true`).
-6. Firestore > Rules > paste the contents of `firestore.rules` > Publish.
+6. Shop-floor phones (Process Scan app): create collection `scanallow` with one document per person, **document ID = their email**,
+   and one field `biz` (string) = your business id. The main app shows it under Process scan > QR posters. A scanner can only add scans for that
+   business and read its scan settings; anyone without a `biz` field is refused. (Add them under Authentication > Users too.)
+7. Firestore > Rules > paste the contents of `firestore.rules` > Publish.
    (or: `npm i -g firebase-tools && firebase login && firebase use <project> && firebase deploy --only firestore:rules`)
-7. Project settings > Your apps > Web (`</>`) > register app. Copy `apiKey`, `authDomain`, `projectId`, `appId`.
-8. Authentication > Settings > **Authorized domains** > add `<your-github-user>.github.io`.
+8. Project settings > Your apps > Web (`</>`) > register app. Copy `apiKey`, `authDomain`, `projectId`, `appId`.
+9. Authentication > Settings > **Authorized domains** > add `<your-github-user>.github.io`.
 
 ## 3. Run locally
 ```
@@ -44,7 +47,7 @@ Sign in with one of the users from step 2.3.
 4. Push. The workflow runs the unit tests, the browser tests and the build, then publishes to
    `https://<user>.github.io/<repo>/`. (`vite.config.js` uses `base: './'`, so the repo name needs no config.)
 
-The Firebase web config is not a secret; the rules in step 2.6 are what protect your data.
+The Firebase web config is not a secret; the rules in step 2.7 are what protect your data.
 Never commit a service-account key.
 
 ## 5. Safety behaviour (what the app does for you)
