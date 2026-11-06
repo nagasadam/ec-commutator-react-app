@@ -9,7 +9,7 @@ export default function NoAccess() {
   return (
     <div className="login">
       <div className="card" role="alert">
-        <h1>{checking ? 'Checking access…' : unknown ? 'Could not check your access' : 'No access to this app'}</h1>
+        <h1 className="na-t">{checking ? 'Checking access…' : unknown ? 'Could not check your access' : 'No access to this app'}</h1>
         <p className="sub-t">
           {checking
             ? 'One moment.'

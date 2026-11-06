@@ -2126,6 +2126,7 @@ input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 
 .login .card { position: relative; z-index: 1; width: min(390px, 100%); padding: 30px 30px 24px; border-radius: 28px; text-align: center; display: grid; gap: 14px; }
 .login .card .fld { text-align: left; }
 .login h1 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* kept for screen readers, hidden visually */
+.login h1.na-t { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink, inherit); } /* the no-access page has no logo, so its heading is shown */
 .login .sub-t { margin: -6px 0 6px; color: var(--muted); }
 .login .logo.big { width: 72px; height: 72px; }
 .login .logo-wrap.big { margin: 0 auto 12px; animation: rise 0.7s var(--ease) both; }
