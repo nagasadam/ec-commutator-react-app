@@ -2,20 +2,20 @@
 
 ## 0. What you are deploying
 A static site (no server). Data lives in the browser (localStorage) and, once you set up
-the cloud below, also in Firestore so every device sees the same books. Without any
+the cloud below, also in Firestore so every device sees the same data. Without any
 cloud settings the app still works fully on one device.
 
 ## 1. Free storage: which one?
 | Option | Free allowance | Catch |
 |---|---|---|
 | **Firebase Spark (Auth + Firestore)** — built in, recommended | 1 GiB stored, 50k reads / 20k writes per day, no card | Cloud Storage (files) is no longer free, but this app only needs Firestore |
-| Supabase free | 500 MB Postgres, 50k users | Projects **pause after a week of inactivity**: bad for a books app you open monthly |
+| Supabase free | 500 MB Postgres, 50k users | Projects **pause after a week of inactivity**: bad for an app you open monthly |
 
 Firebase is already wired in (`src/lib/firebase.js`, `firestore.rules`). One business is
 one Firestore document up to ~600 KB; bigger ones are stored in pieces (collection `recparts`, 1 MiB per
 piece), up to about 3 MB per business, and the app warns you at ~2.4 MB. At the demo's record
 sizes that is tens of thousands of invoices. Publish the updated `firestore.rules` (step 2.7) so the pieces can be saved.
-Everyone you add shares the same books; there is no per-user separation.
+Everyone you add shares the same data; there is no per-user separation.
 
 ## 2. Create the Firebase project (about 10 minutes)
 1. console.firebase.google.com > Add project (skip Analytics).

@@ -177,7 +177,7 @@ export function Manage({ onClose }) {
         </div>
 
         <div className="mgr-cols">
-          <Sec icon="＋" title="Add business" hint="Start a separate set of books">
+          <Sec icon="＋" title="Add business" hint="Start a separate business">
             <form onSubmit={add}>
               <Field label="Name">
                 <input value={name} onChange={(e) => (setName(e.target.value), setAddErr(''))} aria-invalid={!!addErr} />

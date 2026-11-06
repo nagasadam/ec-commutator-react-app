@@ -91,8 +91,8 @@ export async function createFirebase(cfg, sdk) {
   }
 
   // Shop-floor scans (see process.js). The phone app appends scan documents; the main app reads them, applies
-  // them to the books and marks them. `scanmeta/<bizId>` is what the main app tells the phone (vendors, open lots,
-  // the approval switch). Scans never edit the books directly, so a phone can never overwrite the main app's data.
+  // them to the business data and marks them. `scanmeta/<bizId>` is what the main app tells the phone (vendors, open lots,
+  // the approval switch). Scans never edit the business data directly, so a phone can never overwrite the main app's data.
   const scans = {
     async add(bizId, scan) {
       const by = auth.currentUser?.email || ''

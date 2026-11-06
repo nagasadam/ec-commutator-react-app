@@ -1,6 +1,6 @@
 import { useCloud } from './cloud.jsx'
 
-// Shown instead of the app when the signed-in account is not allowed to see the books (for example a shop-floor
+// Shown instead of the app when the signed-in account is not allowed to see the business data (for example a shop-floor
 // scanner account). Nothing from the business is rendered here.
 export default function NoAccess() {
   const cloud = useCloud()
@@ -9,13 +9,13 @@ export default function NoAccess() {
   return (
     <div className="login">
       <div className="card" role="alert">
-        <h1>{checking ? 'Checking access…' : unknown ? 'Could not check your access' : 'No access to this app'}</h1>
+        <h1 className="na-t">{checking ? 'Checking access…' : unknown ? 'Could not check your access' : 'No access to this app'}</h1>
         <p className="sub-t">
           {checking
             ? 'One moment.'
             : unknown
               ? 'Connect to the internet and try again.'
-              : `${cloud.user?.email} is not allowed to open the books. Shop-floor accounts can only use the Process Scan phone app. Sign in with an office account instead.`}
+              : `${cloud.user?.email} is not allowed to open this app. Shop-floor accounts can only use the Process Scan phone app. Sign in with an office account instead.`}
         </p>
         {!checking && (
           <div>

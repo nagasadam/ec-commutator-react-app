@@ -4,9 +4,9 @@ import { useCloud } from './cloud.jsx'
 import { applyScan, openLots, bizTag, ensureProcessItems, TYPES, itemId } from './lib/process.js'
 import { valuation } from './lib/calc.js'
 
-// Receives scans from the Process Scan phone app (Firestore `scans`), applies them to the books or leaves them
+// Receives scans from the Process Scan phone app (Firestore `scans`), applies them to the business data or leaves them
 // waiting for approval, and tells the phone what it needs to know (vendors, open lots, the approval switch).
-// Scans are applied from this app only, so the books still have a single writer.
+// Scans are applied from this app only, so the business data still has a single writer.
 const Ctx = createContext({ rows: [], ready: false, refresh: () => {}, apply: () => {}, reject: () => {}, error: '' })
 export const useScans = () => useContext(Ctx)
 
@@ -34,7 +34,7 @@ export function ScanProvider({ children }) {
     }
   }, [live, api, b?.id])
 
-  // put one scan into the books (committing only when it applies cleanly), then mark it
+  // put one scan into the business data (committing only when it applies cleanly), then mark it
   const applyOne = useCallback(
     async (row, force = false) => {
       let res
@@ -107,7 +107,7 @@ export function ScanProvider({ children }) {
     return () => off()
   }, [live, b?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // tell the phone what the books say (debounced; only when it changed)
+  // tell the phone what the business data says (debounced; only when it changed)
   const lastMeta = useRef('')
   useEffect(() => {
     if (!live) return undefined

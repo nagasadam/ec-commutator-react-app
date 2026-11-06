@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only people whose email has a document in /allow/<email> can read or write the books.
+    // Only people whose email has a document in /allow/<email> can read or write the business data.
     // Create those documents by hand in the Firebase console; clients can never write them.
     function allowed() {
       return request.auth != null
@@ -27,7 +27,7 @@ service cloud.firestore {
     // Shop-floor people sign in to the Process Scan phone app with their own accounts, listed in /scanallow/<email>
     // (created by hand in the Firebase console, like /allow). Each document has one field, `biz`: the business id
     // that person may scan for (shown in the main app under Process scan). They can add scans for that business only,
-    // read the little the phone needs (/scanmeta/<that biz>), and see their own scans. They can never read or write the books.
+    // read the little the phone needs (/scanmeta/<that biz>), and see their own scans. They can never read or write the business data.
     function scanner() {
       return request.auth != null
         && exists(/databases/$(database)/documents/scanallow/$(request.auth.token.email))
