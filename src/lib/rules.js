@@ -16,6 +16,13 @@ export function partyError(b, f) {
   return ''
 }
 
+// Every document needs a real calendar date (YYYY-MM-DD). Returns an error string, or '' when it is fine.
+export function dateError(d) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '')) return 'Pick a date.'
+  const t = new Date(d + 'T00:00:00Z')
+  return Number.isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d ? 'That date does not exist.' : ''
+}
+
 // Accounts a party may settle through.
 export function settleAccounts(b, party) {
   const banks = b.banks.map((k) => ({ id: k.id, label: k.name }))

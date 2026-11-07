@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctBal, acctName, acctOptions, custBal, find, supBal } from '../lib/calc.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { settleError } from '../lib/rules.js'
+import { settleError, dateError } from '../lib/rules.js'
 import { Empty, ErrBar, Field, Stat, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 function Settle({ kind }) {
@@ -20,6 +20,7 @@ function Settle({ kind }) {
     e.preventDefault()
     const bad = settleError(b, party, f.acct, f.amt)
     if (bad) return setErr(bad)
+    if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
     updB((x) => x.tx.push({ id: uid(), date: f.date, kind, party: f.party, amt: +f.amt, acct: f.acct, ref: f.ref }))
     setF({ party: '', amt: '', acct: '', date: today(), ref: '' })

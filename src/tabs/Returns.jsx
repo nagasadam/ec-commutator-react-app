@@ -3,10 +3,12 @@ import { useStore } from '../lib/store.jsx'
 import { find, prrTot, srTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
+import { dateError } from '../lib/rules.js'
+import { Empty, ErrBar, Field, useTableFilter, FilterBar, usePaged, MoreRows, useDialog } from '../ui.jsx'
 
 function SalesReturn() {
   const { b, updB } = useStore()
+  const { ask } = useDialog()
   const [f, setF] = useState({ inv: '', item: '', qty: '', date: today() })
   const tf = useTableFilter()
   const srRows = b.sr.filter((s) => tf.test(s.date, [s.no, find(b.inv, s.inv)?.no, find(b.items, s.item)?.name].join(' ')))
@@ -20,6 +22,7 @@ function SalesReturn() {
     e.preventDefault()
     if (!inv || !f.item || !(+f.qty > 0)) return setErr('Choose an invoice, an item and a quantity.')
     if (+f.qty > sold - back) return setErr(`Only ${qtyFmt(sold - back)} can still be returned on this invoice.`)
+    if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
     updB((x) => x.sr.push({ id: uid(), no: nextNo(x.sr, 'CN-'), date: f.date, inv: f.inv, item: f.item, qty: +f.qty }))
     setF({ inv: '', item: '', qty: '', date: today() })
@@ -74,6 +77,7 @@ function SalesReturn() {
                 <th>Item</th>
                 <th className="r">Qty</th>
                 <th className="r">Amount</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -85,6 +89,11 @@ function SalesReturn() {
                   <td>{find(b.items, s.item)?.name}</td>
                   <td className="r">{qtyFmt(s.qty)}</td>
                   <td className="r">{inr(srTot(b, s).total)}</td>
+                  <td className="r">
+                    <button type="button" className="btn ghost" onClick={() => ask(`Delete ${s.no}?`, () => updB((x) => (x.sr = x.sr.filter((y) => y.id !== s.id))), 'Delete')}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -98,6 +107,7 @@ function SalesReturn() {
 
 function PurchaseReturn() {
   const { b, updB } = useStore()
+  const { ask } = useDialog()
   const [f, setF] = useState({ pur: '', item: '', qty: '', date: today() })
   const tf = useTableFilter()
   const prrRows = b.prr.filter((s) => tf.test(s.date, [s.no, find(b.pur, s.pur)?.no, find(b.items, s.item)?.name].join(' ')))
@@ -111,6 +121,7 @@ function PurchaseReturn() {
     e.preventDefault()
     if (!p || !f.item || !(+f.qty > 0)) return setErr('Choose a purchase, an item and a quantity.')
     if (+f.qty > bought - back) return setErr(`Only ${qtyFmt(bought - back)} can still be returned on this purchase.`)
+    if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
     updB((x) => x.prr.push({ id: uid(), no: nextNo(x.prr, 'DN-'), date: f.date, pur: f.pur, item: f.item, qty: +f.qty }))
     setF({ pur: '', item: '', qty: '', date: today() })
@@ -165,6 +176,7 @@ function PurchaseReturn() {
                 <th>Item</th>
                 <th className="r">Qty</th>
                 <th className="r">Amount</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -176,6 +188,11 @@ function PurchaseReturn() {
                   <td>{find(b.items, s.item)?.name}</td>
                   <td className="r">{qtyFmt(s.qty)}</td>
                   <td className="r">{inr(prrTot(b, s).total)}</td>
+                  <td className="r">
+                    <button type="button" className="btn ghost" onClick={() => ask(`Delete ${s.no}?`, () => updB((x) => (x.prr = x.prr.filter((y) => y.id !== s.id))), 'Delete')}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -198,6 +215,7 @@ function Rejects() {
   const submit = (e) => {
     e.preventDefault()
     if (!f.item || !(+f.qty > 0)) return setErr('Choose an item and a quantity.')
+    if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
     updB((x) => x.rej.push({ id: uid(), date: f.date, item: f.item, qty: +f.qty, note: f.note.trim() }))
     setF({ item: '', qty: '', date: today(), note: '' })
