@@ -107,7 +107,7 @@ test('toaster: confirms a save, replaces instead of stacking, persists to localS
   await p.locator('.toast', { hasText: 'Saved' }).waitFor()
   await p.fill('label:has-text("Cash opening") input', '31500')
   assert.equal(await p.locator('.toast', { hasText: 'Saved' }).count(), 1)
-  const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].cashOpen)
+  const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].cashOpen)
   assert.equal(stored, 31500)
   await p.locator('.toast').waitFor({ state: 'detached', timeout: 5000 }) // fades out
 })
@@ -202,7 +202,7 @@ test('reports: daybook, balance sheet and trial balance all balance', async () =
 
 test('cash & GPay people: pin shows up first and adds no transaction', async () => {
   const p = await open()
-  const n = () => p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].tx.length)
+  const n = () => p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].tx.length)
   await tab(p, 'Cash & GPay')
   assert.ok(await p.locator('td', { hasText: 'Ramesh Pillai' }).count())
   await p.click('button:has-text("Apex Motors")')
@@ -240,7 +240,7 @@ test('backup: export downloads JSON, import of bad file shows an error toast and
   fs.writeFileSync('/tmp/good-backup.json', JSON.stringify(j))
   await p.setInputFiles('.modal input[type=file]', '/tmp/good-backup.json')
   await p.locator('.toast', { hasText: 'Imported 1 business' }).waitFor()
-  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz.length), 2)
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz.length), 2)
 })
 
 test('reload before any edit keeps the same business id (no new business, no save toast)', async () => {
@@ -249,11 +249,11 @@ test('reload before any edit keeps the same business id (no new business, no sav
   pages.push(p)
   await p.goto(target)
   await p.locator('nav').waitFor()
-  const id1 = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10') || 'null')?.cur)
+  const id1 = await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10') || 'null')?.cur)
   assert.ok(id1, 'the starting business is written to storage on first load')
   await p.reload()
   await p.locator('nav').waitFor()
-  const id2 = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10') || 'null')?.cur)
+  const id2 = await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10') || 'null')?.cur)
   assert.equal(id2, id1)
   assert.equal(await p.locator('.toast').count(), 0)
 })
@@ -283,7 +283,7 @@ const ASHOK = (qty1 = 1000, qty2 = 1000) => [
 ]
 const APEX = ['Bill To', 'Apex Motors Pvt Ltd', 'GSTIN: 33AAACA1234B1Z5', 'Invoice Date: 01.10.2026', 'Sl Description HSN Qty Rate Amount', '1 Commutator 8503 10 Nos 95.00 950.00', 'Total']
 // Until the first edit nothing is stored, which means the seeded demo (4 invoices, 3 customers) is untouched.
-const invCount = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10'))?.biz[0].inv.length ?? 4)
+const invCount = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10'))?.biz[0].inv.length ?? 4)
 
 test('PDF import, auto on: complete PDF creates the invoice straight away', async () => {
   const p = await open()
@@ -324,12 +324,12 @@ test('PDF import, auto off: form is filled, nothing saved until Create; customer
   await p.setInputFiles('[data-testid=pdf-input]', pdfFile('ashok.pdf', ASHOK(10, 10)))
   await p.locator('.pdfnote.warn', { hasText: 'Check it' }).waitFor()
   assert.equal(await invCount(p), 4)
-  const custs = () => p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10'))?.biz[0].cust.length ?? 3)
+  const custs = () => p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10'))?.biz[0].cust.length ?? 3)
   assert.equal(await custs(), 3)
   await p.click('button:has-text("Create")')
   await p.locator('td', { hasText: 'INV-0004' }).waitFor()
   assert.equal(await custs(), 4)
-  const c = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].cust.at(-1))
+  const c = await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].cust.at(-1))
   assert.deepEqual([c.name, c.phone, c.gstin], ['ASHOK ENGINEERING WORKS', '9810209580', '07AAKPB7527M1ZF'])
   assert.equal(await p.locator('.newparty').count(), 0)
 })
@@ -373,7 +373,7 @@ const PUR = [
   'TAX INVOICE', 'Gupta Metals Pvt Ltd', '4 Mill Road, Coimbatore', 'GSTIN: 33AAACG5555F1Z5 Ph: 9876543210', 'Invoice Date: 02/10/2026', 'Date of Supply: 05/10/2026',
   'Bill To', 'E.C Commutators', 'Sl Description HSN Qty Rate Amount', '1 Copper coil 7408 100 Kg 1500.00 150000.00', '2 Brass insert 7419 500 Pcs 3.00 1500.00', 'Total',
 ]
-const purs = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].pur)
+const purs = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].pur)
 
 test('PDF import purchases, auto on: one purchase per row, Pay later, new supplier added', async () => {
   const p = await open()
@@ -383,8 +383,8 @@ test('PDF import purchases, auto on: one purchase per row, Pay later, new suppli
   const all = await purs(p)
   assert.equal(all.length, 6)
   assert.deepEqual(all.slice(4).map((x) => x.lines[0].item), ['cu', 'br'])
-  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].tx.length), 7) // no payments
-  assert.ok(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].sup.some((s) => s.name === 'Gupta Metals Pvt Ltd')))
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].tx.length), 7) // no payments
+  assert.ok(await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].sup.some((s) => s.name === 'Gupta Metals Pvt Ltd')))
 })
 
 test('PDF import purchases, auto off: queue loads item 2 of 2 after recording item 1; Rate includes GST', async () => {
@@ -442,7 +442,7 @@ test('Drive: invoices and purchases keep separate folders', async () => {
   await p.click('button:has-text("Connect Google Drive")')
   await rowOf(p, 'gupta.pdf').waitFor()
   assert.equal(await p.locator('.drive tbody tr').count(), 1)
-  const d = await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].drive)
+  const d = await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].drive)
   assert.deepEqual(d, { sale: SALE, purchase: BUY })
 })
 
@@ -471,7 +471,7 @@ test('Drive: Import all new saves the good one, leaves incomplete and duplicate 
   assert.match(await rowOf(p, 'apex-1.pdf').innerText(), /Imported · INV-0004/)
   assert.match(await rowOf(p, 'ashok.pdf').innerText(), /Needs review|Not enough stock/)
   assert.match(await rowOf(p, 'apex-copy.pdf').innerText(), /identical|Needs review/)
-  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz[0].inv.length), 5)
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz[0].inv.length), 5)
   // survives a reload: the folder and the imported mark are saved with the business
   await p.waitForTimeout(500)
   await p.reload()
@@ -492,7 +492,7 @@ test('Drive: Open in form fills the form, and creating from it marks the file im
   await rowOf(p, 'ashok.pdf').locator('button:has-text("Open in form")').click()
   await p.locator('.pdfnote.warn').waitFor()
   assert.equal(await p.inputValue('.newparty label:has-text("Name") input'), 'ASHOK ENGINEERING WORKS')
-  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10'))?.biz[0].inv.length ?? 4), 4) // opened, not saved
+  assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10'))?.biz[0].inv.length ?? 4), 4) // opened, not saved
   await p.fill('.lrow input >> nth=0', '10')
   await p.fill('.lrow input >> nth=2', '10')
   await p.click('button:has-text("Create")')
@@ -566,7 +566,7 @@ test('big data: Banking and Expenses show 50 rows at a time; edits still save', 
   assert.equal(await p.locator('.card:has(h3:has-text("Expenses")) tbody tr').count(), 50)
   await p.reload()
   await p.locator('header.top').waitFor()
-  assert.ok((await p.evaluate(() => JSON.parse(localStorage.getItem('booksmith10')).biz.length)) >= 2)
+  assert.ok((await p.evaluate(() => JSON.parse(localStorage.getItem('ec-commutator10')).biz.length)) >= 2)
 })
 
 test('Scan bill: the camera button takes a photo, and a photo goes through bill reading', async () => {

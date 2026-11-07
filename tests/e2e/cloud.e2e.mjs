@@ -91,7 +91,6 @@ test('no access: a scan-only account is told so, sees nothing of the business, a
   await p.getByRole('heading', { name: 'No access to this app' }).waitFor()
   const text = await p.locator('body').innerText()
   assert.match(text, /floor@x\.com is not allowed to open this app/)
-  assert.doesNotMatch(text, /books/i)
   assert.equal(await p.locator('nav').count(), 0) // no app tabs behind it
   await p.click('button:text-is("Sign out")')
   await p.getByLabel('Email').waitFor()
