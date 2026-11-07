@@ -1,7 +1,7 @@
 // Business-kind rules (notes §13). A firm-based business only deals with firms that
 // carry a GSTIN and only settles through banks; a person-based one may also use
 // persons and Cash/GPay.
-import { find } from './calc.js'
+import { find, valuation } from './calc.js'
 
 export const GSTIN_RE = /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/
 export const isFirmBiz = (b) => b.kind === 'firm'
@@ -57,4 +57,41 @@ export const partyOf = (b, id) => find(b.cust, id) || find(b.sup, id)
 export const bizNameTaken = (biz, name, exceptId) => {
   const n = String(name || '').trim().toLowerCase()
   return biz.some((x) => x.id !== exceptId && String(x.name || '').trim().toLowerCase() === n)
+}
+
+// ---------- Editing a saved invoice or purchase ----------
+// Both return an error string, or '' when the change is allowed. `next` is { party, lines } (lines already cleaned).
+const qtyBy = (lines) => {
+  const m = {}
+  for (const l of lines) m[l.item] = (m[l.item] || 0) + (+l.qty || 0)
+  return m
+}
+const nameOf = (b, id) => find(b.items, id)?.name || 'this item'
+
+function editError(b, doc, next, { partyKey, parties, returns, retKey, what, partyWord }) {
+  const was = find(parties, doc[partyKey])
+  const now = find(parties, next.party)
+  if (!now) return `Pick a ${partyWord}.`
+  if (!!was?.company !== !!now.company) return `Switching between a firm and a person changes the ${what} type. Delete it and enter a new one instead.`
+  const linked = b.tx.some((t) => t.ref === doc.id) || returns.some((r) => r[retKey] === doc.id)
+  if (next.party !== doc[partyKey] && linked) return `Payments or returns are recorded against this ${partyWord}. Remove those first to change the ${partyWord}.`
+  const have = qtyBy(next.lines)
+  const back = qtyBy(returns.filter((r) => r[retKey] === doc.id))
+  for (const id of Object.keys(back)) {
+    if ((have[id] || 0) < back[id] - 1e-9) return `${back[id]} of ${nameOf(b, id)} already returned, so this ${what} must keep at least that quantity.`
+  }
+  return ''
+}
+
+export const editInvoiceError = (b, inv, next) => editError(b, inv, next, { partyKey: 'cust', parties: b.cust, returns: b.sr, retKey: 'inv', what: 'invoice', partyWord: 'customer' })
+
+export function editPurchaseError(b, pur, next) {
+  const bad = editError(b, pur, next, { partyKey: 'sup', parties: b.sup, returns: b.prr, retKey: 'pur', what: 'purchase', partyWord: 'supplier' })
+  if (bad) return bad
+  // buying less must not leave stock below zero for something that was not already below zero
+  const before = valuation(b).qty
+  const w = { ...b, pur: b.pur.map((p) => (p.id === pur.id ? { ...p, sup: next.party, lines: next.lines } : p)) }
+  const after = valuation(w).qty
+  const short = Object.keys(after).find((k) => after[k] < -1e-9 && after[k] < (before[k] || 0) - 1e-9)
+  return short ? `Changing this purchase would leave ${nameOf(b, short)} below zero. Later production or sales already use that stock.` : ''
 }

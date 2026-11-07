@@ -8,7 +8,7 @@ import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
-import { partyError, dateError } from '../lib/rules.js'
+import { partyError, dateError, editInvoiceError } from '../lib/rules.js'
 import { supplyType } from '../lib/calc.js'
 
 function Paper({ b, inv }) {
@@ -105,6 +105,7 @@ export default function Invoices({ newInv = 0 }) {
   const { ask, tell } = useDialog()
   const toast = useToast()
   const [src, setSrc] = useState(null) // Drive file the form was opened from
+  const [editId, setEditId] = useState(null) // id of the invoice being edited, or null when making a new one
   const [f, setF] = useState(blankForm)
   const [err, setErr] = useState('')
   const [view, setView] = useState(null)
@@ -150,6 +151,7 @@ export default function Invoices({ newInv = 0 }) {
     setF(blankForm())
     setNewCust(null)
     setSrc(null)
+    setEditId(null)
   }
 
   const onPdf = async (file, opts = {}) => {
@@ -220,6 +222,29 @@ export default function Invoices({ newInv = 0 }) {
       const bad = partyError(b, newCust)
       if (bad) return setErr(bad)
     }
+    if (editId) {
+      const cur = find(b.inv, editId)
+      const bad = editInvoiceError(b, cur, { party: f.cust, lines })
+      if (bad) return setErr(bad)
+      const was = {}
+      cur.lines.forEach((l) => (was[l.item] = (was[l.item] || 0) + (+l.qty || 0)))
+      const asked = {}
+      lines.forEach((l) => (asked[l.item] = (asked[l.item] || 0) + l.qty))
+      // stock already has this invoice's old quantity taken out, so give it back before comparing
+      const low = Object.keys(asked).find((id) => asked[id] > (v.qty[id] || 0) + (was[id] || 0))
+      const save = () => {
+        setErr('')
+        updB((x) => {
+          const t = find(x.inv, editId)
+          Object.assign(t, { cust: f.cust, date: f.date, lr: f.lr.trim(), transporter: f.transporter.trim(), lines })
+        })
+        toast.push(`${cur.no} updated`, 'ok')
+        reset()
+      }
+      if (low) ask(`Only ${qtyFmt((v.qty[low] || 0) + (was[low] || 0))} of ${find(b.items, low)?.name} in stock. Save the change anyway?`, save, 'Save anyway')
+      else save()
+      return
+    }
     const create = () => {
       setErr('')
       updB((x) => {
@@ -233,6 +258,17 @@ export default function Invoices({ newInv = 0 }) {
     const short = lines.find((l) => l.qty > (v.qty[l.item] || 0))
     if (short) ask(`Only ${qtyFmt(v.qty[short.item] || 0)} of ${find(b.items, short.item)?.name} in stock. Create the invoice anyway?`, create, 'Create anyway')
     else create()
+  }
+
+  const edit = (i) => {
+    setF({ cust: i.cust, date: i.date, lr: i.lr || '', transporter: i.transporter || '', lines: i.lines.map((l) => ({ item: l.item, qty: l.qty, rate: l.rate })) })
+    setNewCust(null)
+    setSrc(null)
+    setRid(null)
+    setNote(null)
+    setErr('')
+    setEditId(i.id)
+    setShowForm(true)
   }
 
   const del = (i) => {
@@ -276,6 +312,7 @@ export default function Invoices({ newInv = 0 }) {
       {menu?.id === r.i.id && (
         <span className="menu" role="menu" style={{ right: menu.right, top: menu.top, bottom: menu.bottom }}>
           <button type="button" role="menuitem" onClick={() => (setMenu(null), open(r))}>View</button>
+          <button type="button" role="menuitem" onClick={() => (setMenu(null), edit(r.i))}>Edit</button>
           <button type="button" role="menuitem" className="bad" onClick={() => (setMenu(null), del(r.i))}>Delete</button>
         </span>
       )}
@@ -435,7 +472,7 @@ export default function Invoices({ newInv = 0 }) {
       </div>
 
       {showForm && (
-        <Modal title="New invoice / bill" onClose={() => setShowForm(false)} wide>
+        <Modal title={editId ? `Edit ${find(b.inv, editId)?.no || 'invoice'}` : 'New invoice / bill'} onClose={() => (editId ? reset() : setShowForm(false))} wide>
           <form onSubmit={submit}>
             <PdfNote note={note} onDismiss={() => (setNote(null), reset())} />
             {newCust && <NewParty title="New customer" p={newCust} setP={setNewCust} forceFirm={b.kind === 'firm'} />}
@@ -464,7 +501,7 @@ export default function Invoices({ newInv = 0 }) {
             <LinesEditor items={b.items} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} rateFrom={(it) => it.rate} />
             <ErrBar msg={err} />
             {b.cust.length === 0 && <p className="muted">Add a customer under Parties first.</p>}
-            <button className="btn">Create</button>
+            <button className="btn">{editId ? 'Save changes' : 'Create'}</button>
           </form>
         </Modal>
       )}
