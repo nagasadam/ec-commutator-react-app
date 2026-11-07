@@ -287,6 +287,24 @@ test('firebase adapter: hasAccess is true only for emails listed in /allow (scan
   assert.equal(await fb.hasAccess('nobody@x.com'), false)
 })
 
+test('firebase adapter: hasScanAccess and hasBoth need the right entries (the switch between the two apps)', async () => {
+  const store = new Map([
+    ['allow/boss@x.com', {}],
+    ['allow/meena@x.com', {}],
+    ['scanallow/meena@x.com', { biz: 'b1' }],
+    ['scanallow/floor@x.com', { biz: 'b1' }],
+    ['scanallow/odd@x.com', {}], // no business id: not a valid scan entry
+  ])
+  const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))
+  assert.equal(await fb.hasScanAccess('Meena@X.com'), true)
+  assert.equal(await fb.hasScanAccess('floor@x.com'), true)
+  assert.equal(await fb.hasScanAccess('boss@x.com'), false)
+  assert.equal(await fb.hasScanAccess('odd@x.com'), false)
+  assert.equal(await fb.hasBoth('meena@x.com'), true) // both lists
+  assert.equal(await fb.hasBoth('boss@x.com'), false) // office only
+  assert.equal(await fb.hasBoth('floor@x.com'), false) // scan only
+})
+
 test('firebase adapter: scanners are added in lower case with the business id, listed per business, and removed', async () => {
   const store = new Map([['scanallow/other@x.com', { biz: 'b2' }]])
   const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))

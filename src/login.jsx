@@ -35,6 +35,16 @@ export function Login() {
         <button className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         <p className="foot-t">Billing · Production · Stock</p>
       </form>
+      <a className="scan-card" href="./scan/">
+        <span className="ico" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" /><path d="M4 12h16" /></svg>
+        </span>
+        <span className="txt">
+          <b>Process Scan</b>
+          <span>Shop floor: stacking, moulding, rejects</span>
+        </span>
+        <svg className="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </a>
     </div>
   )
 }

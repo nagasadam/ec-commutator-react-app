@@ -124,3 +124,39 @@ test('phone app: counters, groups and tabs have accessible names', async () => {
   await btn(page, 'Go')
   assert.equal(await page.getByRole('alert').count(), 1)
 })
+
+// The switch back to the ERP App: only for a signed-in account that is on both lists.
+async function signedInPhone(both) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const p = await ctx.newPage()
+  const errs = []
+  p.on('pageerror', (e) => errs.push(e.message))
+  await p.addInitScript(([biz, meta, isBoth]) => {
+    localStorage.setItem('processscan1', JSON.stringify({ biz, queue: [], meta }))
+    window.__scanTestApi = {
+      onUser: (cb) => { setTimeout(() => cb({ email: 'meena@x.com', uid: 'u1' }), 0); return () => {} },
+      hasBoth: async () => isBoth,
+      signIn: async () => {},
+      signOut: async () => {},
+    }
+  }, [BIZ, META, both])
+  await p.goto(url)
+  await p.waitForSelector('text=Scan a process QR')
+  return { p, errs }
+}
+
+test('phone app: account on both lists sees the ERP App switch and it leads back to the main app', async () => {
+  const { p, errs } = await signedInPhone(true)
+  const sw = p.getByRole('group', { name: 'Switch app' })
+  await sw.waitFor()
+  assert.equal(await sw.getByRole('link', { name: /ERP App/ }).getAttribute('href'), '../')
+  assert.deepEqual(errs, [])
+})
+
+test('phone app: scan-only account sees no way into the ERP App', async () => {
+  const { p, errs } = await signedInPhone(false)
+  await p.waitForTimeout(400)
+  assert.equal(await p.getByRole('group', { name: 'Switch app' }).count(), 0)
+  assert.equal(await p.getByRole('link', { name: /ERP App/ }).count(), 0)
+  assert.deepEqual(errs, [])
+})

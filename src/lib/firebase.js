@@ -142,15 +142,22 @@ export async function createFirebase(cfg, sdk) {
     },
   }
 
+  // Is this email listed in /allow (the ERP App)? Scan-only accounts are not. The rules let a person read only their own document.
+  const hasAccess = async (email) => (await sdk.getDoc(sdk.doc(db, 'allow', String(email).toLowerCase()))).exists()
+  // Is this email listed in /scanallow (Process Scan)? Same rule: a person reads only their own document.
+  const hasScanAccess = async (email) => {
+    const s = await sdk.getDoc(sdk.doc(db, 'scanallow', String(email).toLowerCase()))
+    return s.exists() && typeof s.data()?.biz === 'string'
+  }
+
   return {
     backend,
     scans,
     scanners,
-    // Is this email listed in /allow (the main app)? Scan-only accounts are not. The rules let a person read only their own document.
-    async hasAccess(email) {
-      const s = await sdk.getDoc(sdk.doc(db, 'allow', String(email).toLowerCase()))
-      return s.exists()
-    },
+    hasAccess,
+    hasScanAccess,
+    // On both lists: the only accounts that get the switch between the two apps.
+    hasBoth: async (email) => (await hasAccess(email)) && (await hasScanAccess(email)),
     signIn: (email, password) => sdk.signInWithEmailAndPassword(auth, email, password),
     signOut: () => sdk.signOut(auth),
     onUser: (cb) => sdk.onAuthStateChanged(auth, (u) => cb(u ? { email: u.email, uid: u.uid } : null)),

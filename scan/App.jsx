@@ -13,6 +13,7 @@ export default function App() {
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(false)
   const [denied, setDenied] = useState('')
+  const [both, setBoth] = useState(false) // signed in and listed for the ERP App too: then the switch shows
   const [online, setOnline] = useState(navigator.onLine)
   const fb = useRef(window.__scanTestApi || null)
   const cfg = configFromEnv(import.meta.env || {})
@@ -41,6 +42,28 @@ export default function App() {
     window.addEventListener('offline', offl)
     return () => { off(); window.removeEventListener('online', on); window.removeEventListener('offline', offl) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setBoth(false)
+    if (!user || !fb.current?.hasBoth) return undefined
+    let live = true
+    const key = 'ecc-both:' + String(user.email).toLowerCase() // remembered, so the switch survives a dead signal on the shop floor
+    fb.current
+      .hasBoth(user.email)
+      .then((ok) => {
+        try {
+          if (ok) localStorage.setItem(key, '1')
+          else localStorage.removeItem(key)
+        } catch { /* storage blocked: the check runs again next time */ }
+        if (live) setBoth(ok)
+      })
+      .catch(() => {
+        try {
+          if (live) setBoth(localStorage.getItem(key) === '1')
+        } catch { /* ignore */ }
+      })
+    return () => { live = false }
+  }, [user])
 
   const sync = useCallback(async () => {
     const api = fb.current?.scans
@@ -91,6 +114,12 @@ export default function App() {
   return (
     <div className="shell">
       {!online && <div className="offline">Offline. Scans are saved on this phone and sent later.</div>}
+      {both && (
+        <div className="appsw" role="group" aria-label="Switch app">
+          <span aria-current="page">Scan</span>
+          <a href="../">ERP App <span aria-hidden="true">↗</span></a>
+        </div>
+      )}
       <main>
         {needLogin && tab === 'scan' ? (
           <div className="screen center"><h2>Sign in first</h2><p className="muted">Scans are only accepted from signed-in people.</p><button className="btn" onClick={() => setTab('sync')}>Go to Sync</button></div>

@@ -15,18 +15,20 @@ test.before(async () => {
 test.after(async () => browser.close())
 
 // allow: true (listed in /allow) | false (a scan-only account) | 'error' (could not check)
-async function open(allow, signedInAs = null) {
+// scanFor: emails that also have a /scanallow entry (listed for Process Scan)
+async function open(allow, signedInAs = null, scanFor = []) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 } })
   const p = await ctx.newPage()
   p.errs = []
   p.on('pageerror', (e) => p.errs.push(e.message))
-  await p.addInitScript(([allow, signedInAs]) => {
+  await p.addInitScript(([allow, signedInAs, scanFor]) => {
     const fb = { user: signedInAs ? { email: signedInAs, uid: 'u1' } : null, allow, listeners: [] }
     window.__fb = fb
     const emit = () => fb.listeners.forEach((cb) => cb(fb.user ? { email: fb.user.email, uid: fb.user.uid } : null))
     const col = { docs: [] }
     const store = new Map()
     fb.store = store
+    scanFor.forEach((e) => store.set('scanallow/' + e, { biz: 'biz-1234' }))
     window.__EC_TEST_CLOUD = {
       env: { VITE_FIREBASE_API_KEY: 'k', VITE_FIREBASE_PROJECT_ID: 'p', VITE_FIREBASE_APP_ID: 'a' },
       sdk: {
@@ -41,7 +43,8 @@ async function open(allow, signedInAs = null) {
           if (q.c !== 'scanallow') return col
           return { docs: [...store].filter(([k, v]) => k.startsWith('scanallow/') && q.w.every((x) => v[x.f] === x.v)).map(([k, v]) => ({ id: k.slice(10), data: () => v })) }
         },
-        getDoc: async () => {
+        getDoc: async (k) => {
+          if (String(k).startsWith('scanallow/')) return { exists: () => store.has(k), data: () => store.get(k) || {} }
           if (fb.allow === 'error') throw new Error('offline')
           return { exists: () => fb.allow === true, data: () => ({}) }
         },
@@ -66,7 +69,7 @@ async function open(allow, signedInAs = null) {
         },
       },
     }
-  }, [allow, signedInAs])
+  }, [allow, signedInAs, scanFor])
   await p.goto(target)
   return p
 }
@@ -131,4 +134,27 @@ test('office adds and removes shop-floor people from Process scan, with the busi
   await p.getByText('No shop-floor people added yet.').waitFor()
   assert.equal(await p.evaluate(() => [...window.__fb.store.keys()].filter((k) => k.startsWith('scanallow/')).length), 0)
   assert.deepEqual(p.errs, [])
+})
+
+test('sign-in: a "Process Scan" card leads to the phone app, for everyone', async () => {
+  const p = await open(true)
+  await p.getByLabel('Email').waitFor()
+  const link = p.getByRole('link', { name: /Process Scan/ })
+  assert.equal(await link.getAttribute('href'), './scan/')
+  assert.match(await link.innerText(), /Shop floor/)
+  assert.deepEqual(p.errs, [])
+})
+
+test('ERP App header: the switch to Process Scan shows only for accounts on both lists', async () => {
+  const both = await open(true, 'meena@x.com', ['meena@x.com'])
+  await both.locator('nav').first().waitFor()
+  const sw = both.getByRole('group', { name: 'Switch app' })
+  await sw.waitFor()
+  assert.equal(await sw.getByRole('link', { name: /Process Scan/ }).getAttribute('href'), './scan/')
+  assert.deepEqual(both.errs, [])
+  const officeOnly = await open(true, 'boss@x.com')
+  await officeOnly.locator('nav').first().waitFor()
+  await officeOnly.waitForTimeout(400)
+  assert.equal(await officeOnly.getByRole('group', { name: 'Switch app' }).count(), 0)
+  assert.deepEqual(officeOnly.errs, [])
 })
