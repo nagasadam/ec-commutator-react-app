@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../lib/store.jsx'
-import { find, prrTot, srTot } from '../lib/calc.js'
+import { find, lineFor, prrTot, srTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
 import { dateError } from '../lib/rules.js'
@@ -15,7 +15,7 @@ function SalesReturn() {
   const sg = usePaged(srRows, tf.key)
   const [err, setErr] = useState('')
   const inv = find(b.inv, f.inv)
-  const sold = inv?.lines.find((l) => l.item === f.item)?.qty || 0
+  const sold = lineFor(inv?.lines, f.item)?.qty || 0
   const back = b.sr.filter((s) => s.inv === f.inv && s.item === f.item).reduce((s, r) => s + r.qty, 0)
 
   const submit = (e) => {
@@ -45,9 +45,9 @@ function SalesReturn() {
         <Field label="Item">
           <select value={f.item} onChange={(e) => setF({ ...f, item: e.target.value })}>
             <option value="">Select…</option>
-            {inv?.lines.map((l) => (
-              <option key={l.item} value={l.item}>
-                {find(b.items, l.item)?.name}
+            {[...new Set(inv?.lines.map((l) => l.item))].map((it) => (
+              <option key={it} value={it}>
+                {find(b.items, it)?.name}
               </option>
             ))}
           </select>
@@ -114,7 +114,7 @@ function PurchaseReturn() {
   const pgp = usePaged(prrRows, tf.key)
   const [err, setErr] = useState('')
   const p = find(b.pur, f.pur)
-  const bought = p?.lines.find((l) => l.item === f.item)?.qty || 0
+  const bought = lineFor(p?.lines, f.item)?.qty || 0
   const back = b.prr.filter((s) => s.pur === f.pur && s.item === f.item).reduce((s, r) => s + r.qty, 0)
 
   const submit = (e) => {
@@ -144,9 +144,9 @@ function PurchaseReturn() {
         <Field label="Item">
           <select value={f.item} onChange={(e) => setF({ ...f, item: e.target.value })}>
             <option value="">Select…</option>
-            {p?.lines.map((l) => (
-              <option key={l.item} value={l.item}>
-                {find(b.items, l.item)?.name}
+            {[...new Set(p?.lines.map((l) => l.item))].map((it) => (
+              <option key={it} value={it}>
+                {find(b.items, it)?.name}
               </option>
             ))}
           </select>

@@ -255,8 +255,10 @@ export default function Invoices({ newInv = 0 }) {
       reset()
       setNote(null)
     }
-    const short = lines.find((l) => l.qty > (v.qty[l.item] || 0))
-    if (short) ask(`Only ${qtyFmt(v.qty[short.item] || 0)} of ${find(b.items, short.item)?.name} in stock. Create the invoice anyway?`, create, 'Create anyway')
+    const need = {}
+    lines.forEach((l) => (need[l.item] = (need[l.item] || 0) + l.qty)) // the same item on two rows counts together
+    const shortId = Object.keys(need).find((id) => need[id] > (v.qty[id] || 0))
+    if (shortId) ask(`Only ${qtyFmt(v.qty[shortId] || 0)} of ${find(b.items, shortId)?.name} in stock. Create the invoice anyway?`, create, 'Create anyway')
     else create()
   }
 

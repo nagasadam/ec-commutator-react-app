@@ -10,6 +10,15 @@ export function supplyType(b, party) {
   return party.gstin.slice(0, 2) === b.stateCode ? 'intra' : 'inter'
 }
 
+// One item across all lines of a document: total quantity and the quantity-weighted rate. A single line is returned as it is.
+export function lineFor(lines, item) {
+  const m = (lines || []).filter((x) => x.item === item)
+  if (m.length < 2) return m[0]
+  const qty = m.reduce((s, x) => s + (+x.qty || 0), 0)
+  const amt = m.reduce((s, x) => s + (+x.qty || 0) * (+x.rate || 0), 0)
+  return { item, qty, rate: qty ? amt / qty : 0 }
+}
+
 export const lineSum = (lines) => r2(lines.reduce((s, l) => s + (+l.qty || 0) * (+l.rate || 0), 0))
 
 // Firms (companies) carry 18% GST; persons carry none.
@@ -28,13 +37,13 @@ export const purTot = (b, p) => taxOf(b, find(b.sup, p.sup), lineSum(p.lines))
 // Credit note (sales return) priced at the original invoice line rate.
 export function srTot(b, s) {
   const inv = find(b.inv, s.inv)
-  const l = inv?.lines.find((x) => x.item === s.item)
+  const l = lineFor(inv?.lines, s.item)
   return taxOf(b, find(b.cust, inv?.cust), (+s.qty || 0) * (l?.rate || 0))
 }
 // Debit note (purchase return) priced at the original purchase line rate.
 export function prrTot(b, s) {
   const p = find(b.pur, s.pur)
-  const l = p?.lines.find((x) => x.item === s.item)
+  const l = lineFor(p?.lines, s.item)
   return taxOf(b, find(b.sup, p?.sup), (+s.qty || 0) * (l?.rate || 0))
 }
 
@@ -84,7 +93,7 @@ export function valuation(b) {
     if (k === 'pur') x.lines.forEach((l) => add(l.item, +l.qty, l.qty * l.rate))
     else if (k === 'prr') {
       const p = find(b.pur, x.pur)
-      const l = p?.lines.find((y) => y.item === x.item)
+      const l = lineFor(p?.lines, x.item)
       take(x.item, +x.qty, l?.rate || 0)
     } else if (k === 'prod') {
       const fg = find(b.items, x.item)
@@ -141,7 +150,7 @@ export function saleRows(b) {
   const cn = new Map()
   for (const r of b.sr) {
     const inv = invs.get(r.inv)
-    const l = inv?.lines.find((x) => x.item === r.item)
+    const l = lineFor(inv?.lines, r.item)
     const t = taxOf(b, cust.get(inv?.cust), (+r.qty || 0) * (l?.rate || 0)).total
     cn.set(r.inv, (cn.get(r.inv) || 0) + t)
   }
@@ -161,7 +170,7 @@ export function purRows(b) {
   const dn = new Map()
   for (const r of b.prr) {
     const p = purs.get(r.pur)
-    const l = p?.lines.find((x) => x.item === r.item)
+    const l = lineFor(p?.lines, r.item)
     const t = taxOf(b, sup.get(p?.sup), (+r.qty || 0) * (l?.rate || 0)).total
     dn.set(r.pur, (dn.get(r.pur) || 0) + t)
   }
