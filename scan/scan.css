@@ -135,3 +135,8 @@ nav button{position:relative;border:0;background:transparent;font:inherit;font-s
 nav i{position:absolute;top:6px;right:22px;background:var(--bad);color:#fff;font-style:normal;font-size:11px;border-radius:999px;padding:1px 6px}
 .ico{display:none}.offline{background:var(--warn-soft);color:var(--warn-ink);font-size:13px;font-weight:600;padding:8px 16px;text-align:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.appsw{display:flex;gap:4px;padding:4px;margin:12px 16px 0;background:var(--card);border-radius:999px;box-shadow:var(--shadow)}
+.appsw>*{flex:1;min-height:44px;box-sizing:border-box;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;text-decoration:none;color:var(--ink)}
+.appsw [aria-current=page]{background:var(--dark);color:var(--on-dark)}
+.appsw a span{color:var(--a)}
+.appsw a:focus-visible{outline:2px solid var(--a);outline-offset:2px}

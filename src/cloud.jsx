@@ -41,6 +41,32 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     return () => off()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Also listed for Process Scan? Then the header shows a switch to it. Remembered per account for when the network is down.
+  const [scanAccess, setScanAccess] = useState(false)
+  useEffect(() => {
+    setScanAccess(false)
+    if (!user || !fb.current?.hasScanAccess || access !== 'yes') return undefined
+    let live = true
+    const key = 'ecc-scan:' + String(user.email).toLowerCase()
+    fb.current
+      .hasScanAccess(user.email)
+      .then((ok) => {
+        try {
+          if (ok) localStorage.setItem(key, '1')
+          else localStorage.removeItem(key)
+        } catch { /* storage blocked: the check simply runs again next time */ }
+        if (live) setScanAccess(ok)
+      })
+      .catch(() => {
+        try {
+          if (live) setScanAccess(localStorage.getItem(key) === '1')
+        } catch { /* ignore */ }
+      })
+    return () => {
+      live = false
+    }
+  }, [user, access])
+
   const [recheck, setRecheck] = useState(0)
   useEffect(() => {
     if (!user || !fb.current) return undefined
@@ -141,6 +167,7 @@ export function CloudProvider({ children, env = import.meta.env || {} }) {
     status,
     choice,
     access,
+    scanAccess,
     recheckAccess: () => setRecheck((n) => n + 1),
     signIn,
     signOut,

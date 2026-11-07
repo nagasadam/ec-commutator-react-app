@@ -183,6 +183,14 @@ export default function App() {
           </div>
         </nav>
         <div className="right">
+          {cloud.scanAccess && (
+            <div className="appsw" role="group" aria-label="Switch app">
+              <span aria-current="page">ERP App</span>
+              <a href="./scan/">
+                Process Scan <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          )}
           <span className={'live' + (saveErr || cloud.status === 'error' ? ' bad' : cloudOn ? ' cloud' : '')} title={live} role="status">
             <i />
             <span className="lt">{live}</span>
