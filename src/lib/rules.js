@@ -1,7 +1,8 @@
 // Business-kind rules (notes §13). A firm-based business only deals with firms that
 // carry a GSTIN and only settles through banks; a person-based one may also use
 // persons and Cash/GPay.
-import { find, valuation } from './calc.js'
+import { acctBal, acctName, custBal, find, purRows, saleRows, supBal, valuation } from './calc.js'
+import { inr } from './format.js'
 
 export const GSTIN_RE = /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/
 export const isFirmBiz = (b) => b.kind === 'firm'
@@ -41,6 +42,27 @@ export function settleError(b, party, acct, amt) {
     return isFirmBiz(b) || party.company ? 'Firms settle through a bank account.' : 'Persons settle through Cash or GPay.'
   }
   return ''
+}
+
+// Things worth a second look before a receipt or payment is saved (it is still allowed after a confirm):
+// more than is open on the chosen invoice/purchase, more than the party owes, or (payments) more than the account holds.
+// Returns a list of sentences; empty when nothing looks off.
+export function settleWarnings(b, kind, party, acct, amt, ref) {
+  const out = []
+  const n = +amt || 0
+  if (!party || n <= 0) return out
+  const recv = kind === 'recv'
+  const doc = ref ? (recv ? saleRows(b) : purRows(b)).find((r) => (recv ? r.i : r.p).id === ref) : null
+  if (doc && n > doc.open + 0.005) out.push(`${inr(n)} is more than the ${inr(doc.open)} still open on ${(recv ? doc.i : doc.p).no}.`)
+  else if (!doc) {
+    const owed = Math.max(0, (recv ? custBal : supBal)(b, party))
+    if (n > owed + 0.005) out.push(`${inr(n)} is more than ${party.name} ${recv ? 'owes' : 'is owed'} (${inr(owed)}).`)
+  }
+  if (!recv && acct) {
+    const have = acctBal(b, acct)
+    if (n > have + 0.005) out.push(`${acctName(b, acct)} only holds ${inr(have)}, so this takes it below zero.`)
+  }
+  return out
 }
 
 // Switching an existing business to firm-based is refused while it holds data that breaks the rule.

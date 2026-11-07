@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctBal, acctName, acctOptions, custBal, find, supBal } from '../lib/calc.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { settleError, dateError } from '../lib/rules.js'
+import { settleError, dateError, settleWarnings } from '../lib/rules.js'
 import { Empty, ErrBar, Field, Stat, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 function Settle({ kind }) {
   const { b, updB } = useStore()
+  const { ask } = useDialog()
   const recv = kind === 'recv'
   const parties = recv ? b.cust : b.sup
   const refs = recv ? b.inv : b.pur
@@ -22,8 +23,13 @@ function Settle({ kind }) {
     if (bad) return setErr(bad)
     if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
-    updB((x) => x.tx.push({ id: uid(), date: f.date, kind, party: f.party, amt: +f.amt, acct: f.acct, ref: f.ref }))
-    setF({ party: '', amt: '', acct: '', date: today(), ref: '' })
+    const save = () => {
+      updB((x) => x.tx.push({ id: uid(), date: f.date, kind, party: f.party, amt: +f.amt, acct: f.acct, ref: f.ref }))
+      setF({ party: '', amt: '', acct: '', date: today(), ref: '' })
+    }
+    const warn = settleWarnings(b, kind, party, f.acct, f.amt, f.ref)
+    if (warn.length) ask(`${warn.join(' ')} Record it anyway?`, save, 'Record anyway')
+    else save()
   }
 
   return (
