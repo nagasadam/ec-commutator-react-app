@@ -99,7 +99,7 @@ export default function JobWork() {
                 <tbody>
                   {pg.shown.map((j) => (
                     <tr key={j.id}>
-                      <td>{dmy(j.date)}</td>
+                      <td className="jw-date">{dmy(j.date)}</td>
                       <td className="nm">
                         {j.no}
                         {j.vbill && <div className="muted">{j.vbill}</div>}
@@ -112,13 +112,13 @@ export default function JobWork() {
                       <td className="r">{inr(j.rate)}</td>
                       <td className="r">{inr(j.amount)}</td>
                       <td>{STATUS[j.status] || j.status}</td>
-                      <td className="r nw">
+                      <td className="r">
                         {j.status === 'draft' && (
-                          <>
+                          <span className="rowact jw-act">
                             <button className="btn ghost" onClick={() => setEdit(j)}>Edit</button>
                             <button className="btn" onClick={() => approve(j)}>Approve</button>
                             <button className="btn ghost" onClick={() => del(j)}>Delete</button>
-                          </>
+                          </span>
                         )}
                       </td>
                     </tr>
