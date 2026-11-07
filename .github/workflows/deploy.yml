@@ -41,7 +41,7 @@ jobs:
         run: |
           if [ -z "$SA" ] || [ -z "$PROJECT" ]; then echo "No FIREBASE_SERVICE_ACCOUNT secret or project id: rules not published (see DEPLOY.md)."; exit 0; fi
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
-          node -e "const k=require(process.argv[1]);console.log('Publishing as',k.client_email,'for project',k.project_id)" "$RUNNER_TEMP/sa.json" || { echo 'FIREBASE_SERVICE_ACCOUNT is not valid JSON: paste the whole downloaded key file.'; exit 1; }
+          node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$RUNNER_TEMP/sa.json" || { echo 'FIREBASE_SERVICE_ACCOUNT is not valid JSON: paste the whole downloaded key file.'; exit 1; }
           GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx --yes firebase-tools@13 deploy --only firestore:rules --project "$PROJECT" --non-interactive
           rm -f "$RUNNER_TEMP/sa.json"
       - run: npm run build
