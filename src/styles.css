@@ -2341,7 +2341,10 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 /* Invoice / purchase tables: fit the card instead of sliding sideways. Tighter cells, names wrap, and the
    less important columns step aside as the card narrows (below 1180px the page shows cards instead). */
 .work .tw th, .work .tw td { padding-inline: 8px; }
+.work .tw .jw-act { flex-wrap: wrap; justify-content: flex-end; }
+.work .tw .jw-act .btn { padding: 5px 10px; }
 .work .tw td:first-child { min-width: 140px; max-width: 190px; white-space: normal; overflow-wrap: anywhere; }
+.work .tw td.jw-date { min-width: 0; white-space: nowrap; }
 .work .tw td:first-child .sub { font-size: 11.5px; overflow-wrap: anywhere; }
 @media (max-width: 1999px) { .work .tw .c-tax { display: none; } }
 @media (max-width: 1300px) { .work .tw .c-gst { display: none; } }
