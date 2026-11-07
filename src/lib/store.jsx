@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { fixBiz, mkBiz } from './model.js'
 import { demoBiz } from './seed.js'
+import { KEY, PEND_KEY, migrateKeys } from './keys.js'
 import { useToast } from '../toast.jsx'
 
-export const KEY = 'booksmith10'
-export const PEND_KEY = 'booksmith10pend'
+export { KEY, PEND_KEY }
 
 export function load() {
+  migrateKeys(localStorage)
   try {
     const s = JSON.parse(localStorage.getItem(KEY))
     if (s?.biz?.length) {

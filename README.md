@@ -2,7 +2,7 @@
 
 GST billing, production and inventory for a commutator manufacturer. Rebuilt in React from
 `EC-Commutator-App-Notes-Main-App-Only.md`. Plain JavaScript, Vite, data kept in `localStorage`
-(key `booksmith10`, same shape as the notes: `{ biz: [...], cur }`).
+(key `ec-commutator10`, same shape as the notes: `{ biz: [...], cur }`).
 
 ```bash
 npm install

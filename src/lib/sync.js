@@ -5,8 +5,9 @@
 // Safety rules (notes §12): never overwrite newer remote data, merge instead; never
 // drop local entries silently; a failed push leaves local data untouched and retries.
 import { ARRAYS } from './model.js'
+import { BASE_KEY, migrateKeys } from './keys.js'
 
-export const BASE_KEY = 'booksmith10base'
+export { BASE_KEY }
 // A business is stored as one cloud document, or several when it is big (see firebase.js). The cap keeps one
 // save within Firestore's transaction size limit and well inside what a browser can store locally.
 export const MAX_BYTES = 3_000_000
@@ -75,6 +76,7 @@ export class SyncEngine {
   }
 
   #loadBase() {
+    migrateKeys(this.storage)
     try {
       return JSON.parse(this.storage.getItem(BASE_KEY)) || null
     } catch {
