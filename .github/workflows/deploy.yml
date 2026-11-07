@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:e2e # builds, serves and tests the production bundle
       - name: Publish Firestore rules
         if: github.event_name == 'push'
+        continue-on-error: true # a rules hiccup must not stop the site from deploying; check this step if it shows red
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PROJECT: ${{ vars.VITE_FIREBASE_PROJECT_ID }}

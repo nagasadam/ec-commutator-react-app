@@ -1,7 +1,6 @@
 // Firestore security rules, run against the Firebase emulator: npm run test:rules
 // (the script starts the emulator; in CI it runs after the unit tests).
 import test from 'node:test'
-import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing'
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore'
