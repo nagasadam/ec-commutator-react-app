@@ -176,16 +176,8 @@ export default function Purchases() {
   }
 
   const del = (p) => {
-    if (b.prr.some((r) => r.pur === p.id)) return tell('This purchase has a debit note. Remove the return first.')
-    ask(
-      `Delete ${p.no} and its linked payments?`,
-      () =>
-        updB((x) => {
-          x.pur = x.pur.filter((y) => y.id !== p.id)
-          x.tx = x.tx.filter((t) => t.ref !== p.id)
-        }),
-      'Delete',
-    )
+    if (b.prr.some((r) => r.pur === p.id) || b.tx.some((t) => t.ref === p.id)) return tell('This purchase has returns or payments linked to it. Remove those first.')
+    ask(`Delete ${p.no}?`, () => updB((x) => (x.pur = x.pur.filter((y) => y.id !== p.id))), 'Delete')
   }
 
   const all = useMemo(() => purRows(b), [b])
