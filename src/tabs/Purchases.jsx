@@ -9,7 +9,7 @@ import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
-import { partyError } from '../lib/rules.js'
+import { partyError, dateError } from '../lib/rules.js'
 
 const blank = () => ({ sup: '', date: today(), pay: 'later', incl: 'excl', lines: [blankLine()] })
 
@@ -115,6 +115,8 @@ export default function Purchases() {
     const lines = cleanLines(f.lines)
     if (f.lines.some((l) => !l.item && +l.qty > 0)) return setErr('Choose a raw material for every row that has a quantity.')
     if (!sup || !lines.length) return setErr('Pick a supplier and add at least one line with a quantity.')
+    const dBad = dateError(f.date)
+    if (dBad) return setErr(dBad)
     if (f.sup === '__new__') {
       const bad = partyError(b, newSup)
       if (bad) return setErr(bad)

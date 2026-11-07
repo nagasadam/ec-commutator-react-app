@@ -8,7 +8,7 @@ import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
-import { partyError } from '../lib/rules.js'
+import { partyError, dateError } from '../lib/rules.js'
 import { supplyType } from '../lib/calc.js'
 
 function Paper({ b, inv }) {
@@ -214,6 +214,8 @@ export default function Invoices({ newInv = 0 }) {
     const lines = cleanLines(f.lines)
     if (f.lines.some((l) => !l.item && +l.qty > 0)) return setErr('Choose a product for every row that has a quantity.')
     if (!f.cust || !lines.length) return setErr('Pick a customer and add at least one line with a quantity.')
+    const dBad = dateError(f.date)
+    if (dBad) return setErr(dBad)
     if (f.cust === '__new__') {
       const bad = partyError(b, newCust)
       if (bad) return setErr(bad)

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { acctName, acctOptions } from '../lib/calc.js'
 import { inr, today, uid, dmy, r2 } from '../lib/format.js'
+import { dateError } from '../lib/rules.js'
 import { Empty, ErrBar, Field, useDialog, useTableFilter, FilterBar, usePaged, MoreRows } from '../ui.jsx'
 
 const HEADS = ['Rent', 'Electricity', 'Wages', 'Freight', 'Packing', 'Repairs', 'Transport', 'Office', 'Other']
@@ -20,6 +21,7 @@ export default function Expenses() {
   const submit = (e) => {
     e.preventDefault()
     if (!f.head.trim() || !(+f.amt > 0) || !f.acct) return setErr('Enter a head, an amount and the account it was paid from.')
+    if (dateError(f.date)) return setErr(dateError(f.date))
     setErr('')
     updB((x) => x.exp.push({ id: uid(), date: f.date, head: f.head.trim(), amt: +f.amt, acct: f.acct, note: f.note.trim() }))
     setF({ head: '', amt: '', acct: '', date: today(), note: '' })

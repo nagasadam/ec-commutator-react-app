@@ -57,5 +57,14 @@ export function fixBiz(b) {
   return b
 }
 
-export const nextNo = (list, prefix, field = 'no') =>
-  `${prefix}${String(list.filter((x) => String(x[field] || '').startsWith(prefix)).length + 1).padStart(4, '0')}`
+// One more than the highest number already used with this prefix, so deleting a document never hands its number out again.
+export const nextNo = (list, prefix, field = 'no') => {
+  let top = 0
+  for (const x of list) {
+    const s = String(x[field] || '')
+    if (!s.startsWith(prefix)) continue
+    const n = parseInt(s.slice(prefix.length), 10)
+    if (n > top) top = n
+  }
+  return `${prefix}${String(top + 1).padStart(4, '0')}`
+}
