@@ -24,11 +24,13 @@ Everyone you add shares the same data; there is no per-user separation.
    (Sign-ups are not offered in the app; this list plus step 5 is the access control.)
 4. Build > **Firestore Database** > Create database > production mode > pick a nearby region (e.g. `asia-south1`).
 5. In Firestore, create collection `allow` and one document per person whose **document ID is their email** (any field, e.g. `ok: true`).
-6. Shop-floor phones (Process Scan app): create collection `scanallow` with one document per person, **document ID = their email**,
-   and one field `biz` (string) = your business id. The main app shows it under Process scan > QR posters. A scanner can only add scans for that
-   business and read its scan settings; anyone without a `biz` field is refused. (Add them under Authentication > Users too.)
-7. Firestore > Rules > paste the contents of `firestore.rules` > Publish.
-   (or: `npm i -g firebase-tools && firebase login && firebase use <project> && firebase deploy --only firestore:rules`)
+6. Shop-floor phones (Process Scan app): add each person under Authentication > Users, then add their email in the app under
+   Process scan > **Shop-floor phones**. The app writes their `scanallow` entry with the right business id (no console editing).
+7. Rules publish themselves on every push to `main` once you add the secret below. First time only, publish by hand:
+   Firestore > Rules > paste the contents of `firestore.rules` > Publish.
+   **To automate:** Google Cloud console > IAM > Service accounts > create one with role *Firebase Rules Admin* > Keys > Add key (JSON).
+   In GitHub: Settings > Secrets and variables > Actions > New repository secret `FIREBASE_SERVICE_ACCOUNT` = the whole JSON file.
+   Without the secret the deploy step is skipped.
 8. Project settings > Your apps > Web (`</>`) > register app. Copy `apiKey`, `authDomain`, `projectId`, `appId`.
 9. Authentication > Settings > **Authorized domains** > add `<your-github-user>.github.io`.
 

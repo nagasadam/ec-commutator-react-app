@@ -32,6 +32,16 @@ jobs:
       - run: npm run test:rules
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e # builds, serves and tests the production bundle
+      - name: Publish Firestore rules
+        if: github.event_name == 'push'
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SA" ] || [ -z "$PROJECT" ]; then echo "No FIREBASE_SERVICE_ACCOUNT secret or project id: rules not published (see DEPLOY.md)."; exit 0; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx --yes firebase-tools@13 deploy --only firestore:rules --project "$PROJECT" --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"
       - run: npm run build
         if: github.event_name != 'pull_request'
         env:

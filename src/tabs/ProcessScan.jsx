@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { useCloud } from '../cloud.jsx'
 import { useScans } from '../scanbridge.jsx'
@@ -51,11 +51,69 @@ function Posters({ b, onClose }) {
           </div>
         ))}
       </div>
-      <p className="muted">
-        Shop-floor accounts: in Firebase, collection <b>scanallow</b>, one document per person with the email as the document ID and a field <b>biz</b> = <b>{b.id}</b>.
-      </p>
+      <p className="muted">Shop-floor people are added in the "Shop-floor phones" card on this page.</p>
       <button className="btn" onClick={print}>Print</button>
     </Modal>
+  )
+}
+
+// Who may use the phone app for this business. The office adds and removes people here; the app writes the
+// scanallow documents with the right business id, so nothing is edited by hand in the Firebase console.
+function Scanners({ bizId }) {
+  const cloud = useCloud()
+  const api = cloud.scanners
+  const [list, setList] = useState(null)
+  const [email, setEmail] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const { ask } = useDialog()
+  const load = async () => {
+    try {
+      setList(await api.list(bizId))
+      setErr('')
+    } catch (e) {
+      setErr(e?.message || 'Could not load the list')
+    }
+  }
+  useEffect(() => {
+    if (api && cloud.user) load()
+  }, [api, cloud.user, bizId]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!cloud.configured || !cloud.user || !api) return null
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const run = async (fn) => {
+    setBusy(true)
+    try {
+      await fn()
+      await load()
+    } catch (e) {
+      setErr(e?.message || 'Something went wrong')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="card">
+      <h3>Shop-floor phones</h3>
+      <p className="muted">People who can sign in to the phone app and send scans for this business. Create their login first in Firebase Authentication (Users), then add the same email here.</p>
+      <form
+        className="ps-add"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (valid) run(async () => { await api.add(bizId, email); setEmail('') })
+        }}
+      >
+        <input type="email" aria-label="Shop-floor email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <button className="btn" type="submit" disabled={busy || !valid}>Add</button>
+      </form>
+      {err && <div className="err">{err}</div>}
+      {list && !list.length && <Empty>No shop-floor people added yet.</Empty>}
+      {list?.map((x) => (
+        <div className="it" key={x.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
+          <span>{x.email}</span>
+          <button className="btn ghost" disabled={busy} onClick={() => ask(`Remove ${x.email}? They will no longer be able to send scans.`, () => run(() => api.remove(x.email)), 'Remove')}>Remove</button>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -125,6 +183,8 @@ export default function ProcessScan() {
             {approve ? 'Scans wait here until you apply them.' : 'Scans are applied as soon as they arrive. This app must be open to apply them; otherwise they wait here.'}
           </p>
         </div>
+
+        <Scanners bizId={b.id} />
 
         <div className="card">
           <h3>Stock by type</h3>

@@ -25,7 +25,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Shop-floor people sign in to the Process Scan phone app with their own accounts, listed in /scanallow/<email>
-    // (created by hand in the Firebase console, like /allow). Each document has one field, `biz`: the business id
+    // (added by the office from the Process scan page). Each document has one field, `biz`: the business id
     // that person may scan for (shown in the main app under Process scan). They can add scans for that business only,
     // read the little the phone needs (/scanmeta/<that biz>), and see their own scans. They can never read or write the business data.
     function scanner() {
@@ -59,9 +59,17 @@ service cloud.firestore {
         && request.resource.data.data is string;
       allow delete: if false;
     }
+    // Office accounts add and remove shop-floor people from the Process scan page, so no console edits are needed.
+    // The document ID is the lowercase email; the only data is the business id and who/when. Scanners can never write here.
     match /scanallow/{email} {
-      allow read: if request.auth != null && request.auth.token.email == email;
-      allow write: if false;
+      allow read: if allowed() || (request.auth != null && request.auth.token.email == email);
+      allow create, update: if allowed()
+        && email == email.lower()
+        && request.resource.data.keys().hasOnly(['biz', 'by', 'at'])
+        && request.resource.data.biz is string
+        && request.resource.data.biz.size() >= 3
+        && request.resource.data.biz.size() <= 40;
+      allow delete: if allowed();
     }
     match /allow/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;

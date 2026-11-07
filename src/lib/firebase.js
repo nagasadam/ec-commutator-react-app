@@ -126,9 +126,26 @@ export async function createFirebase(cfg, sdk) {
     },
   }
 
+  // Shop-floor people allowed to use the phone app for one business (office accounts manage the list).
+  const scanners = {
+    async list(bizId) {
+      const snap = await sdk.getDocs(sdk.query(sdk.collection(db, 'scanallow'), sdk.where('biz', '==', bizId)))
+      return snap.docs.map((d) => ({ email: d.id, by: d.data().by || '', at: d.data().at || '' })).sort((a, b) => a.email.localeCompare(b.email))
+    },
+    async add(bizId, email) {
+      const id = String(email).trim().toLowerCase()
+      await sdk.setDoc(sdk.doc(db, 'scanallow', id), { biz: bizId, by: auth.currentUser?.email || '', at: new Date().toISOString() })
+      return id
+    },
+    async remove(email) {
+      await sdk.deleteDoc(sdk.doc(db, 'scanallow', String(email).trim().toLowerCase()))
+    },
+  }
+
   return {
     backend,
     scans,
+    scanners,
     // Is this email listed in /allow (the main app)? Scan-only accounts are not. The rules let a person read only their own document.
     async hasAccess(email) {
       const s = await sdk.getDoc(sdk.doc(db, 'allow', String(email).toLowerCase()))
