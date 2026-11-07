@@ -79,7 +79,7 @@ test('scanner: never touches the business data, applied scans or the allow lists
   await assertFails(updateDoc(doc(db, 'scans/mine'), { status: 'applied' }))
   await assertFails(deleteDoc(doc(db, 'scans/mine')))
   await assertFails(getDoc(doc(db, 'allow/boss@x.com')))
-  await assertFails(setDoc(doc(db, 'scanallow/floor@x.com'), { biz: 'otherbiz' }))
+  await assertFails(setDoc(doc(db, 'scanallow/floor@x.com'), { biz: 'otherbiz', by: 'floor@x.com', at: 'x' }))
   await assertSucceeds(getDoc(doc(db, 'scanallow/floor@x.com')))
 })
 
@@ -95,4 +95,21 @@ test('office account applies a scan (status, note, done only)', async () => {
   await assertFails(updateDoc(doc(db, 'scans/mine'), { data: '{"id":"changed"}' }))
   await assertSucceeds(getDoc(doc(db, 'scans/theirs')))
   await assertSucceeds(setDoc(doc(db, 'scanmeta/' + BIZ), { data: '{}', at: 'y' }))
+})
+
+test('office account manages shop-floor people; nobody else can', async () => {
+  const boss = as('boss@x.com')
+  const entry = { biz: BIZ, by: 'boss@x.com', at: '2026-11-07T00:00:00Z' }
+  await assertSucceeds(setDoc(doc(boss, 'scanallow/new@x.com'), entry))
+  await assertSucceeds(getDoc(doc(boss, 'scanallow/floor@x.com')))
+  await assertFails(setDoc(doc(boss, 'scanallow/New@x.com'), entry)) // id must be lower case
+  await assertFails(setDoc(doc(boss, 'scanallow/odd@x.com'), { ...entry, extra: 1 }))
+  await assertFails(setDoc(doc(boss, 'scanallow/odd@x.com'), { ...entry, biz: 7 }))
+  await assertFails(setDoc(doc(boss, 'allow/new@x.com'), {})) // the main-app list stays console-only
+  await assertSucceeds(deleteDoc(doc(boss, 'scanallow/new@x.com')))
+  const floor = as('floor@x.com')
+  await assertFails(setDoc(doc(floor, 'scanallow/friend@x.com'), entry))
+  await assertFails(deleteDoc(doc(floor, 'scanallow/floor@x.com')))
+  await assertFails(getDoc(doc(floor, 'scanallow/nobiz@x.com')))
+  await assertFails(setDoc(doc(as('stranger@x.com'), 'scanallow/stranger@x.com'), entry))
 })

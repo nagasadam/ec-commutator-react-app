@@ -25,6 +25,8 @@ async function open(allow, signedInAs = null) {
     window.__fb = fb
     const emit = () => fb.listeners.forEach((cb) => cb(fb.user ? { email: fb.user.email, uid: fb.user.uid } : null))
     const col = { docs: [] }
+    const store = new Map()
+    fb.store = store
     window.__EC_TEST_CLOUD = {
       env: { VITE_FIREBASE_API_KEY: 'k', VITE_FIREBASE_PROJECT_ID: 'p', VITE_FIREBASE_APP_ID: 'a' },
       sdk: {
@@ -33,14 +35,18 @@ async function open(allow, signedInAs = null) {
         getFirestore: () => ({}),
         collection: (_db, n) => n,
         doc: (_db, ...path) => path.join('/'),
-        query: (c) => c,
-        where: () => null,
-        getDocs: async () => col,
+        query: (c, ...w) => ({ c, w }),
+        where: (f, _o, v) => ({ f, v }),
+        getDocs: async (q) => {
+          if (q.c !== 'scanallow') return col
+          return { docs: [...store].filter(([k, v]) => k.startsWith('scanallow/') && q.w.every((x) => v[x.f] === x.v)).map(([k, v]) => ({ id: k.slice(10), data: () => v })) }
+        },
         getDoc: async () => {
           if (fb.allow === 'error') throw new Error('offline')
           return { exists: () => fb.allow === true, data: () => ({}) }
         },
-        setDoc: async () => {},
+        setDoc: async (k, v) => void store.set(k, v),
+        deleteDoc: async (k) => void store.delete(k),
         updateDoc: async () => {},
         onSnapshot: () => () => {},
         runTransaction: async (_db, fn) => fn({ get: async () => ({ exists: () => false, data: () => ({}) }), set() {} }),
@@ -105,5 +111,25 @@ test('an office account (listed in /allow) gets into the app', async () => {
   const p = await open(true, 'boss@x.com')
   await p.locator('nav').first().waitFor()
   assert.equal(await p.getByRole('heading', { name: 'No access to this app' }).count(), 0)
+  assert.deepEqual(p.errs, [])
+})
+
+test('office adds and removes shop-floor people from Process scan, with the business id filled in', async () => {
+  const p = await open(true, 'boss@x.com')
+  await p.locator('nav').first().waitFor()
+  await p.getByRole('button', { name: /More/ }).first().click()
+  await p.getByRole('menuitem', { name: /Process scan/ }).click()
+  await p.getByRole('heading', { name: 'Shop-floor phones' }).waitFor()
+  await p.getByLabel('Shop-floor email').fill('Floor@X.com')
+  await p.click('button:text-is("Add")')
+  await p.getByText('floor@x.com').waitFor()
+  const saved = (await p.evaluate(() => [...window.__fb.store])).filter(([k]) => k.startsWith('scanallow/'))
+  assert.equal(saved.length, 1)
+  assert.equal(saved[0][0], 'scanallow/floor@x.com')
+  assert.ok(saved[0][1].biz && saved[0][1].biz.length >= 3, 'business id was written')
+  await p.click('button:text-is("Remove")')
+  await p.click('.modal button:text-is("Remove"), [role="dialog"] button:text-is("Remove")')
+  await p.getByText('No shop-floor people added yet.').waitFor()
+  assert.equal(await p.evaluate(() => [...window.__fb.store.keys()].filter((k) => k.startsWith('scanallow/')).length), 0)
   assert.deepEqual(p.errs, [])
 })

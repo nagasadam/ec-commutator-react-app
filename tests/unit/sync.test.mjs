@@ -193,9 +193,14 @@ function fakeSdk(store, hooks = {}) {
     getFirestore: () => ({}),
     collection: (_d, name) => name,
     doc: (_d, c, id) => c + '/' + id,
-    getDocs: async (c) => {
+    query: (c, ...w) => ({ c, w }),
+    where: (f, _op, v) => ({ f, v }),
+    setDoc: async (k, v) => void store.set(k, v),
+    deleteDoc: async (k) => void store.delete(k),
+    getDocs: async (q) => {
+      const c = q.c || q
       hooks.onList?.(c)
-      return { docs: [...store].filter(([k]) => k.startsWith(c + '/')).map(([k, v]) => ({ id: k.slice(c.length + 1), data: () => v })) }
+      return { docs: [...store].filter(([k, v]) => k.startsWith(c + '/') && (q.w || []).every((w) => v[w.f] === w.v)).map(([k, v]) => ({ id: k.slice(c.length + 1), data: () => v })) }
     },
     getDoc: async (k) => ({ exists: () => store.has(k), data: () => store.get(k) }),
     onSnapshot: (_c, cb) => (cb(), () => {}),
@@ -280,4 +285,16 @@ test('firebase adapter: hasAccess is true only for emails listed in /allow (scan
   assert.equal(await fb.hasAccess('Boss@X.com'), true) // looked up in lower case, like the rules
   assert.equal(await fb.hasAccess('floor@x.com'), false)
   assert.equal(await fb.hasAccess('nobody@x.com'), false)
+})
+
+test('firebase adapter: scanners are added in lower case with the business id, listed per business, and removed', async () => {
+  const store = new Map([['scanallow/other@x.com', { biz: 'b2' }]])
+  const fb = await createFirebase({ apiKey: 'k' }, fakeSdk(store))
+  assert.equal(await fb.scanners.add('b1', '  Floor@X.com '), 'floor@x.com')
+  await fb.scanners.add('b1', 'amy@x.com')
+  assert.equal(store.get('scanallow/floor@x.com').biz, 'b1')
+  assert.deepEqual((await fb.scanners.list('b1')).map((x) => x.email), ['amy@x.com', 'floor@x.com'])
+  await fb.scanners.remove('FLOOR@x.com')
+  assert.deepEqual((await fb.scanners.list('b1')).map((x) => x.email), ['amy@x.com'])
+  assert.equal(store.has('scanallow/other@x.com'), true, 'other business untouched')
 })
