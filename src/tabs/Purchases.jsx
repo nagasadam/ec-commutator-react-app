@@ -9,7 +9,7 @@ import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
-import { partyError, dateError } from '../lib/rules.js'
+import { partyError, dateError, editPurchaseError } from '../lib/rules.js'
 
 const blank = () => ({ sup: '', date: today(), pay: 'later', incl: 'excl', lines: [blankLine()] })
 
@@ -19,6 +19,7 @@ export default function Purchases() {
   const { ask, tell } = useDialog()
   const toast = useToast()
   const [src, setSrc] = useState(null) // Drive file the form was opened from
+  const [editId, setEditId] = useState(null) // id of the purchase being edited, or null when recording a new one
   const [f, setF] = useState(blank)
   const [err, setErr] = useState('')
   const [newSup, setNewSup] = useState(null)
@@ -121,6 +122,19 @@ export default function Purchases() {
       const bad = partyError(b, newSup)
       if (bad) return setErr(bad)
     }
+    if (editId) {
+      const cur = find(b.pur, editId)
+      const priced = f.incl === 'incl' ? lines.map((l) => ({ ...l, rate: exclGst(l.rate, sup.company) })) : lines
+      const bad = editPurchaseError(b, cur, { party: f.sup, lines: priced })
+      if (bad) return setErr(bad)
+      setErr('')
+      updB((x) => Object.assign(find(x.pur, editId), { sup: f.sup, date: f.date, lines: priced }))
+      toast.push(`${cur.no} updated`, 'ok')
+      setEditId(null)
+      setF(blank())
+      setShowForm(false)
+      return
+    }
     if (f.pay !== 'later' && !opts.some((o) => o.id === f.pay)) return setErr('That payment account is not allowed for this supplier type.')
     setErr('')
     const priced = f.incl === 'incl' ? lines.map((l) => ({ ...l, rate: exclGst(l.rate, sup.company) })) : lines
@@ -147,6 +161,18 @@ export default function Purchases() {
     }
     setReview((l) => l.filter((x) => x.id !== rid))
     if (!queue.rows.length) setRid(null)
+  }
+
+  const edit = (p) => {
+    setF({ sup: p.sup, date: p.date, pay: 'later', incl: 'excl', lines: p.lines.map((l) => ({ item: l.item, qty: l.qty, rate: l.rate })) })
+    setNewSup(null)
+    setSrc(null)
+    setRid(null)
+    setNote(null)
+    setQueue({ rows: [], total: 0 })
+    setErr('')
+    setEditId(p.id)
+    setShowForm(true)
   }
 
   const del = (p) => {
@@ -197,6 +223,7 @@ export default function Purchases() {
       </button>
       {menu?.id === r.p.id && (
         <span className="menu" role="menu" style={{ right: menu.right, top: menu.top, bottom: menu.bottom }}>
+          <button type="button" role="menuitem" onClick={() => (setMenu(null), edit(r.p))}>Edit</button>
           <button type="button" role="menuitem" className="bad" onClick={() => (setMenu(null), del(r.p))}>Delete</button>
         </span>
       )}
@@ -357,7 +384,7 @@ export default function Purchases() {
       </div>
 
       {showForm && (
-        <Modal title="New purchase" onClose={() => setShowForm(false)} wide>
+        <Modal title={editId ? `Edit ${find(b.pur, editId)?.no || 'purchase'}` : 'New purchase'} onClose={() => (editId ? (setEditId(null), setF(blank()), setShowForm(false)) : setShowForm(false))} wide>
           <form onSubmit={submit}>
             <PdfNote note={note} onDismiss={() => (clearImport(), setF(blank()))} />
             {newSup && <NewParty title="New supplier" p={newSup} setP={setNewSup} forceFirm={b.kind === 'firm'} />}
@@ -382,21 +409,23 @@ export default function Purchases() {
                   <option value="incl">Including GST (18%)</option>
                 </select>
               </Field>
-              <Field label="Payment">
-                <select value={f.pay} onChange={(e) => setF({ ...f, pay: e.target.value })}>
-                  <option value="later">Pay later</option>
-                  {opts.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      Paid now — {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              {!editId && (
+                <Field label="Payment">
+                  <select value={f.pay} onChange={(e) => setF({ ...f, pay: e.target.value })}>
+                    <option value="later">Pay later</option>
+                    {opts.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        Paid now — {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
             </div>
             <LinesEditor items={b.items.filter((i) => i.type === 'raw')} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} />
             <p className="muted">{f.incl === 'incl' ? 'Rates include 18% GST for firms; the app removes it before recording.' : 'Rates are before GST. Firms add 18% GST automatically.'}</p>
             <ErrBar msg={err} />
-            <button className="btn">Record purchase</button>
+            <button className="btn">{editId ? 'Save changes' : 'Record purchase'}</button>
           </form>
         </Modal>
       )}
