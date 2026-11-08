@@ -2396,3 +2396,13 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 .appsw a:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
 .appsw a span { color: var(--a); }
 @media (max-width: 900px) { .appsw a { padding: 0 10px; } .appsw > * { font-size: 12px; } }
+
+/* iPhone: every tap target is at least 44px tall (Apple's minimum), and the page does not rubber-band sideways */
+@media (pointer: coarse) {
+  .iconbtn, .avatar-btn { min-width: 44px; min-height: 44px; }
+  .top .right { gap: 4px; }
+  .chips button { min-height: 44px; padding-block: 0; display: inline-flex; align-items: center; }
+  .chips { gap: 4px; }
+  .rowact .iconbtn, .iconbtn.flat { min-width: 44px; min-height: 44px; }
+}
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-x: none; }
