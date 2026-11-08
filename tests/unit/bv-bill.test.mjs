@@ -86,3 +86,15 @@ test('Romit Resins bill: supplier, date, IGST, item row, HSN under the row, tran
   assert.equal(p.transporter, 'VRL')
   assert.deepEqual(p.rows, [{ desc: 'P.F.Resin Moulding Compound', hsn: '39094020', qty: 400, rate: 95, taxable: 38000 }])
 })
+
+// A third bill: BNS Electro Polymers (accounting-software layout: consignee and buyer blocks, "22-Oct-26", VRL Logistics).
+test('BNS Electro Polymers bill: seller (not the V 4 buyer or consignee), date, IGST, item, transporter', () => {
+  const bl = readFileSync(new URL('../fixtures/bns-electro-bill.txt', import.meta.url), 'utf8').split('\n')
+  const p = parseDocument(bl, 'purchase')
+  assert.equal(p.party.name, 'BNS ELECTRO POLYMERS')
+  assert.equal(p.party.gstin, '05ABDFB4503B1ZA')
+  assert.equal(p.date, '2026-10-22')
+  assert.equal(p.supply, 'inter')
+  assert.equal(p.transporter, 'VRL LOGISTICS')
+  assert.deepEqual(p.rows, [{ desc: 'COMMUTATORS SEGMENT', hsn: '85030090', qty: 45, rate: 1600, taxable: 72000 }])
+})

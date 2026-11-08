@@ -1,0 +1,53 @@
+Tax Invoice
+BNS ELECTRO POLYMERS
+F 96, INDUSTRIAL AREA BAHADRABAD, HARIDWAR, 249403
+MOBILE NO-9319041194
+EMAIL ID-KHAITAN111@GMAIL.COM
+GSTIN/UIN: 05ABDFB4503B1ZA
+State Name : Uttarakhand, Code : 05
+Invoice No. e-Way Bill No. Dated
+BNS/94/26-27 3723 6198 1886 22-Oct-26
+Delivery Note Mode/Terms of Payment
+Consignee (Ship to)
+M/s V 4 INDUSTRIES
+PLOT NO 35& 36 BAHADURPALLY, HYDRABAD
+:- 500067, PHONE - 9869004764 MR-
+VENKTESWARA RAW
+GSTIN/UIN : 36AALFV9329A1ZZ
+State Name : Telangana, Code : 36
+Buyer's Order No. Dated
+Dispatch Doc No. Delivery Note Date
+Buyer (Bill to)
+M/s V 4 INDUSTRIES
+PLOT NO 35& 36 BAHADURPALLY, HYDRABAD
+:- 500067, PHONE - 9869004764 MR-
+VENKTESWARA RAW
+GSTIN/UIN : 36AALFV9329A1ZZ
+State Name : Telangana, Code : 36
+Place of Supply : Telangana
+Dispatched through Destination
+VRL LOGISTICS JEDIMETLA
+Terms of Delivery
+2 NAG GW 48 KG
+TO PAY GODOWN
+Sl Description of Goods HSN/SAC GST Rate Quantity Rate per Disc. % Amount
+No.
+1 COMMUTATORS SEGMENT 85030090 18 % 45.00 KGS 1,600.000 KGS 72,000.000
+1106/A 2000
+IGST 12,960.000
+Bill Details:
+New Ref BNS/94/26-27 84,960.000 Dr
+Total 45.00 KGS 84,960.000
+Amount Chargeable (in words)
+INR Eighty Four Thousand Nine Hundred Sixty Only
+HSN/SAC Taxable Value IGST Total Tax Amount
+Rate Amount
+85030090 72,000.000 18% 12,960.000 12,960.000
+Total 72,000.000 12,960.000 12,960.000
+Tax Amount (in words) : INR Twelve Thousand Nine Hundred Sixty Only
+Declaration
+We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
+for BNS ELECTRO POLYMERS
+Customer's Seal and Signature
+Authorised Signatory
+This is a Computer Generated Invoice
