@@ -144,6 +144,37 @@ export default function App() {
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [moreOpen])
+  // On a phone, a table that is wider than its card turns into a list of small cards: each cell gets its column name as a label.
+  useEffect(() => {
+    if (!phone) return undefined
+    const root = document.querySelector('.content')
+    if (!root) return undefined
+    let raf = 0
+    const run = () => {
+      raf = 0
+      root.querySelectorAll('table:not(.stk)').forEach((t) => {
+        const heads = [...t.querySelectorAll('thead th')].map((h) => h.textContent.trim())
+        if (!heads.length) return
+        if (!t.classList.contains('cardtbl')) {
+          const w = t.closest('.tw') || t.parentElement
+          if (!w || w.scrollWidth <= w.clientWidth + 2) return
+          t.classList.add('cardtbl')
+        }
+        t.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => {
+          let i = 0
+          ;[...tr.children].forEach((td) => {
+            if (!td.hasAttribute('data-l') && heads[i]) td.setAttribute('data-l', heads[i])
+            td.classList.toggle('long', td.textContent.trim().length > 24)
+            i += td.colSpan || 1
+          })
+        })
+      })
+    }
+    const mo = new MutationObserver(() => raf || (raf = requestAnimationFrame(run)))
+    mo.observe(root, { childList: true, subtree: true })
+    run()
+    return () => (mo.disconnect(), raf && cancelAnimationFrame(raf))
+  }, [phone, tab])
   // iOS large titles: the big page title scrolls away and a small one fades into the top bar.
   useEffect(() => {
     const on = () => document.documentElement.style.setProperty('--sc', String(Math.max(0, Math.min(1, (window.scrollY - 40) / 50))))
