@@ -3,7 +3,7 @@ import { Icon } from '../icons.jsx'
 import { useStore } from '../lib/store.jsx'
 import { find, invTot, saleRows, valuation } from '../lib/calc.js'
 import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, Swipe, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
@@ -131,7 +131,7 @@ export default function Invoices({ newInv = 0 }) {
 
   useEffect(() => {
     if (!menu) return undefined
-    const close = (e) => !e.target.closest?.('.rowmenu') && setMenu(null)
+    const close = (e) => (!e.target.closest?.('.rowmenu') || e.target.classList?.contains('menu')) && setMenu(null)
     const hide = () => setMenu(null)
     document.addEventListener('click', close)
     window.addEventListener('wheel', hide, { passive: true }) // the menu is fixed to the screen, so it closes when the person scrolls instead of drifting off its row
@@ -418,7 +418,8 @@ export default function Invoices({ newInv = 0 }) {
             ) : (
               <div className="icards">
                 {pg.shown.map((r) => (
-                  <div className="icard" key={r.i.id}>
+                  <Swipe key={r.i.id} actions={[{ label: 'Edit', run: () => edit(r.i) }, { label: 'Delete', tone: 'bad', run: () => del(r.i) }]}>
+                  <div className="icard">
                     <div className="ictop">
                       <b>{r.i.no}</b>
                       {r.isPaid ? <span className="pill ok">Paid</span> : <span className="pill warn">Due</span>}
@@ -431,6 +432,7 @@ export default function Invoices({ newInv = 0 }) {
                       {Menu({ r })}
                     </div>
                   </div>
+                  </Swipe>
                 ))}
               </div>
             )}

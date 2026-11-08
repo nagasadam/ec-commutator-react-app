@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useDragControls, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
-import { useDialog } from './ui.jsx'
+import { useDialog, useMedia } from './ui.jsx'
 import { useCloud } from './cloud.jsx'
 import Invoices from './tabs/Invoices.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
@@ -108,7 +108,14 @@ export default function App() {
   const [ind, setInd] = useState({ x: 0, w: 0, o: 0 })
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
-  const go = (id, fresh) => {
+  const phone = useMedia('(max-width: 560px)')
+  const hist = useRef([]) // tabs visited before this one, for swipe-from-edge back
+  const [dir, setDir] = useState(1)
+  const [pull, setPull] = useState(0) // pull-to-refresh distance (phones, cloud only)
+  const pullRef = useRef({ y: 0, on: false })
+  const go = (id, fresh, back) => {
+    if (!back && id !== tab) hist.current = [...hist.current.slice(-9), tab]
+    setDir(back ? -1 : 1)
     setNewInv((n) => (fresh ? n + 1 : 0)) // only a New invoice click asks the Invoices page to open its form
     setTab(id)
     setMoreOpen(false)
@@ -137,6 +144,124 @@ export default function App() {
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [moreOpen])
+  // On a phone, a table that is wider than its card turns into a list of small cards: each cell gets its column name as a label.
+  useEffect(() => {
+    if (!phone) return undefined
+    const root = document.querySelector('.content')
+    if (!root) return undefined
+    let raf = 0
+    const run = () => {
+      raf = 0
+      root.querySelectorAll('table:not(.stk)').forEach((t) => {
+        const heads = [...t.querySelectorAll('thead th')].map((h) => h.textContent.trim())
+        if (!heads.length) return
+        if (!t.classList.contains('cardtbl')) {
+          const w = t.closest('.tw') || t.parentElement
+          if (!w || w.scrollWidth <= w.clientWidth + 2) return
+          t.classList.add('cardtbl')
+        }
+        t.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => {
+          let i = 0
+          ;[...tr.children].forEach((td) => {
+            if (!td.hasAttribute('data-l') && heads[i]) td.setAttribute('data-l', heads[i])
+            td.classList.toggle('long', td.textContent.trim().length > 24)
+            i += td.colSpan || 1
+          })
+        })
+      })
+    }
+    const mo = new MutationObserver(() => raf || (raf = requestAnimationFrame(run)))
+    mo.observe(root, { childList: true, subtree: true })
+    run()
+    return () => (mo.disconnect(), raf && cancelAnimationFrame(raf))
+  }, [phone, tab])
+  // iOS large titles: the big page title scrolls away and a small one fades into the top bar.
+  useEffect(() => {
+    const on = () => document.documentElement.style.setProperty('--sc', String(Math.max(0, Math.min(1, (window.scrollY - 40) / 50))))
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
+  }, [tab])
+  // Swipe in from the left edge to go back to the page you came from.
+  const goRef = useRef(null)
+  goRef.current = go
+  useEffect(() => {
+    const e0 = { x: 0, y: 0, on: false, dx: 0 }
+    const el = () => document.querySelector('.content')
+    const ts = (e) => {
+      const t = e.touches[0]
+      Object.assign(e0, { x: t.clientX, y: t.clientY, dx: 0, on: t.clientX < 24 && hist.current.length > 0 && !document.querySelector('.ov, .sheet') })
+    }
+    const tm = (e) => {
+      if (!e0.on) return
+      const t = e.touches[0]
+      const dx = t.clientX - e0.x
+      if (Math.abs(t.clientY - e0.y) > Math.abs(dx) * 0.8 && dx < 30) return (e0.on = false)
+      e0.dx = Math.max(0, dx)
+      if (el()) {
+        el().style.transition = 'none'
+        el().style.transform = `translateX(${Math.min(e0.dx, 140) * 0.7}px)`
+        el().style.opacity = String(1 - Math.min(e0.dx, 200) / 600)
+      }
+    }
+    const te = () => {
+      if (!e0.on) return
+      e0.on = false
+      if (el()) {
+        el().style.transition = 'transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.3s'
+        el().style.transform = ''
+        el().style.opacity = ''
+      }
+      if (e0.dx > 80) {
+        const prev = hist.current[hist.current.length - 1]
+        hist.current = hist.current.slice(0, -1)
+        goRef.current(prev, false, true)
+      }
+    }
+    window.addEventListener('touchstart', ts, { passive: true })
+    window.addEventListener('touchmove', tm, { passive: true })
+    window.addEventListener('touchend', te)
+    window.addEventListener('touchcancel', te)
+    return () => {
+      window.removeEventListener('touchstart', ts)
+      window.removeEventListener('touchmove', tm)
+      window.removeEventListener('touchend', te)
+      window.removeEventListener('touchcancel', te)
+    }
+  }, [])
+  // Pull down from the top of a page to sync, like iOS.
+  const syncRef = useRef(null)
+  syncRef.current = cloud.configured && cloud.user ? cloud.syncNow : null
+  useEffect(() => {
+    const st = pullRef.current
+    const ts = (e) => {
+      const ok = syncRef.current && window.scrollY <= 0 && !document.querySelector('.ov, .sheet')
+      st.on = !!ok
+      st.y = e.touches[0].clientY
+    }
+    const tm = (e) => {
+      if (!st.on) return
+      const d = e.touches[0].clientY - st.y
+      if (d <= 0) return setPull(0)
+      setPull(Math.min(90, d * 0.5))
+    }
+    const te = () => {
+      if (!st.on) return
+      st.on = false
+      setPull((p) => {
+        if (p >= 60) syncRef.current?.()
+        return 0
+      })
+    }
+    window.addEventListener('touchstart', ts, { passive: true })
+    window.addEventListener('touchmove', tm, { passive: true })
+    window.addEventListener('touchend', te)
+    return () => {
+      window.removeEventListener('touchstart', ts)
+      window.removeEventListener('touchmove', tm)
+      window.removeEventListener('touchend', te)
+    }
+  }, [])
   const Cur = TABS.find((t) => t[0] === tab)[2]
 
   const cur = TABS.find((t) => t[0] === tab)
@@ -150,11 +275,15 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className={'ptr' + (cloud.status === 'syncing' ? ' spin' : '')} aria-hidden="true" style={{ opacity: pull ? Math.min(1, pull / 60) : cloud.status === 'syncing' ? 1 : 0, transform: `translateY(${pull ? pull : cloud.status === 'syncing' ? 56 : 0}px) rotate(${pull * 4}deg)`, transition: pull ? 'none' : 'transform 0.3s, opacity 0.3s' }}>
+        <Icon n="sync" />
+      </div>
       <header className="top glass">
         <div className="brand">
           <Logo />
           <span className="vh">E.C Commutator</span>
         </div>
+        <span className="topttl" aria-hidden="true">{title}</span>
         <nav ref={navRef} aria-label="Sections">
           <motion.i className="nav-ind" aria-hidden="true" initial={false} animate={{ x: ind.x, width: ind.w, opacity: ind.o }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
           {TABS.filter((t) => PRIMARY.includes(t[0])).map(([id, l]) => (
@@ -236,7 +365,7 @@ export default function App() {
           </div>
         </div>
         )}
-        <motion.main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''} initial={tab === 'inv' && newInv ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: EASE }}>
+        <motion.main key={b.id + tab} className={tab === 'inv' && newInv ? 'nofx' : ''} initial={tab === 'inv' && newInv ? false : phone ? { opacity: 0, x: 28 * dir } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, x: 0 }} transition={phone ? { type: 'spring', stiffness: 420, damping: 34 } : { duration: 0.32, ease: EASE }}>
           <ErrorBoundary>
             <Suspense fallback={<div className="pageload" role="status" aria-label="Loading page" />}>
               <Cur go={go} newInv={tab === 'inv' ? newInv : 0} />

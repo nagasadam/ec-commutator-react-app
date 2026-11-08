@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx'
 import { acctOptions, find, purRows, purTot } from '../lib/calc.js'
 import { nextNo } from '../lib/model.js'
 import { inr, today, uid, dmy } from '../lib/format.js'
-import { Empty, ErrBar, Field, LinesEditor, Modal, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
+import { Empty, ErrBar, Field, LinesEditor, Modal, Swipe, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
 import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
@@ -44,7 +44,7 @@ export default function Purchases() {
 
   useEffect(() => {
     if (!menu) return undefined
-    const close = (e) => !e.target.closest?.('.rowmenu') && setMenu(null)
+    const close = (e) => (!e.target.closest?.('.rowmenu') || e.target.classList?.contains('menu')) && setMenu(null)
     const hide = () => setMenu(null)
     document.addEventListener('click', close)
     window.addEventListener('wheel', hide, { passive: true }) // the menu is fixed to the screen, so it closes when the person scrolls instead of drifting off its row
@@ -320,7 +320,8 @@ export default function Purchases() {
             ) : (
               <div className="icards">
                 {pg.shown.map((r) => (
-                  <div className="icard" key={r.p.id}>
+                  <Swipe key={r.p.id} actions={[{ label: 'Edit', run: () => edit(r.p) }, { label: 'Delete', tone: 'bad', run: () => del(r.p) }]}>
+                  <div className="icard">
                     <div className="ictop">
                       <b>{r.p.no}</b>
                       {badge(r)}
@@ -333,6 +334,7 @@ export default function Purchases() {
                       {Menu({ r })}
                     </div>
                   </div>
+                  </Swipe>
                 ))}
               </div>
             )}

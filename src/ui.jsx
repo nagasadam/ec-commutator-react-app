@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { inr } from './lib/format.js'
 import { useCountUp } from './motion.jsx'
 
@@ -54,15 +54,94 @@ export const Field = ({ label, children, wide }) => (
 )
 
 export function Modal({ title, onClose, children, wide }) {
+  const box = useRef(null)
+  const drag = useRef(null)
+  // On a phone the dialog is a bottom sheet: drag its top edge down to dismiss, like iOS.
+  const down = (e) => {
+    if (!window.matchMedia?.('(max-width: 560px)').matches) return
+    drag.current = { y: e.clientY, d: 0 }
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  const move = (e) => {
+    const s = drag.current
+    if (!s || !box.current) return
+    s.d = Math.max(0, e.clientY - s.y)
+    box.current.style.transition = 'none'
+    box.current.style.transform = `translateY(${s.d}px)`
+  }
+  const up = () => {
+    const s = drag.current
+    drag.current = null
+    if (!s || !box.current) return
+    if (s.d > 110) return onClose()
+    box.current.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1)'
+    box.current.style.transform = ''
+  }
   return (
     <div className="ov" onClick={onClose}>
-      <div className={'card modal' + (wide ? ' wide' : '')} onClick={(e) => e.stopPropagation()}>
+      <div ref={box} className={'card modal' + (wide ? ' wide' : '')} onClick={(e) => e.stopPropagation()}>
+        <div className="grabber" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-hidden="true" />
         <div className="mh">
           <h3>{title}</h3>
           <button type="button" className="btn ghost" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Swipe a card left to reveal its actions (Edit, Delete), like iOS Mail. actions: [{ label, tone, run }]
+export function Swipe({ actions, children }) {
+  const el = useRef(null)
+  const s = useRef({ x: 0, y: 0, base: 0, mode: '', t: 0, v: 0, cur: 0 })
+  const W = actions.length * 84
+  const to = (x, anim) => {
+    if (!el.current) return
+    el.current.style.transition = anim ? 'transform 0.32s cubic-bezier(0.2, 0.9, 0.2, 1)' : 'none'
+    el.current.style.transform = x ? `translateX(${x}px)` : ''
+    s.current.cur = x
+  }
+  useEffect(() => {
+    const away = (e) => el.current && s.current.cur && !el.current.parentElement.contains(e.target) && to(0, true)
+    document.addEventListener('touchstart', away, { passive: true })
+    return () => document.removeEventListener('touchstart', away)
+  }, [])
+  const start = (e) => {
+    const t = e.touches[0]
+    Object.assign(s.current, { x: t.clientX, y: t.clientY, base: s.current.cur, mode: '', t: Date.now(), v: 0 })
+  }
+  const move = (e) => {
+    const t = e.touches[0]
+    const c = s.current
+    const dx = t.clientX - c.x
+    const dy = t.clientY - c.y
+    if (!c.mode) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+      c.mode = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+    }
+    if (c.mode !== 'h') return
+    const x = Math.max(-W - 24, Math.min(0, c.base + dx))
+    c.v = dx / Math.max(1, Date.now() - c.t)
+    to(x < -W ? -W + (x + W) * 0.3 : x, false)
+  }
+  const end = () => {
+    const c = s.current
+    if (c.mode !== 'h') return
+    to(c.cur < -W / 2 || c.v < -0.5 ? -W : 0, true)
+  }
+  return (
+    <div className="swipe">
+      <div className="swipe-acts" style={{ width: W }}>
+        {actions.map((a) => (
+          <button key={a.label} type="button" className={'sa ' + (a.tone || '')} onClick={() => (to(0, true), a.run())}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <div ref={el} className="swipe-in" onTouchStart={start} onTouchMove={move} onTouchEnd={end} onTouchCancel={end}>
         {children}
       </div>
     </div>

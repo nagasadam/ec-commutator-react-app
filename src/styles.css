@@ -2396,3 +2396,101 @@ nav button svg { width: 16px; height: 16px; flex: none; }
 .appsw a:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
 .appsw a span { color: var(--a); }
 @media (max-width: 900px) { .appsw a { padding: 0 10px; } .appsw > * { font-size: 12px; } }
+
+/* iPhone: every tap target is at least 44px tall (Apple's minimum), and the page does not rubber-band sideways */
+@media (pointer: coarse) {
+  .iconbtn, .avatar-btn { min-width: 44px; min-height: 44px; }
+  .top .right { gap: 4px; }
+  .chips button { min-height: 44px; padding-block: 0; display: inline-flex; align-items: center; }
+  .chips { gap: 4px; }
+  .rowact .iconbtn, .iconbtn.flat { min-width: 44px; min-height: 44px; }
+}
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-x: none; }
+
+/* ============ iOS-style phone patterns ============ */
+.grabber { display: none; }
+.swipe { position: relative; border-radius: 18px; }
+.swipe-acts { display: none; }
+.swipe-in { touch-action: pan-y; }
+@media (pointer: coarse) {
+  .swipe { overflow: hidden; }
+  .swipe-acts { position: absolute; inset: 0 0 0 auto; display: flex; }
+  .swipe-acts .sa { flex: 1; border: 0; font: inherit; font-weight: 650; color: #fff; background: var(--a); cursor: pointer; }
+  .swipe-acts .sa.bad { background: var(--bad); }
+  .swipe-in { position: relative; background: var(--card); border-radius: 18px; }
+  .swipe-in .icard { height: 100%; }
+}
+
+/* Dialogs rise from the bottom as sheets */
+@media (max-width: 560px) {
+  .ov:not(.alert) { place-items: end center; padding: 0; }
+  .ov:not(.alert) .modal { width: 100%; max-height: 92dvh; border-radius: 26px 26px 0 0; padding: 8px 18px max(22px, env(safe-area-inset-bottom, 0px)); animation: sheetup 0.38s cubic-bezier(0.2, 0.9, 0.2, 1) both; overscroll-behavior: contain; }
+  .ov:not(.alert) .modal.wide { width: 100%; }
+  .grabber { display: block; width: 100%; height: 26px; position: relative; touch-action: none; cursor: grab; }
+  .grabber::after { content: ''; position: absolute; left: 50%; top: 9px; width: 40px; height: 5px; margin-left: -20px; border-radius: 999px; background: color-mix(in srgb, var(--faint) 55%, transparent); }
+  .ov:not(.alert) .mh { margin-top: 0; }
+}
+@keyframes sheetup { from { transform: translateY(100%); } to { transform: none; } }
+
+/* The ⋯ menu becomes a bottom action sheet */
+@media (max-width: 560px) {
+  .rowmenu .menu { position: fixed; left: 10px; right: 10px !important; top: auto !important; bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important; z-index: 80; padding: 8px; border-radius: 22px; box-shadow: 0 0 0 100vmax var(--scrim); animation: sheetup 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+  .rowmenu .menu button { min-height: 54px; font-size: 17px; text-align: center; border-radius: 14px; }
+  .rowmenu .menu button + button { border-top: 1px solid var(--line, rgba(128, 128, 128, 0.18)); border-radius: 0 0 14px 14px; }
+}
+
+/* Pull to refresh */
+.ptr { position: fixed; left: 50%; top: 0; z-index: 90; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow-up); color: var(--a); pointer-events: none; opacity: 0; }
+.ptr svg { width: 20px; height: 20px; }
+.ptr.spin svg { animation: spin 0.8s linear infinite; }
+
+/* a tap leaves :hover stuck on touch screens; a transformed card would also trap the fixed ⋯ sheet */
+@media (hover: none) { .icard:hover { transform: none; } }
+
+/* ============ iOS large titles, spring taps ============ */
+.topttl { display: none; }
+@media (max-width: 560px) {
+  .top { position: sticky; }
+  .topttl { display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, calc(-50% + (1 - var(--sc, 0)) * 8px)); max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; opacity: var(--sc, 0); pointer-events: none; }
+  .head .ptitle, .phead h2.ptitle { font-size: 34px; font-weight: 800; letter-spacing: -0.035em; transform-origin: left center; opacity: calc(1 - var(--sc, 0) * 0.85); transform: scale(calc(1 - var(--sc, 0) * 0.06)); }
+  .head .crumb { opacity: calc(1 - var(--sc, 0) * 1.5); }
+}
+@media (pointer: coarse) {
+  .btn, .chips button, .iconbtn, .tabbar > button, .sheet .tiles button { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, color 0.2s, box-shadow 0.2s; }
+  .btn:active, .chips button:active, .iconbtn:active, .sheet .tiles button:active { transform: scale(0.94); transition-duration: 0.1s; }
+  .tabbar > button:active { transform: scale(0.9); transition-duration: 0.1s; }
+}
+@media (prefers-reduced-motion: reduce) { .btn, .chips button, .iconbtn, .tabbar > button { transition: none; } }
+
+/* ============ phone: wide tables become cards ============ */
+@media (max-width: 560px) {
+  .head .ptitle, .phead h2.ptitle { font-size: 30px; }
+  .seg, .tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .seg::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+  .seg > *, .tabs > * { flex: none; }
+  a:not(.btn):not([class]) { color: var(--a); }
+  .tw { overflow-x: visible; }
+  table.cardtbl, table.cardtbl tbody, table.cardtbl tfoot { display: block; }
+  table.cardtbl thead { display: none; }
+  table.cardtbl tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; background: var(--soft); border-radius: 16px; padding: 14px; margin-bottom: 10px; animation: none; }
+  table.cardtbl td { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0; border: 0; background: none !important; font-size: 13.5px; text-align: right; min-width: 0; max-width: none !important; white-space: normal !important; overflow-wrap: anywhere; }
+  table.cardtbl td[data-l]::before { content: attr(data-l); color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; flex: none; }
+  table.cardtbl td:first-child { grid-column: 1 / -1; font-weight: 700; font-size: 15px; justify-content: flex-start; text-align: left; }
+  table.cardtbl td:first-child::before { display: none; }
+  table.cardtbl td:empty { display: none; }
+  table.cardtbl td[colspan], table.cardtbl td:has(.rowact), table.cardtbl td:has(.btn) { grid-column: 1 / -1; justify-content: flex-end; }
+  table.cardtbl td:has(.rowact)::before, table.cardtbl td:has(.btn)::before { display: none; }
+  table.cardtbl tr.tot, table.cardtbl tfoot tr { background: none; padding: 6px 4px; }
+}
+@media (max-width: 560px) {
+  table.cardtbl td.long { grid-column: 1 / -1; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; }
+  table.cardtbl td.long:first-child { font-size: 15px; }
+}
+/* Confirm / alert boxes rise from the bottom like an iOS action sheet */
+@media (max-width: 560px) {
+  .ov.alert { place-items: end center; padding: 10px 10px max(10px, env(safe-area-inset-bottom, 0px)); }
+  .ov.alert .modal { width: 100%; border-radius: 24px; padding: 22px 18px 14px; animation: sheetup 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; text-align: center; }
+  .ov.alert .drow { flex-direction: column-reverse; gap: 8px; }
+  .ov.alert .drow .btn { width: 100%; min-height: 52px; justify-content: center; font-size: 17px; }
+}
+@media (pointer: coarse) { .btn { min-height: 44px; } }
