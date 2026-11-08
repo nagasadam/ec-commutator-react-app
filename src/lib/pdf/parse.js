@@ -194,6 +194,7 @@ function pair(nums) {
 
 function parseRow(text) {
   const s = text
+    .replace(/\(\s*\d{4,8}\s*\)(?=\s+\d{4,8}\b)/, '') // "Mica Rifted Into Sheets (681410) 68141090": the full HSN comes next
     .replace(/^\s*\d{1,3}[.)]?\s+(?=[A-Za-z])/, '')
     // "1 05 CTNS Mica ..." : serial number and package count come before the description
     .replace(/^\s*(?:\d{1,3}[.)]?\s+)?\d+\s*(?:ctns?|cartons?|bags?|boxes|box|pkgs?|bundles?|rolls?|drums?|cases?)\.?\s+(?=[A-Za-z])/i, '')
@@ -334,7 +335,7 @@ export function parseDocument(rawLines, mode = 'sale') {
     }
   }
   if (!lr) {
-    const i = lines.findIndex((l) => /(bill\s*of\s*lading|\bL\.?R\.?\s*[-/]\s*R\.?R\.?)\s*(?:\/\s*L\.?R\.?\s*[-/]\s*R\.?R\.?)?\s*(?:no\.?)?\s*$/i.test(l))
+    const i = lines.findIndex((l) => /(bill\s*of\s*lading|\bL\.?R\.?\s*[-/]\s*R\.?R\.?)\s*(?:\/\s*L\.?R\.?\s*[-/]\s*R\.?R\.?)?\s*(?:no\.?)?(?:\s+motor\s+vehicle\s+no\.?)?\s*$/i.test(l))
     const m = i >= 0 && (lines[i + 1] || '').match(/^([A-Z0-9][A-Z0-9\-/]{3,})/i)
     if (m && /\d/.test(m[1])) {
       lr = m[1]

@@ -111,3 +111,17 @@ test('Tieramet bill: intra-state from the row amounts, item name that runs over 
   assert.equal(p.transporter, 'LOCAL')
   assert.deepEqual(p.rows, [{ desc: 'COPPER WIRE/ 4MM', hsn: '74081990', qty: 566.74, rate: 1424, taxable: 807038 }])
 })
+
+// A fifth bill: M.P. Mica Enterprises (e-invoice with IRN and QR; the item name carries a short HSN in brackets).
+test('M.P. Mica bill: supplier, date, IGST, HSN after the bracketed code, courier and LR number', () => {
+  const ml = readFileSync(new URL('../fixtures/mpmica-bill.txt', import.meta.url), 'utf8').split('\n')
+  const p = parseDocument(ml, 'purchase')
+  assert.equal(p.party.name, 'M.P.MICA ENTERPRISES PVT. LTD.')
+  assert.equal(p.party.gstin, '20AABCM1411F1ZG')
+  assert.equal(p.date, '2026-10-23')
+  assert.equal(p.supply, 'inter')
+  assert.equal(p.transporter, 'Blue Dart Express Ltd.')
+  assert.equal(p.lr, '50647177350')
+  assert.equal(p.lrDate, '2026-10-23')
+  assert.deepEqual(p.rows, [{ desc: 'Mica Rifted Into Sheets', hsn: '68141090', qty: 200, rate: 430, taxable: 86000 }])
+})
