@@ -2494,3 +2494,9 @@ html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
   .ov.alert .drow .btn { width: 100%; min-height: 52px; justify-content: center; font-size: 17px; }
 }
 @media (pointer: coarse) { .btn { min-height: 44px; } }
+
+/* phone: swipe a table-card left to reveal Delete */
+@media (max-width: 560px) {
+  table.cardtbl tbody tr { position: relative; touch-action: pan-y; }
+  table.cardtbl tbody tr.swp::after { content: 'Delete'; position: absolute; top: 0; bottom: 0; right: -84px; width: 84px; display: grid; place-items: center; background: var(--bad); color: #fff; font-weight: 700; font-size: 14px; border-radius: 0 16px 16px 0; }
+}
