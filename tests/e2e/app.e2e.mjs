@@ -582,3 +582,77 @@ test('Scan bill: the camera button takes a photo, and a photo goes through bill 
   // note, so either the progress label or that note proves the photo went through bill reading.
   await p.locator('.pdfbar button:has-text("Reading the bill"), .pdfnote').first().waitFor()
 })
+
+// ---- phone (iOS-style) ----
+const swipeLeft = (p, sel, px = 150) =>
+  p.evaluate(
+    ([s, d]) => {
+      const el = document.querySelector(s)
+      el.scrollIntoView({ block: 'center' })
+      const r = el.getBoundingClientRect()
+      const y = r.top + Math.min(24, r.height / 2)
+      const x0 = r.left + r.width - 30
+      const mk = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: y })
+      el.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(x0)], bubbles: true }))
+      for (let i = 1; i <= 10; i++) el.dispatchEvent(new TouchEvent('touchmove', { touches: [mk(x0 - (d * i) / 10)], bubbles: true }))
+      el.dispatchEvent(new TouchEvent('touchend', { bubbles: true }))
+    },
+    [sel, px],
+  )
+
+test('phone: every page fits the screen width, and the More sheet lists them all', async () => {
+  const p = await open({ viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true })
+  await p.click('.tabbar button[aria-label="More sections"]')
+  const names = await p.locator('.sheet .tiles button').allInnerTexts()
+  for (const n of ['Inventory', 'Production', 'Expenses', 'Returns', 'Reports', 'Parties', 'Ledgers', 'Banking', 'Process scan', 'Job work']) assert.ok(names.some((x) => x.trim() === n), n + ' is in the More sheet')
+  await p.click('.sheet .tiles >> button:text-is("Dashboard")')
+  for (const n of ['Dashboard', 'Invoices', 'Purchases', 'Inventory', 'Production', 'Expenses', 'Returns', 'Reports', 'Parties', 'Ledgers', 'Banking', 'Job work']) {
+    await tab(p, n)
+    await p.waitForTimeout(250)
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, n + ' overflows sideways')
+  }
+})
+
+test('phone: New invoice opens as a bottom sheet that can be closed', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await p.click('.tabbar >> text=Invoices')
+  await p.click('text=+ New invoice')
+  const m = p.locator('.ov .modal')
+  await m.waitFor()
+  await p.waitForTimeout(500)
+  const b = await m.boundingBox()
+  assert.ok(b.width >= 388, 'sheet spans the screen')
+  assert.ok(Math.abs(b.y + b.height - 844) < 3, 'sheet sits on the bottom edge')
+  assert.equal(await p.locator('.ov .grabber').count(), 1)
+  await p.click('.ov button[aria-label="Close"]')
+  assert.equal(await p.locator('.ov form').count(), 0)
+})
+
+test('phone: swiping an invoice card shows Edit and Delete; Delete asks first', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await tab(p, 'Invoices')
+  const before = await p.locator('.swipe').count()
+  assert.ok(before > 0)
+  await swipeLeft(p, '.swipe-in')
+  await p.waitForTimeout(450)
+  assert.ok(Math.abs(await p.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.swipe-in')).transform).m41)) > 80, 'card slid open')
+  await p.locator('.swipe .sa.bad').first().click()
+  await p.locator('.ov.alert').waitFor()
+  await p.locator('.ov.alert button:text-is("Cancel")').click()
+  assert.equal(await p.locator('.swipe').count(), before, 'nothing deleted on Cancel')
+})
+
+test('phone: swiping a table-card row shows Delete, and tapping it runs the usual confirm', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await tab(p, 'Expenses')
+  await p.locator('table.cardtbl tbody tr').first().waitFor()
+  const n = await p.locator('table.cardtbl tbody tr').count()
+  await swipeLeft(p, 'table.cardtbl tbody tr', 120)
+  await p.waitForTimeout(450)
+  assert.equal(await p.locator('table.cardtbl tbody tr.swp').count(), 1, 'row opened')
+  const r = await p.locator('table.cardtbl tbody tr.swp').boundingBox()
+  await p.touchscreen.tap(r.x + r.width + 40, r.y + r.height / 2)
+  await p.locator('.ov.alert').waitFor()
+  await p.locator('.ov.alert button:text-is("Cancel")').click()
+  assert.equal(await p.locator('table.cardtbl tbody tr').count(), n, 'nothing deleted on Cancel')
+})

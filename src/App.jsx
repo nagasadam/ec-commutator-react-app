@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import { AnimatePresence, motion, useDragControls, EASE } from './motion.jsx'
 import { useStore } from './lib/store.jsx'
 import { useDialog, useMedia } from './ui.jsx'
+import { useRowSwipe } from './rowswipe.js'
 import { useCloud } from './cloud.jsx'
 import Invoices from './tabs/Invoices.jsx'
 import Dashboard from './tabs/Dashboard.jsx'
@@ -109,6 +110,7 @@ export default function App() {
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
   const phone = useMedia('(max-width: 560px)')
+  useRowSwipe(phone)
   const hist = useRef([]) // tabs visited before this one, for swipe-from-edge back
   const [dir, setDir] = useState(1)
   const [pull, setPull] = useState(0) // pull-to-refresh distance (phones, cloud only)
