@@ -656,3 +656,55 @@ test('phone: swiping a table-card row shows Delete, and tapping it runs the usua
   await p.locator('.ov.alert button:text-is("Cancel")').click()
   assert.equal(await p.locator('table.cardtbl tbody tr').count(), n, 'nothing deleted on Cancel')
 })
+
+test('phone: pulling down from the top reloads the app when not signed in to the cloud', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await tab(p, 'Invoices')
+  await p.evaluate(() => (window.__marker = 1))
+  const nav = p.waitForNavigation({ timeout: 8000 })
+  await p.evaluate(() => {
+    const el = document.body
+    const mk = (y) => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y })
+    window.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(120)], bubbles: true }))
+    for (let i = 1; i <= 10; i++) window.dispatchEvent(new TouchEvent('touchmove', { touches: [mk(120 + i * 20)], bubbles: true }))
+    window.dispatchEvent(new TouchEvent('touchend', { bubbles: true }))
+  })
+  await nav
+  assert.equal(await p.evaluate(() => window.__marker), undefined, 'page was reloaded')
+})
+
+test('phone: a short pull does nothing, and a pull with a form open does nothing', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await tab(p, 'Invoices')
+  await p.evaluate(() => (window.__marker = 1))
+  const pull = (d) =>
+    p.evaluate((d) => {
+      const el = document.body
+      const mk = (y) => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y })
+      window.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(120)], bubbles: true }))
+      for (let i = 1; i <= 10; i++) window.dispatchEvent(new TouchEvent('touchmove', { touches: [mk(120 + (d * i) / 10)], bubbles: true }))
+      window.dispatchEvent(new TouchEvent('touchend', { bubbles: true }))
+    }, d)
+  await pull(60)
+  await p.waitForTimeout(800)
+  assert.equal(await p.evaluate(() => window.__marker), 1, 'short pull ignored')
+  await p.click('text=+ New invoice')
+  await p.locator('.ov form').waitFor()
+  await pull(260)
+  await p.waitForTimeout(800)
+  assert.equal(await p.evaluate(() => window.__marker), 1, 'no reload while a form is open')
+})
+
+test('phone: dragging a sheet down by its handle closes it', async () => {
+  const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await p.click('.tabbar >> text=Invoices')
+  await p.click('text=+ New invoice')
+  await p.locator('.ov .grabber').waitFor()
+  await p.waitForTimeout(500)
+  const g = await p.locator('.ov .grabber').boundingBox()
+  await p.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+  await p.mouse.down()
+  for (let i = 1; i <= 12; i++) await p.mouse.move(g.x + g.width / 2, g.y + 20 * i)
+  await p.mouse.up()
+  await p.locator('.ov form').waitFor({ state: 'detached', timeout: 3000 })
+})
