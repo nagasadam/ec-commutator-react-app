@@ -52,6 +52,8 @@ export function findDate(s) {
   if (m) return ok(m[1], m[2], m[3])
   m = s.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/)
   if (m) return ok(m[3], m[2], m[1])
+  m = s.match(/(?<![\d./-])(\d{1,2})[./-](\d{1,2})[./-](\d{2})(?![\d./-])/)
+  if (m) return ok('20' + m[3], m[2], m[1]) // "10-10-26"
   m = s.match(/\b(\d{1,2})[\s-]+([A-Za-z]{3})[a-z]*\.?,?[\s-]+(\d{4}|\d{2})\b/)
   if (m) {
     const mi = MONTHS.indexOf(m[2].toLowerCase())
@@ -68,7 +70,7 @@ const SALE_LABEL = /^(?:to\b|bill(?:ed)?\s*to\b|buyer\b|customer\b|sold\s*to\b|c
 const PUR_LABEL = /^(?:from\b|supplier\b|seller\b|vendor\b|sold\s*by\b|billed\s*from\b)\s*[,:\-.]?\s*(?:\([^)]*\))?\s*[:-]?\s*(.*)$/i
 const STOP_RE = /^(sl\.?\s*no|s\.?\s*no|sr\.?\s*no|description|particulars|ship(?:ped)?\s*to|invoice\s*(no|date)|place\s*of\s*supply|name\s*of\s*(the\s*)?transport|transporter|l\.?r\.?\s*no|bank\b|delivery)/i
 const PHONE_RE = /(?:ph(?:one)?(?:\s*no)?|mob(?:ile)?(?:\s*no)?|tel|contact|cell)\.?\s*[:-]?\s*(\+?[\dO][\dO\s-]{8,14}\d)/i
-const FIRM_WORDS = /\b(pvt|private|ltd|limited|llp|industries|industry|enterprises?|engineering|engg|works|traders?|motors?|company|co|corporation|corp|associates|& sons|brothers|bros|agencies|electricals?|electric)\b/i
+const FIRM_WORDS = /\b(pvt|private|ltd|limited|llp|industries|industry|enterprises?|engineering|engg|works|traders?|motors?|company|co|corporation|corp|associates|& sons|brothers|bros|agencies|electricals?|electric|industrial(?!\s+(?:estate|area|park|zone|layout|development))|solutions?|systems|enterprise|suppliers?|marketing|chemicals?|plastics?|polymers?|metals?|steels?|exports?|electronics|polytech)\b/i
 
 // "BUYER DELIVERED ADDRESS: Same as in the customer name" is a delivery note, not part of the customer.
 const DELIV_RE = /\(?\s*(?:buyer\s*)?(?:deliver(?:ed|y)|ship(?:ped|ping)?)\s*(?:to\s*)?(?:address)?\s*\)?\s*[:-]?.*$/i
@@ -121,10 +123,13 @@ function sellerLine(lines) {
     let buyer = false
     for (let k = i - 1; k >= Math.max(0, i - 8); k--) if (BUYER.test(lines[k])) buyer = true
     if (buyer) continue
-    for (let k = i; k >= Math.max(0, i - 10); k--) {
+    const firm = (k) => {
       const n = cleanName(lines[k])
-      if (n && FIRM_WORDS.test(n) && !TITLE_RE.test(n) && !/^(irn|ack|invoice|e-?way)\b/i.test(n)) return k
+      return !!n && FIRM_WORDS.test(n) && !TITLE_RE.test(n) && !/^(irn|ack|invoice|e-?way)\b/i.test(n)
     }
+    for (let k = i; k >= Math.max(0, i - 10); k--) if (firm(k)) return k
+    // Some bills print "GST No: ..." as the very first line and the firm's name under it (after the "TAX INVOICE" title).
+    if (i < 3) for (let k = i + 1; k <= Math.min(lines.length - 1, i + 4); k++) if (firm(k) && !hasGst(lines[k])) return k
     return -1
   }
   return -1
@@ -142,6 +147,9 @@ function partyFromBlock(block) {
     .slice(1, gIdx > 0 ? gIdx : undefined)
     .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan|udyam|cin|e-?mail|www|terms\s*of|ex-|billed\s*address)\b/i.test(l) && !/same\s*as\b/i.test(l))
     .filter((l) => !/\b\d{1,2}-[A-Za-z]{3}-\d{2,4}\b|\b\d{9,}\b/.test(l)) // an invoice number / date from the next column
+    .filter((l) => !TITLE_RE.test(l.replace(/,\s*$/, '')))
+    .map((l) => l.replace(/^address\s*[:.-]?\s*/i, '').replace(/\s*e-?mail\s*:.*$/i, '').trim())
+    .filter(Boolean)
     .join(', ')
     .replace(/,\s*,/g, ',')
     .trim()
@@ -186,10 +194,19 @@ function pair(nums) {
 
 function parseRow(text) {
   const s = text
+    .replace(/\(\s*\d{4,8}\s*\)(?=\s+\d{4,8}\b)/, '') // "Mica Rifted Into Sheets (681410) 68141090": the full HSN comes next
     .replace(/^\s*\d{1,3}[.)]?\s+(?=[A-Za-z])/, '')
     // "1 05 CTNS Mica ..." : serial number and package count come before the description
     .replace(/^\s*(?:\d{1,3}[.)]?\s+)?\d+\s*(?:ctns?|cartons?|bags?|boxes|box|pkgs?|bundles?|rolls?|drums?|cases?)\.?\s+(?=[A-Za-z])/i, '')
-  const firstNum = s.search(/\d/)
+  // A size or rating belongs to the description ("fiberglass 3 mm chapped strand", "Commutator 750 W"), not to the numbers.
+  let firstNum = s.search(/\d/)
+  for (let g = 0; g < 3 && firstNum > 0; g++) {
+    const spec = s.slice(firstNum).match(/^\d+(?:\.\d+)?\s*(?:mm|cm|inch|gsm|micron|swg|kw|hp|amps?|w|v)\b[\sA-Za-z.-]*?(?=\s*\d|$)/i)
+    if (!spec) break
+    const next = s.slice(firstNum + spec[0].length).search(/\d/)
+    if (next < 0) break
+    firstNum += spec[0].length + next
+  }
   const desc = (firstNum > 0 ? s.slice(0, firstNum) : '').replace(UNITS, '').replace(/[\s,;:|(-]+$/, '').replace(/^(?:[^\w(]+|[a-z]{1,2}\s+(?=[A-Za-z]{3,}))+/, '').trim() // stray marks / a lone "om" before the words
   const rest = firstNum >= 0 ? s.slice(firstNum) : ''
   const hsnM = rest.match(/^\d{4,8}\b(?!\.)/)
@@ -204,6 +221,30 @@ function parseRow(text) {
   return { desc, hsn, qty: qm ? toNum(qm[1]) : null, rate: qm && qm[2] ? toNum(qm[2]) : null, taxable: null }
 }
 
+// A line that holds the taxable value and, after it, tax amounts. Half-rate amounts twice (9 % + 9 % of the taxable
+// value) is CGST + SGST; one full-rate amount (18 %) is IGST. Returns 'intra', 'inter' or ''.
+function taxFromRow(lines, taxable) {
+  const near = (a, b) => Math.abs(a - b) <= Math.max(1.01, b * 0.002)
+  for (const l of lines) {
+    const nums = (l.match(/\d[\d,]*(?:\.\d+)?/g) || []).map((n) => parseFloat(n.replace(/,/g, '')))
+    const at = nums.findIndex((n) => near(n, taxable) || near(n * 1, taxable))
+    if (at < 0) continue
+    const rest = nums.slice(at + 1)
+    for (const r of [2.5, 6, 9, 14]) if (rest.filter((a) => near(a, (taxable * r) / 100)).length >= 2) return 'intra'
+    for (const r of [5, 12, 18, 28]) if (rest.some((a) => near(a, (taxable * r) / 100))) return 'inter'
+  }
+  return ''
+}
+// Does a line carry an amount after the tax label ("CGST@ 5400.00")? A rate alone ("IGST @ 18%") is not an amount.
+function hasTaxAmount(lines, word) {
+  const re = new RegExp('\\b' + word + '\\b', 'i')
+  return lines.some((l) => {
+    const m = l.match(re)
+    if (!m) return false
+    const after = l.slice(m.index + m[0].length).replace(/\d+(?:\.\d+)?\s*%/g, ' ')
+    return (after.match(/\d[\d,]*(?:\.\d+)?/g) || []).some((n) => parseFloat(n.replace(/,/g, '')) > 0)
+  })
+}
 export function parseDocument(rawLines, mode = 'sale') {
   const lines = rawLines
     .map((l) => l.replace(/\s+/g, ' ').trim())
@@ -216,7 +257,11 @@ export function parseDocument(rawLines, mode = 'sale') {
   const joined = lines.join('\n')
 
   // supply type from the tax columns
-  let supply = /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
+  // A bill that prints all three tax labels but fills in only CGST and SGST (or only IGST) is told apart by the amounts.
+  const taxAmt = (w) => hasTaxAmount(lines, w)
+  let weakSupply = false
+  let supply = taxAmt('IGST') && !(taxAmt('CGST') && taxAmt('SGST')) ? 'inter' : taxAmt('CGST') && taxAmt('SGST') && !taxAmt('IGST') ? 'intra' : /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
+  weakSupply = !(taxAmt('IGST') || (taxAmt('CGST') && taxAmt('SGST')))
   if (!supply) {
     // two different "state code" values (seller 36, buyer 07) mean the sale crosses a state border
     const codes = [...joined.matchAll(/state\s*code\s*[:-]?\s*(\d{2})\b/gi)].map((m) => m[1])
@@ -227,7 +272,7 @@ export function parseDocument(rawLines, mode = 'sale') {
   let date = ''
   for (let i = 0; i < lines.length && !date; i++) {
     const l = lines[i]
-    if (/(supply|due|order|p\.?o\.?\b|lr\b|l\.r|lorry|dispatch|ack)/i.test(l) && !/invoice\s*date/i.test(l)) continue
+    if (/(supply|due|order|p\.?o\.?\b|lr\b|l\.r|lorry|dispatch|ack|vehicle|challan)/i.test(l) && !/invoice\s*date/i.test(l)) continue
     if (/(invoice|inv\.?|bill)\s*date|^date\b|\bdate\b|\bdated\b/i.test(l)) date = findDate(l) || (/dated?\s*[:-]?\s*$/i.test(l) ? findDate(lines[i + 1] || '') : '')
   }
 
@@ -248,7 +293,13 @@ export function parseDocument(rawLines, mode = 'sale') {
   if (!party && mode === 'purchase') {
     const k = sellerLine(lines)
     const i = k >= 0 ? k : lines.findIndex((l) => !TITLE_RE.test(l) && /[A-Za-z]{3}/.test(l) && !/^(page|invoice\s*(no|date)|date)\b/i.test(l))
-    if (i >= 0) party = partyFromBlock(readBlock(lines, i, lines[i], 12)) // a seller block runs on to CIN / contact lines
+    if (i >= 0) {
+      party = partyFromBlock(readBlock(lines, i, lines[i], 12)) // a seller block runs on to CIN / contact lines
+      if (party && !party.gstin) {
+        const g = findGstin(lines.slice(Math.max(0, i - 4), i + 1).join('\n')) // "GST No: ..." printed just above the name
+        if (g) Object.assign(party, { gstin: g, company: true })
+      }
+    }
   }
 
   // transport
@@ -263,6 +314,7 @@ export function parseDocument(rawLines, mode = 'sale') {
         lrDate = findDate(l.slice(l.indexOf(m[0]) + m[0].length))
       }
     }
+    if (!transporter && /^transporter\s+(?![:-])([A-Z][\w&.]*(?:\s+[A-Z][\w&.]*){0,3})\s*$/i.test(l)) transporter = l.replace(/^transporter\s+/i, '').trim() // "Transporter LOCAL"
     if (!transporter && !/mode\s*of\s*transport/i.test(l)) {
       const m = l.match(/(?:name\s*of\s*(?:the\s*)?transport(?:er)?|transporter|transport\s*name)\s*[:-]\s*(.+)$/i)
       if (m) transporter = m[1].replace(/\s*(l\.?r\.?\s*no|vehicle|veh).*$/i, '').trim()
@@ -283,7 +335,7 @@ export function parseDocument(rawLines, mode = 'sale') {
     }
   }
   if (!lr) {
-    const i = lines.findIndex((l) => /(bill\s*of\s*lading|\bL\.?R\.?\s*[-/]\s*R\.?R\.?)\s*(?:\/\s*L\.?R\.?\s*[-/]\s*R\.?R\.?)?\s*(?:no\.?)?\s*$/i.test(l))
+    const i = lines.findIndex((l) => /(bill\s*of\s*lading|\bL\.?R\.?\s*[-/]\s*R\.?R\.?)\s*(?:\/\s*L\.?R\.?\s*[-/]\s*R\.?R\.?)?\s*(?:no\.?)?(?:\s+motor\s+vehicle\s+no\.?)?\s*$/i.test(l))
     const m = i >= 0 && (lines[i + 1] || '').match(/^([A-Z0-9][A-Z0-9\-/]{3,})/i)
     if (m && /\d/.test(m[1])) {
       lr = m[1]
@@ -302,9 +354,18 @@ export function parseDocument(rawLines, mode = 'sale') {
     for (let i = h + 1; i < lines.length; i++) {
       const l = lines[i]
       if (/^(total|sub\s*total|grand|amount\s*(chargeable|in\s*words)|taxable|cgst|sgst|igst|bank|terms|rupees|declaration)/i.test(l)) break
+      // "HSN/SAC - 39094020" printed under the item row
+      const hs = l.match(/^\s*HSN\s*\/?\s*(?:SAC)?\s*(?:code)?\s*[-:]?\s*(\d{4,8})\b/i)
+      if (hs && rows.length && !rows[rows.length - 1].hsn) {
+        rows[rows.length - 1].hsn = hs[1]
+        continue
+      }
       const nums = (l.replace(UNITS, ' ').match(NUM_RE) || []).length
       // second line of the table header ("No. of Pkgs. Rate") before the first item
-      if (!rows.length && !pending && !/\d/.test(l) && /\b(pkgs?|kind|rate|per|amount|hsn|gst|unit|qty|quantity)\b/i.test(l)) continue
+      if (!rows.length && !/\d/.test(l) && (l.match(/\b(pkgs?|packs?|kind|rate|per|amount|hsn|sac|gst|cgst|sgst|igst|unit|uom|qty|quantity|less|add|value|taxable|total|disc)\b/gi) || []).length >= (pending ? 2 : 1)) {
+        pending = ''
+        continue
+      }
       if (nums >= 3 || (nums >= 2 && /[A-Za-z]/.test(l) && /\d\s*(nos|pcs|kg)/i.test(l))) {
         const r = parseRow(pending ? `${pending} ${l}` : l)
         // a note with numbers but no quantity ("Size : 1000 X 600 X 0.55 MM") is not an item
@@ -314,6 +375,9 @@ export function parseDocument(rawLines, mode = 'sale') {
         }
         if (r.desc || r.qty) rows.push(r)
         pending = ''
+      } else if (rows.length && /[/-]$/.test(rows[rows.length - 1].desc || '') && nums <= 1 && l.length <= 30 && !rows[rows.length - 1].cont) {
+        rows[rows.length - 1].desc += ' ' + l.replace(/^[^\w(]+/, '').trim() // "COPPER WIRE/" then "4MM"
+        rows[rows.length - 1].cont = true
       } else if (/[A-Za-z]{3}/.test(l)) {
         const last = rows[rows.length - 1]
         // The description can sit on the line after its numbers ("slot type commutators" / "(Ring Type)"), or run on
@@ -326,5 +390,8 @@ export function parseDocument(rawLines, mode = 'sale') {
     }
   }
 
+  // Tax columns with only a header ("CGST SGST IGST") and the amounts in the item row: the amounts say which tax was charged.
+  if (weakSupply && rows.length && rows[0].taxable) supply = taxFromRow(lines, rows[0].taxable) || supply
+  rows.forEach((r) => delete r.cont)
   return { party, date, supply, lr, lrDate, transporter, rows }
 }

@@ -1,0 +1,74 @@
+Tax Invoice
+e-Invoice
+IRN : 7f7a21a26857aec8695454f016598ae36acf56d866649f-99a407a8a873c00a20
+Ack No. : 142621626906870
+Ack Date : 23-Oct-26
+MPMICA
+M.P.MICA ENTERPRISES PVT. LTD.
+BHUDOLIA BHAWAN, KUTIA ROAD
+GIRIDIH-815301 (JHARKHAND)
+Jharkhand - 815301, India
+UDYAM : UDYAM-JH-08-0000449 (Small)
+GSTIN/UIN: 20AABCM1411F1ZG
+State Name : Jharkhand, Code : 20
+CIN: U14293JH1988PTC003170
+Contact : 06532-250977,221211
+E-Mail : accounts@mpmica.com
+www.mpmica.com
+Invoice No. e-Way Bill No. Dated
+386/26-27 471788883046 23-Oct-26
+Delivery Note Mode/Terms of Payment
+Reference No. & Date. Other References
+By E-Mail
+Consignee (Ship to)
+V4 INDUSTRIES
+Plot No 35,36, Survey No 53 & 54, Bahadurpally,
+Qutubullapur Mandal, Rangareddy
+Telangana - 500055, India
+GSTIN/UIN : 36AALFV9329A1ZZ
+PAN/IT No : AALFV9329A
+State Name : Telangana, Code : 36
+Buyer's Order No. Dated
+Verbal 23-Oct-26
+Dispatch Doc No. Delivery Note Date
+50647177350
+Buyer (Bill to)
+V4 INDUSTRIES
+Plot No 35,36, Survey No 53 & 54, Bahadurpally,
+Qutubullapur Mandal, Rangareddy
+Telangana - 500055, India
+GSTIN/UIN : 36AALFV9329A1ZZ
+PAN/IT No : AALFV9329A
+State Name : Telangana, Code : 36
+Place of Supply : Telangana
+Dispatched through Destination
+Blue Dart Express Ltd. Hyderabad
+Bill of Lading/LR-RR No. Motor Vehicle No.
+50647177350 dt. 23-Oct-26
+Terms of Delivery
+Ex-Hyderabad
+SI No. & Kind Description of Goods HSN/SAC GST Quantity Rate per Amount
+No. of Pkgs. Rate
+1 04 CTNS Mica Rifted Into Sheets (681410) 68141090 18 % 200.000 KG 430.00 KG 86,000.00
+Size : 1000 X 600 X 0.70 MM, Epoxy
+IGST 15,480.00
+Total 200.000 KG 1,01,480.00 Rs.
+Amount Chargeable (in words)
+One Lakh One Thousand Four Hundred Eighty Indian Rupees Only
+HSN/SAC Taxable IGST Total
+Value Rate Amount Tax Amount
+68141090 86,000.00 18% 15,480.00 15,480.00
+Total 86,000.00 15,480.00 15,480.00
+Tax Amount (in words) : Fifteen Thousand Four Hundred Eighty Indian Rupees Only
+Company's Bank Details
+A/c Holder's Name : M.P.MICA ENTERPRISES PVT. LTD.
+Bank Name : S.B.I. - C/C A/C
+A/c No. 10605469880
+Branch & IFS Code: SME , GIRIDIH & SBIN0006449
+Company's PAN : AABCM1411F
+Declaration
+We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
+for M.P.MICA ENTERPRISES PVT. LTD.
+Authorised Signatory
+SUBJECT TO GIRIDIH JURISDICTION
+This is a Computer Generated Invoice
