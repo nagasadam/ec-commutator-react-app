@@ -113,7 +113,7 @@ export default function App() {
   useRowSwipe(phone)
   const hist = useRef([]) // tabs visited before this one, for swipe-from-edge back
   const [dir, setDir] = useState(1)
-  const [pull, setPull] = useState(0) // pull-to-refresh distance (phones, cloud only)
+  const [pull, setPull] = useState(0) // pull-to-refresh distance (phones)
   const pullRef = useRef({ y: 0, on: false })
   const go = (id, fresh, back) => {
     if (!back && id !== tab) hist.current = [...hist.current.slice(-9), tab]
@@ -233,11 +233,12 @@ export default function App() {
   }, [])
   // Pull down from the top of a page to sync, like iOS.
   const syncRef = useRef(null)
-  syncRef.current = cloud.configured && cloud.user ? cloud.syncNow : null
+  // Signed in to the cloud: pull = sync now. Local only: pull = reload, which is how a home-screen app picks up a new version.
+  syncRef.current = cloud.configured && cloud.user ? cloud.syncNow : cloud.configured ? null : () => window.location.reload()
   useEffect(() => {
     const st = pullRef.current
     const ts = (e) => {
-      const ok = syncRef.current && window.scrollY <= 0 && !document.querySelector('.ov, .sheet')
+      const ok = syncRef.current && window.matchMedia('(max-width: 560px)').matches && window.scrollY <= 0 && !document.querySelector('.ov, .sheet')
       st.on = !!ok
       st.y = e.touches[0].clientY
     }
