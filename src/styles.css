@@ -2406,3 +2406,43 @@ nav button svg { width: 16px; height: 16px; flex: none; }
   .rowact .iconbtn, .iconbtn.flat { min-width: 44px; min-height: 44px; }
 }
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-x: none; }
+
+/* ============ iOS-style phone patterns ============ */
+.grabber { display: none; }
+.swipe { position: relative; border-radius: 18px; }
+.swipe-acts { display: none; }
+.swipe-in { touch-action: pan-y; }
+@media (pointer: coarse) {
+  .swipe { overflow: hidden; }
+  .swipe-acts { position: absolute; inset: 0 0 0 auto; display: flex; }
+  .swipe-acts .sa { flex: 1; border: 0; font: inherit; font-weight: 650; color: #fff; background: var(--a); cursor: pointer; }
+  .swipe-acts .sa.bad { background: var(--bad); }
+  .swipe-in { position: relative; background: var(--card); border-radius: 18px; }
+  .swipe-in .icard { height: 100%; }
+}
+
+/* Dialogs rise from the bottom as sheets */
+@media (max-width: 560px) {
+  .ov:not(.alert) { place-items: end center; padding: 0; }
+  .ov:not(.alert) .modal { width: 100%; max-height: 92dvh; border-radius: 26px 26px 0 0; padding: 8px 18px max(22px, env(safe-area-inset-bottom, 0px)); animation: sheetup 0.38s cubic-bezier(0.2, 0.9, 0.2, 1) both; overscroll-behavior: contain; }
+  .ov:not(.alert) .modal.wide { width: 100%; }
+  .grabber { display: block; width: 100%; height: 26px; position: relative; touch-action: none; cursor: grab; }
+  .grabber::after { content: ''; position: absolute; left: 50%; top: 9px; width: 40px; height: 5px; margin-left: -20px; border-radius: 999px; background: color-mix(in srgb, var(--faint) 55%, transparent); }
+  .ov:not(.alert) .mh { margin-top: 0; }
+}
+@keyframes sheetup { from { transform: translateY(100%); } to { transform: none; } }
+
+/* The ⋯ menu becomes a bottom action sheet */
+@media (max-width: 560px) {
+  .rowmenu .menu { position: fixed; left: 10px; right: 10px !important; top: auto !important; bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important; z-index: 80; padding: 8px; border-radius: 22px; box-shadow: 0 0 0 100vmax var(--scrim); animation: sheetup 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+  .rowmenu .menu button { min-height: 54px; font-size: 17px; text-align: center; border-radius: 14px; }
+  .rowmenu .menu button + button { border-top: 1px solid var(--line, rgba(128, 128, 128, 0.18)); border-radius: 0 0 14px 14px; }
+}
+
+/* Pull to refresh */
+.ptr { position: fixed; left: 50%; top: 0; z-index: 90; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow-up); color: var(--a); pointer-events: none; opacity: 0; }
+.ptr svg { width: 20px; height: 20px; }
+.ptr.spin svg { animation: spin 0.8s linear infinite; }
+
+/* a tap leaves :hover stuck on touch screens; a transformed card would also trap the fixed ⋯ sheet */
+@media (hover: none) { .icard:hover { transform: none; } }

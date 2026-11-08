@@ -108,6 +108,8 @@ export default function App() {
   const [ind, setInd] = useState({ x: 0, w: 0, o: 0 })
   const [dark, toggleTheme] = useTheme()
   const navRef = useRef(null)
+  const [pull, setPull] = useState(0) // pull-to-refresh distance (phones, cloud only)
+  const pullRef = useRef({ y: 0, on: false })
   const go = (id, fresh) => {
     setNewInv((n) => (fresh ? n + 1 : 0)) // only a New invoice click asks the Invoices page to open its form
     setTab(id)
@@ -137,6 +139,39 @@ export default function App() {
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [moreOpen])
+  // Pull down from the top of a page to sync, like iOS.
+  const syncRef = useRef(null)
+  syncRef.current = cloud.configured && cloud.user ? cloud.syncNow : null
+  useEffect(() => {
+    const st = pullRef.current
+    const ts = (e) => {
+      const ok = syncRef.current && window.scrollY <= 0 && !document.querySelector('.ov, .sheet')
+      st.on = !!ok
+      st.y = e.touches[0].clientY
+    }
+    const tm = (e) => {
+      if (!st.on) return
+      const d = e.touches[0].clientY - st.y
+      if (d <= 0) return setPull(0)
+      setPull(Math.min(90, d * 0.5))
+    }
+    const te = () => {
+      if (!st.on) return
+      st.on = false
+      setPull((p) => {
+        if (p >= 60) syncRef.current?.()
+        return 0
+      })
+    }
+    window.addEventListener('touchstart', ts, { passive: true })
+    window.addEventListener('touchmove', tm, { passive: true })
+    window.addEventListener('touchend', te)
+    return () => {
+      window.removeEventListener('touchstart', ts)
+      window.removeEventListener('touchmove', tm)
+      window.removeEventListener('touchend', te)
+    }
+  }, [])
   const Cur = TABS.find((t) => t[0] === tab)[2]
 
   const cur = TABS.find((t) => t[0] === tab)
@@ -150,6 +185,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className={'ptr' + (cloud.status === 'syncing' ? ' spin' : '')} aria-hidden="true" style={{ opacity: pull ? Math.min(1, pull / 60) : cloud.status === 'syncing' ? 1 : 0, transform: `translateY(${pull ? pull : cloud.status === 'syncing' ? 56 : 0}px) rotate(${pull * 4}deg)`, transition: pull ? 'none' : 'transform 0.3s, opacity 0.3s' }}>
+        <Icon n="sync" />
+      </div>
       <header className="top glass">
         <div className="brand">
           <Logo />
