@@ -98,3 +98,16 @@ test('BNS Electro Polymers bill: seller (not the V 4 buyer or consignee), date, 
   assert.equal(p.transporter, 'VRL LOGISTICS')
   assert.deepEqual(p.rows, [{ desc: 'COMMUTATORS SEGMENT', hsn: '85030090', qty: 45, rate: 1600, taxable: 72000 }])
 })
+
+// A fourth bill: Tieramet Limited. The tax columns only have headers (CGST / SGST / IGST); the amounts sit in the item row.
+test('Tieramet bill: intra-state from the row amounts, item name that runs over two lines, Indian digit grouping', () => {
+  const tl = readFileSync(new URL('../fixtures/tieramet-bill.txt', import.meta.url), 'utf8').split('\n')
+  const p = parseDocument(tl, 'purchase')
+  assert.equal(p.party.name, 'TIERAMET LIMITED')
+  assert.equal(p.party.gstin, '36AAMCT2253R1ZM')
+  assert.doesNotMatch(p.party.address, /TAX INVOICE/)
+  assert.equal(p.date, '2026-10-03') // not the PO date 01/10/2026
+  assert.equal(p.supply, 'intra') // 9 % + 9 % of 8,07,038 = 72,633 each; the IGST column is empty
+  assert.equal(p.transporter, 'LOCAL')
+  assert.deepEqual(p.rows, [{ desc: 'COPPER WIRE/ 4MM', hsn: '74081990', qty: 566.74, rate: 1424, taxable: 807038 }])
+})

@@ -1,0 +1,52 @@
+original
+TIERAMET LIMITED
+Road No 6, Plot No P-9/14 & P-9/13/1 I.D.A ,Nacharam,Hyderabad,Telangana - 76
+TAX INVOICE
+GST No : 36AAMCT2253R1ZM PAN No AAMCT2253R IRN Number
+Invoice No TNC/26-27/12
+Date 03/10/2026
+Place of Supply TELANGANA
+Date & Time of Supply : 03/10/2026 2:51 PM
+D C NO : DTNC/26-27/12
+PO No & Date VERBAL 01/10/2026
+Mode of Transport By Road Vehicle No TG12T2231
+Transporter LOCAL
+LR &No Dt
+Buyer (Billed To)
+V4 INDUSTRIES
+PLOT NO:35&36,SURVEY NO:53
+&54,BAHDURPALLY,QUTBULLAPURHYDERABAD-500055
+State TELANGANA
+State Code 36
+GSTIN 36AALFV9329A1ZZ PAN No AALFV9329A
+Consignee Name : (Shipped To)
+V4 INDUSTRIES ADDRESS1
+PLOT NO:35&36,SURVEY NO:53
+&54,BAHDURPALLY,QUTBULLAPUR HYDERABAD-500055
+State TELANGANA
+State Code
+GSTIN 36AALFV9329A1ZZ
+Dispatch From
+State
+S. Description HSN/ No Qty UOM Rate Total Add / Taxable CGST SGST IGST
+No SAC Packs Less Value
+Rate Amount Rate Amount Rate Amount
+1 COPPER WIRE/ 74081990 9 566.740 KGS 1,424.00 8,07,038 8,07,038 9.00 72,633 9.00 72,633
+4MM
+Total 9 566.740 8.07.038 9.00 72.633 9.00 72.633
+Invoice Value (In Words)
+Rupees - Nine Lakh Fifty Two Thousand Three Hundred Five Only.
+Gross : 8,07,038
+Discount :
+Freight :
+Packing :
+Insurance :
+GST : 1,45,267
+Sub Total : 9,52,305
+TCS :
+Invoice Total : 9,52,305
+Bank Name : HDFC BANK ,IFSC :HDFC0000042
+Account No : 50200125319972
+E-Way bill No 152569082891
+For TIERAMET LIMITED
+Authorized Signatory

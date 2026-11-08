@@ -147,6 +147,7 @@ function partyFromBlock(block) {
     .slice(1, gIdx > 0 ? gIdx : undefined)
     .filter((l) => !PHONE_RE.test(l) && !/^(gstin|gst\s*no|state|pan|udyam|cin|e-?mail|www|terms\s*of|ex-|billed\s*address)\b/i.test(l) && !/same\s*as\b/i.test(l))
     .filter((l) => !/\b\d{1,2}-[A-Za-z]{3}-\d{2,4}\b|\b\d{9,}\b/.test(l)) // an invoice number / date from the next column
+    .filter((l) => !TITLE_RE.test(l.replace(/,\s*$/, '')))
     .map((l) => l.replace(/^address\s*[:.-]?\s*/i, '').replace(/\s*e-?mail\s*:.*$/i, '').trim())
     .filter(Boolean)
     .join(', ')
@@ -219,6 +220,20 @@ function parseRow(text) {
   return { desc, hsn, qty: qm ? toNum(qm[1]) : null, rate: qm && qm[2] ? toNum(qm[2]) : null, taxable: null }
 }
 
+// A line that holds the taxable value and, after it, tax amounts. Half-rate amounts twice (9 % + 9 % of the taxable
+// value) is CGST + SGST; one full-rate amount (18 %) is IGST. Returns 'intra', 'inter' or ''.
+function taxFromRow(lines, taxable) {
+  const near = (a, b) => Math.abs(a - b) <= Math.max(1.01, b * 0.002)
+  for (const l of lines) {
+    const nums = (l.match(/\d[\d,]*(?:\.\d+)?/g) || []).map((n) => parseFloat(n.replace(/,/g, '')))
+    const at = nums.findIndex((n) => near(n, taxable) || near(n * 1, taxable))
+    if (at < 0) continue
+    const rest = nums.slice(at + 1)
+    for (const r of [2.5, 6, 9, 14]) if (rest.filter((a) => near(a, (taxable * r) / 100)).length >= 2) return 'intra'
+    for (const r of [5, 12, 18, 28]) if (rest.some((a) => near(a, (taxable * r) / 100))) return 'inter'
+  }
+  return ''
+}
 // Does a line carry an amount after the tax label ("CGST@ 5400.00")? A rate alone ("IGST @ 18%") is not an amount.
 function hasTaxAmount(lines, word) {
   const re = new RegExp('\\b' + word + '\\b', 'i')
@@ -243,7 +258,9 @@ export function parseDocument(rawLines, mode = 'sale') {
   // supply type from the tax columns
   // A bill that prints all three tax labels but fills in only CGST and SGST (or only IGST) is told apart by the amounts.
   const taxAmt = (w) => hasTaxAmount(lines, w)
+  let weakSupply = false
   let supply = taxAmt('IGST') && !(taxAmt('CGST') && taxAmt('SGST')) ? 'inter' : taxAmt('CGST') && taxAmt('SGST') && !taxAmt('IGST') ? 'intra' : /\bIGST\b/i.test(joined) ? 'inter' : /\bCGST\b/i.test(joined) && /\bSGST\b/i.test(joined) ? 'intra' : null
+  weakSupply = !(taxAmt('IGST') || (taxAmt('CGST') && taxAmt('SGST')))
   if (!supply) {
     // two different "state code" values (seller 36, buyer 07) mean the sale crosses a state border
     const codes = [...joined.matchAll(/state\s*code\s*[:-]?\s*(\d{2})\b/gi)].map((m) => m[1])
@@ -296,6 +313,7 @@ export function parseDocument(rawLines, mode = 'sale') {
         lrDate = findDate(l.slice(l.indexOf(m[0]) + m[0].length))
       }
     }
+    if (!transporter && /^transporter\s+(?![:-])([A-Z][\w&.]*(?:\s+[A-Z][\w&.]*){0,3})\s*$/i.test(l)) transporter = l.replace(/^transporter\s+/i, '').trim() // "Transporter LOCAL"
     if (!transporter && !/mode\s*of\s*transport/i.test(l)) {
       const m = l.match(/(?:name\s*of\s*(?:the\s*)?transport(?:er)?|transporter|transport\s*name)\s*[:-]\s*(.+)$/i)
       if (m) transporter = m[1].replace(/\s*(l\.?r\.?\s*no|vehicle|veh).*$/i, '').trim()
@@ -343,7 +361,10 @@ export function parseDocument(rawLines, mode = 'sale') {
       }
       const nums = (l.replace(UNITS, ' ').match(NUM_RE) || []).length
       // second line of the table header ("No. of Pkgs. Rate") before the first item
-      if (!rows.length && !pending && !/\d/.test(l) && /\b(pkgs?|kind|rate|per|amount|hsn|gst|unit|qty|quantity)\b/i.test(l)) continue
+      if (!rows.length && !/\d/.test(l) && (l.match(/\b(pkgs?|packs?|kind|rate|per|amount|hsn|sac|gst|cgst|sgst|igst|unit|uom|qty|quantity|less|add|value|taxable|total|disc)\b/gi) || []).length >= (pending ? 2 : 1)) {
+        pending = ''
+        continue
+      }
       if (nums >= 3 || (nums >= 2 && /[A-Za-z]/.test(l) && /\d\s*(nos|pcs|kg)/i.test(l))) {
         const r = parseRow(pending ? `${pending} ${l}` : l)
         // a note with numbers but no quantity ("Size : 1000 X 600 X 0.55 MM") is not an item
@@ -353,6 +374,9 @@ export function parseDocument(rawLines, mode = 'sale') {
         }
         if (r.desc || r.qty) rows.push(r)
         pending = ''
+      } else if (rows.length && /[/-]$/.test(rows[rows.length - 1].desc || '') && nums <= 1 && l.length <= 30 && !rows[rows.length - 1].cont) {
+        rows[rows.length - 1].desc += ' ' + l.replace(/^[^\w(]+/, '').trim() // "COPPER WIRE/" then "4MM"
+        rows[rows.length - 1].cont = true
       } else if (/[A-Za-z]{3}/.test(l)) {
         const last = rows[rows.length - 1]
         // The description can sit on the line after its numbers ("slot type commutators" / "(Ring Type)"), or run on
@@ -365,5 +389,8 @@ export function parseDocument(rawLines, mode = 'sale') {
     }
   }
 
+  // Tax columns with only a header ("CGST SGST IGST") and the amounts in the item row: the amounts say which tax was charged.
+  if (weakSupply && rows.length && rows[0].taxable) supply = taxFromRow(lines, rows[0].taxable) || supply
+  rows.forEach((r) => delete r.cont)
   return { party, date, supply, lr, lrDate, transporter, rows }
 }
