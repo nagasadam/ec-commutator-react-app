@@ -278,15 +278,15 @@ export function parseDocument(rawLines, mode = 'sale') {
 
   // the supplier's own invoice number: "Invoice No.: 123", "Bill No 45/26-27"; never an e-way bill / order / challan number
   let billNo = ''
-  const tok = (t) => (t.match(/^([A-Za-z0-9][A-Za-z0-9\/\-.]{0,24})(?=\s|$)/) || [])[1] || ''
+  const tok = (t) => (t.match(/^([A-Za-z0-9][A-Za-z0-9/.-]{0,24})(?=\s|$)/) || [])[1] || ''
   const okNo = (t) => /\d/.test(t) && !/^\d{1,2}-[A-Za-z]{3}-\d{2,4}$/.test(t) && t.replace(/\D/g, '').length < 9
   for (let i = 0; i < lines.length && !billNo; i++) {
-    const m = lines[i].match(/(?:invoice|inv\.?|bill)\s*(?:no\.?|number|#)\s*[:.\-]?\s*(.*)$/i)
+    const m = lines[i].match(/(?:invoice|inv\.?|bill)\s*(?:no\.?|number|#)\s*[:.-]?\s*(.*)$/i)
     if (!m) continue
     if (/(e-?\s*way|order|challan|delivery|supply|irn|ack)\W*$/i.test(lines[i].slice(0, m.index))) continue
     let t = tok(m[1].trim())
     if (!t && !m[1].trim()) t = tok((lines[i + 1] || '').trim())
-    if (okNo(t)) billNo = t.replace(/[.\-/]+$/, '')
+    if (okNo(t)) billNo = t.replace(/[./-]+$/, '')
   }
 
   // party
