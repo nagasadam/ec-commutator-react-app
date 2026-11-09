@@ -613,13 +613,25 @@ test('phone: every page fits the screen width, and the More sheet lists them all
   }
 })
 
+// Wait until an element stops moving (a sheet slides in), so slow machines do not measure it mid-animation.
+async function settled(p, sel) {
+  let last = ''
+  for (let i = 0; i < 40; i++) {
+    const b = await p.locator(sel).boundingBox()
+    const k = b ? [b.x, b.y, b.width, b.height].map(Math.round).join() : ''
+    if (k && k === last) return
+    last = k
+    await p.waitForTimeout(150)
+  }
+}
+
 test('phone: New invoice opens as a bottom sheet that can be closed', async () => {
   const p = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
   await p.click('.tabbar >> text=Invoices')
   await p.click('text=+ New invoice')
   const m = p.locator('.ov .modal')
   await m.waitFor()
-  await p.waitForTimeout(500)
+  await settled(p, '.ov .modal')
   const b = await m.boundingBox()
   assert.ok(b.width >= 388, 'sheet spans the screen')
   assert.ok(Math.abs(b.y + b.height - 844) < 3, 'sheet sits on the bottom edge')
@@ -700,7 +712,7 @@ test('phone: dragging a sheet down by its handle closes it', async () => {
   await p.click('.tabbar >> text=Invoices')
   await p.click('text=+ New invoice')
   await p.locator('.ov .grabber').waitFor()
-  await p.waitForTimeout(500)
+  await settled(p, '.ov .modal')
   const g = await p.locator('.ov .grabber').boundingBox()
   await p.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
   await p.mouse.down()
