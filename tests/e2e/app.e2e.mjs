@@ -317,6 +317,25 @@ test('PDF import, auto on: incomplete data stays in the form with reasons (stock
   assert.equal(await p.locator('.lrow').count(), 2)
 })
 
+test('PDF import: a bill in Needs review can be dropped from the list or from its own form, saving nothing', async () => {
+  const p = await open()
+  await tab(p, 'Invoices')
+  await p.setInputFiles('[data-testid=pdf-input]', pdfFile('ashok.pdf', ASHOK()))
+  await p.locator('.pdfnote.warn').waitFor()
+  await p.locator('.modal button:has-text("Drop this bill")').click()
+  await p.locator('.ov button:has-text("Drop it")').click()
+  await p.locator('.ov form').waitFor({ state: 'detached' })
+  assert.equal(await p.locator('.revs .rev').count(), 0)
+  await p.setInputFiles('[data-testid=pdf-input]', pdfFile('ashok.pdf', ASHOK()))
+  await p.locator('.pdfnote.warn').waitFor()
+  await p.click('.modal button[aria-label="Close"]')
+  await p.locator('.revs .rev', { hasText: 'ashok.pdf' }).waitFor()
+  await p.click('.rev button:has-text("Drop")')
+  await p.click('.ov button:has-text("Drop it")')
+  await p.locator('.revs .rev').waitFor({ state: 'detached' })
+  assert.equal(await invCount(p), 4)
+})
+
 test('PDF import, auto off: form is filled, nothing saved until Create; customer added with the invoice', async () => {
   const p = await open()
   await tab(p, 'Invoices')

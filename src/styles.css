@@ -2500,3 +2500,7 @@ html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
   table.cardtbl tbody tr { position: relative; touch-action: pan-y; }
   table.cardtbl tbody tr.swp::after { content: 'Delete'; position: absolute; top: 0; bottom: 0; right: -84px; width: 84px; display: grid; place-items: center; background: var(--bad); color: #fff; font-weight: 700; font-size: 14px; border-radius: 0 16px 16px 0; }
 }
+
+/* Needs review: Open and Drop sit together */
+.revbtns { display: flex; gap: 6px; flex: none; }
+.btn.ghost.danger { background: none; box-shadow: none; color: var(--bad); }

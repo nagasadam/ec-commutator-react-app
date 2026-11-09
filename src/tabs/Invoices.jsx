@@ -298,6 +298,12 @@ export default function Invoices({ newInv = 0 }) {
   })
   const pg = usePaged(rows, flt + '|' + needle + '|' + df.key)
   const open = (r) => setView(r.i)
+  // Throw away a bill that was read but not saved. Nothing is recorded; a Drive file stays in Drive and can be opened again from there.
+  const dropReview = (x) =>
+    ask(`Drop "${x.name}" from review? Nothing is saved from it.`, () => {
+      setReview((l) => l.filter((y) => y.id !== x.id))
+      if (rid === x.id) { reset(); setNote(null) }
+    }, 'Drop it')
   const openReview = (x) => {
     setF(x.snap.f)
     setNewCust(x.snap.newCust)
@@ -463,7 +469,10 @@ export default function Invoices({ newInv = 0 }) {
                       <b>{x.name}</b>
                       <div className="sub">{x.why}</div>
                     </div>
-                    <button className="btn ghost" onClick={() => openReview(x)}>Open</button>
+                    <span className="revbtns">
+                      <button className="btn ghost" onClick={() => openReview(x)}>Open</button>
+                      <button className="btn ghost danger" onClick={() => dropReview(x)} aria-label={'Drop ' + x.name}>Drop</button>
+                    </span>
                   </div>
                 ))}
               </div>
@@ -510,6 +519,9 @@ export default function Invoices({ newInv = 0 }) {
             <ErrBar msg={err} />
             {b.cust.length === 0 && <p className="muted">Add a customer under Parties first.</p>}
             <button className="btn">{editId ? 'Save changes' : 'Create'}</button>
+            {rid && !editId && review.some((y) => y.id === rid) && (
+              <button type="button" className="btn ghost danger" onClick={() => dropReview(review.find((y) => y.id === rid))}>Drop this bill</button>
+            )}
           </form>
         </Modal>
       )}
