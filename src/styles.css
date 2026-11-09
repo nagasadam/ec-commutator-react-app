@@ -2504,3 +2504,6 @@ html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
 /* Needs review: Open and Drop sit together */
 .revbtns { display: flex; gap: 6px; flex: none; }
 .btn.ghost.danger { background: none; box-shadow: none; color: var(--bad); }
+
+/* A confirmation asked from inside a sheet must stay above that sheet (sheets render on the page body, after the dialog). */
+.ov.alert { z-index: 80; }
