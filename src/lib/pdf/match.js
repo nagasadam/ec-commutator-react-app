@@ -73,6 +73,7 @@ export function buildDraft(b, parsed, mode) {
     newParty: !found && p ? { name: p.name, gstin: p.gstin, phone: p.phone, address: p.address, company: firmBiz ? true : p.company } : null,
     date: parsed.date || '',
     dateFound: !!parsed.date,
+    billNo: parsed.billNo || '',
     total: parsed.total || 0,
     billName: p ? p.name : '',
     lr: parsed.lr || '',
@@ -191,6 +192,7 @@ export function applyQr(parsed, qr, mode) {
     else parsed.party = { name: '', gstin: g, phone: '', address: '', company: true }
     got.push(mode === 'purchase' ? 'supplier GSTIN' : 'customer GSTIN')
   }
+  if (qr.docNo) parsed.billNo = String(qr.docNo)
   if (qr.date) {
     parsed.date = qr.date
     got.push('invoice date')

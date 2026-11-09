@@ -2532,3 +2532,10 @@ html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
 .cp-tile.lime b.pos { color: #0b6b43; }
 .cp-pin { border: 0; background: none; font-size: 20px; color: #e0a100; cursor: pointer; padding: 6px; flex: none; }
 @media (max-width: 380px) { .cp-tile b { font-size: 18px; } }
+
+/* Needs review: Open and Drop sit together */
+.revbtns { display: flex; gap: 6px; flex: none; }
+.btn.ghost.danger { background: none; box-shadow: none; color: var(--bad); }
+
+/* A confirmation asked from inside a sheet must stay above that sheet (sheets render on the page body, after the dialog). */
+.ov.alert { z-index: 80; }
