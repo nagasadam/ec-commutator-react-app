@@ -24,10 +24,15 @@ export default function CashPeople() {
   const [mode, setMode] = useState('all')
   const allRows = cashPeople(b)
   const has = (p) => p.cashIn || p.cashOut || p.gpayIn || p.gpayOut
-  const rows = allRows
+  // Searching in "All" also finds parties with no cash or GPay yet, so anyone can be pinned from here.
+  const others = mode === 'all' && tf.needle
+    ? [...b.cust, ...b.sup]
+        .filter((p) => !allRows.some((r) => r.id === p.id))
+        .map((p) => ({ id: p.id, name: p.name, cashIn: 0, cashOut: 0, gpayIn: 0, gpayOut: 0, count: 0, pinned: false }))
+    : []
+  const rows = [...allRows, ...others]
     .filter((p) => tf.test('', p.name))
     .filter((p) => (mode === 'pin' ? p.pinned : mode === 'all' ? true : mode === 'cash' ? p.cashIn || p.cashOut : p.gpayIn || p.gpayOut))
-  const all = [...b.cust, ...b.sup].filter((p) => !allRows.some((r) => r.id === p.id))
   const fm = mode === 'pin' ? 'all' : mode
   const sum = (k) => allRows.reduce((s, p) => s + flow(p, k).net, 0)
   const cashNet = sum('cash')
@@ -52,9 +57,9 @@ export default function CashPeople() {
             <button key={k} type="button" role="tab" aria-selected={mode === k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{l}</button>
           ))}
         </div>
-        {allRows.length > 6 && <FilterBar f={tf} label="people" dates={false} shown={rows.length} total={allRows.length} />}
-        {allRows.length === 0 ? (
-          <Empty>No cash or GPay receipts or payments yet. Pin someone below to keep them here.</Empty>
+        <FilterBar f={tf} label="people" dates={false} shown={rows.length} total={allRows.length + others.length} />
+        {rows.length === 0 && allRows.length === 0 && !tf.active ? (
+          <Empty>No cash or GPay receipts or payments yet. Search for someone and tap ☆ to keep them here.</Empty>
         ) : rows.length === 0 ? (
           <Empty>{mode === 'pin' && !tf.active ? 'No pinned people yet.' : 'No match.'}</Empty>
         ) : (
@@ -101,18 +106,6 @@ export default function CashPeople() {
           </ul>
         )}
       </div>
-      {all.length > 0 && (
-        <div className="card">
-          <h3>Pin a party</h3>
-          <div className="chips">
-            {all.map((p) => (
-              <button key={p.id} className="btn ghost" onClick={() => updB((x) => togglePin(x, p.id))}>
-                ☆ {p.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )
 }
