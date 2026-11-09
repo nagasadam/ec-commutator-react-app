@@ -6,7 +6,7 @@ import { inr, qtyFmt, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, Modal, Swipe, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
-import { addInvoice, importFile, markImported } from '../lib/pdfimport.js'
+import { addInvoice, importFile, learnAliases, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
 import { partyError, dateError, editInvoiceError } from '../lib/rules.js'
 import { supplyType } from '../lib/calc.js'
@@ -184,10 +184,11 @@ export default function Invoices({ newInv = 0 }) {
       d.rows.forEach((r, i) => !r.item && lines2.push(`Row ${i + 1} ("${r.desc || 'no description'}", qty ${r.qty ?? '?'}, rate ${r.rate ?? '?'}) did not match a product. Choose one on that row.`))
       const nf = {
         cust: d.party,
+        billName: d.billName || '',
         date: d.date || today(),
         lr: d.lr,
         transporter: d.transporter,
-        lines: d.rows.length ? d.rows.map((r) => ({ item: r.item, qty: r.qty ?? '', rate: r.rate ?? '' })) : [blankLine()],
+        lines: d.rows.length ? d.rows.map((r) => ({ item: r.item, qty: r.qty ?? '', rate: r.rate ?? '', desc: r.desc || '' })) : [blankLine()],
       }
       const nn = {
         kind: 'warn',
@@ -249,7 +250,10 @@ export default function Invoices({ newInv = 0 }) {
       setErr('')
       updB((x) => {
         const inv = addInvoice(x, { party: f.cust, newParty: newCust, date: f.date, lr: f.lr, transporter: f.transporter, lines })
-        if (src) markImported(x, src, 'sale', inv.no)
+        if (src) {
+          markImported(x, src, 'sale', inv.no)
+          learnAliases(x, 'sale', { partyName: f.billName }, inv.cust, f.lines)
+        }
       })
       setReview((l) => l.filter((x) => x.id !== rid))
       reset()

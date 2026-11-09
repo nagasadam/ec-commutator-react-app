@@ -17,8 +17,15 @@ const norm = (s) =>
     .trim()
 const words = (s) => norm(s).split(' ').filter((w) => w.length > 1).map((w) => w.replace(/s$/, ''))
 
-export function matchParty(list, p) {
+export const aliasKey = (s) => norm(s || '')
+
+export function matchParty(list, p, alias) {
   if (!p) return null
+  const a = alias && alias[aliasKey(p.name)]
+  if (a) {
+    const hit = list.find((x) => x.id === a)
+    if (hit) return hit
+  }
   if (p.gstin) {
     const g = list.find((x) => (x.gstin || '').toUpperCase() === p.gstin.toUpperCase())
     if (g) return g
@@ -28,8 +35,13 @@ export function matchParty(list, p) {
   return list.find((x) => norm(x.name) === n) || null
 }
 
-export function matchItem(items, desc, hsn = '') {
+export function matchItem(items, desc, hsn = '', alias) {
   const d = norm(desc)
+  const a = d && alias && alias[d]
+  if (a) {
+    const hit = items.find((i) => i.id === a)
+    if (hit) return hit
+  }
   if (d) {
     const exact = items.filter((i) => norm(i.name) === d)
     if (exact.length === 1) return exact[0]
@@ -51,7 +63,8 @@ export function matchItem(items, desc, hsn = '') {
 export function buildDraft(b, parsed, mode) {
   const list = mode === 'sale' ? b.cust : b.sup
   const pool = mode === 'sale' ? b.items : b.items.filter((i) => i.type === 'raw')
-  const found = matchParty(list, parsed.party)
+  const al = (b.alias || {})
+  const found = matchParty(list, parsed.party, al[mode === 'sale' ? 'cust' : 'sup'])
   const p = parsed.party
   const firmBiz = b.kind === 'firm'
   return {
@@ -60,15 +73,38 @@ export function buildDraft(b, parsed, mode) {
     newParty: !found && p ? { name: p.name, gstin: p.gstin, phone: p.phone, address: p.address, company: firmBiz ? true : p.company } : null,
     date: parsed.date || '',
     dateFound: !!parsed.date,
+    total: parsed.total || 0,
+    billName: p ? p.name : '',
     lr: parsed.lr || '',
     lrDate: parsed.lrDate || '',
     transporter: parsed.transporter || '',
     supply: parsed.supply,
-    rows: parsed.rows.map((r) => ({ desc: r.desc, qty: r.qty, rate: r.rate, item: (matchItem(pool, r.desc, r.hsn) || {}).id || '' })),
+    rows: parsed.rows.map((r) => ({ desc: r.desc, qty: r.qty, rate: r.rate, item: (matchItem(pool, r.desc, r.hsn, al.item) || {}).id || '' })),
   }
 }
 
 const sig = (lines) => lines.map((l) => `${l.item}|${+l.qty}|${+l.rate}`).sort().join(';')
+
+// Cross-check: the bill's printed total should equal the rows plus GST at a standard rate (small round-off allowed).
+export function totalIssue(d) {
+  if (!(d.total > 0)) return ''
+  const base = d.rows.reduce((t, r) => t + r.qty * r.rate, 0)
+  const ok = [0, 5, 12, 18, 28].some((g) => Math.abs(base * (1 + g / 100) - d.total) <= Math.max(2, d.total * 0.002))
+  return ok ? '' : `The bill total (${d.total.toLocaleString('en-IN')}) does not match the item rows (${Math.round(base).toLocaleString('en-IN')} before GST). Something may be missed, such as freight or another item.`
+}
+
+// Remember how the person matched bill text, so the same wording is matched the same way next time. Call inside updB.
+export function learnAliases(x, mode, d, partyId, rowItems) {
+  x.alias = x.alias || { item: {}, sup: {}, cust: {} }
+  const pk = mode === 'sale' ? 'cust' : 'sup'
+  x.alias[pk] = x.alias[pk] || {}
+  x.alias.item = x.alias.item || {}
+  const pn = d && d.newParty ? d.newParty.name : d && d.partyName
+  if (partyId && partyId !== '__new__' && pn && aliasKey(pn)) x.alias[pk][aliasKey(pn)] = partyId
+  ;(rowItems || []).forEach((r) => {
+    if (r && r.desc && r.item && aliasKey(r.desc)) x.alias.item[aliasKey(r.desc)] = r.item
+  })
+}
 
 // Reasons automatic saving must not happen (empty = safe to save).
 export function autoSaveIssues(b, d) {
@@ -86,6 +122,8 @@ export function autoSaveIssues(b, d) {
     if (!(r.qty > 0) || !(r.rate > 0)) why.push(`Row ${i + 1} is missing a quantity or rate.`)
   })
   if (why.length) return why
+  const tot = totalIssue(d)
+  if (tot) return [tot]
 
   if (d.party !== '__new__') {
     const lines = d.rows.map((r) => ({ item: r.item, qty: r.qty, rate: r.rate }))

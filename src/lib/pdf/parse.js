@@ -393,5 +393,11 @@ export function parseDocument(rawLines, mode = 'sale') {
   // Tax columns with only a header ("CGST SGST IGST") and the amounts in the item row: the amounts say which tax was charged.
   if (weakSupply && rows.length && rows[0].taxable) supply = taxFromRow(lines, rows[0].taxable) || supply
   rows.forEach((r) => delete r.cont)
-  return { party, date, supply, lr, lrDate, transporter, rows }
+  // The invoice total printed on the bill (last "Grand/Invoice total" style line with an amount), used to cross-check the rows.
+  let total = null
+  for (const l of rawLines) {
+    const m = /(?:grand\s*total|invoice\s*total|total\s*invoice\s*value|net\s*(?:amount|payable)|amount\s*payable|total\s*amount)\D{0,25}?(\d[\d,]*(?:\.\d+)?)\s*$/i.exec(l)
+    if (m && !isNaN(toNum(m[1]))) total = toNum(m[1])
+  }
+  return { party, date, supply, lr, lrDate, transporter, rows, total }
 }
