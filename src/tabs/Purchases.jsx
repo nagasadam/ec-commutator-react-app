@@ -196,6 +196,12 @@ export default function Purchases() {
     return !needle || (r.sp?.name || '').toLowerCase().includes(needle) || r.p.no.toLowerCase().includes(needle)
   })
   const pg = usePaged(rows, flt + '|' + needle + '|' + df.key)
+  // Throw away a bill that was read but not saved. Nothing is recorded; a Drive file stays in Drive and can be opened again from there.
+  const dropReview = (x) =>
+    ask(`Drop "${x.name}" from review? Nothing is saved from it.`, () => {
+      setReview((l) => l.filter((y) => y.id !== x.id))
+      if (rid === x.id) { clearImport(); setF(blank()) }
+    }, 'Drop it')
   const openReview = (x) => {
     setF(x.snap.f)
     setNewSup(x.snap.newSup)
@@ -362,7 +368,10 @@ export default function Purchases() {
                       <b>{x.name}</b>
                       <div className="sub">{x.why}</div>
                     </div>
-                    <button className="btn ghost" onClick={() => openReview(x)}>Open</button>
+                    <span className="revbtns">
+                      <button className="btn ghost" onClick={() => openReview(x)}>Open</button>
+                      <button className="btn ghost danger" onClick={() => dropReview(x)} aria-label={'Drop ' + x.name}>Drop</button>
+                    </span>
                   </div>
                 ))}
               </div>
@@ -421,6 +430,9 @@ export default function Purchases() {
             <p className="muted">{f.incl === 'incl' ? 'Rates include 18% GST for firms; the app removes it before recording.' : 'Rates are before GST. Firms add 18% GST automatically.'}</p>
             <ErrBar msg={err} />
             <button className="btn">{editId ? 'Save changes' : 'Record purchase'}</button>
+            {rid && !editId && review.some((y) => y.id === rid) && (
+              <button type="button" className="btn ghost danger" onClick={() => dropReview(review.find((y) => y.id === rid))}>Drop this bill</button>
+            )}
           </form>
         </Modal>
       )}
