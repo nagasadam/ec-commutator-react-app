@@ -2500,3 +2500,35 @@ html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
   table.cardtbl tbody tr { position: relative; touch-action: pan-y; }
   table.cardtbl tbody tr.swp::after { content: 'Delete'; position: absolute; top: 0; bottom: 0; right: -84px; width: 84px; display: grid; place-items: center; background: var(--bad); color: #fff; font-weight: 700; font-size: 14px; border-radius: 0 16px 16px 0; }
 }
+
+/* ============ Cash & GPay people ============ */
+.cp-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.cp-tile { border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.cp-tile.lime { background: var(--b); color: #111318; }
+.cp-tile.dark { background: var(--dark); color: var(--on-dark); }
+.cp-tile small { font-size: 12px; font-weight: 600; opacity: 0.7; }
+.cp-tile b { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.cp-seg { display: flex; gap: 2px; background: var(--soft); border-radius: 999px; padding: 4px; margin: 12px 0; }
+.cp-seg button { flex: 1; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 999px; cursor: pointer; }
+.cp-seg button.on { background: var(--dark); color: var(--on-dark); }
+.cp-list { list-style: none; margin: 0; padding: 0; }
+.cp-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.cp-row:first-child { border-top: 0; }
+.cp-av { width: 42px; height: 42px; border-radius: 50%; background: var(--a-soft); color: var(--a); display: grid; place-items: center; font-weight: 800; font-size: 14px; flex: none; }
+.cp-main { flex: 1; min-width: 0; }
+.cp-name { font-weight: 700; overflow-wrap: anywhere; }
+.cp-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.cp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cp-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; background: var(--soft); border-radius: 999px; padding: 4px 10px; }
+.cp-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--b); }
+.cp-chip i.gpay { background: var(--a); }
+.cp-net { text-align: right; display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+.cp-net b { font-weight: 800; white-space: nowrap; }
+.cp-net small { color: var(--muted); font-size: 12px; }
+.cp-tile b.pos, .cp-net b.pos { color: var(--good); }
+.cp-tile b.neg, .cp-net b.neg { color: var(--bad); }
+.cp-tile.dark b.pos { color: #7be3b4; }
+.cp-tile.dark b.neg { color: #ff9aa8; }
+.cp-tile.lime b.pos { color: #0b6b43; }
+.cp-pin { border: 0; background: none; font-size: 20px; color: #e0a100; cursor: pointer; padding: 6px; flex: none; }
+@media (max-width: 380px) { .cp-tile b { font-size: 18px; } }
