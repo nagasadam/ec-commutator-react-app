@@ -7,7 +7,7 @@ import { inr, today, uid, dmy } from '../lib/format.js'
 import { Empty, ErrBar, Field, LinesEditor, Modal, Swipe, blankLine, cleanLines, useDialog, useMedia, Rolling, MoreRows, usePaged, useTableFilter, FilterBar } from '../ui.jsx'
 import { useToast } from '../toast.jsx'
 import { NewParty, PdfNote, PdfUpload, usePdfAuto } from '../pdfui.jsx'
-import { ensureParty, exclGst, importFile, markImported } from '../lib/pdfimport.js'
+import { ensureParty, exclGst, importFile, learnAliases, markImported } from '../lib/pdfimport.js'
 import DriveImport from '../driveui.jsx'
 import { partyError, dateError, editPurchaseError } from '../lib/rules.js'
 
@@ -40,7 +40,7 @@ export default function Purchases() {
   const [rid, setRid] = useState(null)
   const sup = f.sup === '__new__' ? newSup : find(b.sup, f.sup)
   const opts = acctOptions(b, sup)
-  const asLine = (r) => ({ item: r.item || '', qty: r.qty ?? '', rate: r.rate ?? '' })
+  const asLine = (r) => ({ item: r.item || '', qty: r.qty ?? '', rate: r.rate ?? '', desc: r.desc || '' })
 
   useEffect(() => {
     if (!menu) return undefined
@@ -87,7 +87,7 @@ export default function Purchases() {
       }
       const { draft: d, issues } = r
       const [first, ...rest] = d.rows
-      const nf = { sup: d.party, date: d.date || today(), pay: 'later', incl: 'excl', lines: [first ? asLine(first) : blankLine()] }
+      const nf = { sup: d.party, billName: d.billName || '', date: d.date || today(), pay: 'later', incl: 'excl', lines: [first ? asLine(first) : blankLine()] }
       setF(nf)
       setNewSup(d.newParty)
       setQueue({ rows: rest, total: d.rows.length })
@@ -141,6 +141,7 @@ export default function Purchases() {
     let supId = f.sup
     updB((x) => {
       supId = ensureParty(x, 'sup', { party: f.sup, newParty: newSup })
+      if (src || f.billName) learnAliases(x, 'purchase', { partyName: f.billName }, supId, f.lines)
       const id = uid()
       const p = { id, no: nextNo(x.pur, 'PUR-'), date: f.date, sup: supId, lines: priced }
       x.pur.push(p)

@@ -48,12 +48,16 @@ export function fixBiz(b) {
   // Google Drive folders to import PDFs from (one for invoices, one for purchases)
   b.drive = { sale: '', purchase: '', ...(b.drive || {}) }
   b.stateCode = b.stateCode || '33'
+  // Remembered corrections from bill imports: normalised bill text -> id
+  b.alias = { ...(b.alias || {}) }
+  ;['item', 'sup', 'cust'].forEach((k) => (b.alias[k] = b.alias[k] || {}))
   // Plastic bush is used in stacking (see process.js); add it where it is missing so it can be bought straight away
   if (!b.items.some((i) => i.id === 'pb')) b.items.push({ id: 'pb', name: 'Plastic bush', type: 'raw', unit: 'pcs', hsn: '3926', open: 0, openCost: 0, rate: 0, bom: [] })
   // Process Scan: scans wait for approval unless this is switched off
   b.pscan = { approve: true, ...(b.pscan || {}) }
   // job-work rate per stacked piece, by stack type (rupees; no GST on job work)
   b.pscan.rates = { ec: 0, w750: 0, hook: 0, ...(b.pscan.rates || {}) }
+  b.alias = { item: {}, sup: {}, cust: {} }
   return b
 }
 

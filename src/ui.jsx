@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { inr } from './lib/format.js'
 import { useCountUp } from './motion.jsx'
@@ -77,7 +78,8 @@ export function Modal({ title, onClose, children, wide }) {
     box.current.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1)'
     box.current.style.transform = ''
   }
-  return (
+  // Rendered on the body, not inside the page: a page that is still sliding in (or keeps a transform) would otherwise become the "screen" for this fixed sheet and push it out of view.
+  const sheet = (
     <div className="ov" onClick={onClose}>
       <div ref={box} className={'card modal' + (wide ? ' wide' : '')} onClick={(e) => e.stopPropagation()}>
         <div className="grabber" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-hidden="true" />
@@ -91,6 +93,7 @@ export function Modal({ title, onClose, children, wide }) {
       </div>
     </div>
   )
+  return typeof document === 'undefined' ? sheet : createPortal(sheet, document.body)
 }
 
 // Swipe a card left to reveal its actions (Edit, Delete), like iOS Mail. actions: [{ label, tone, run }]
