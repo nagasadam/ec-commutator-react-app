@@ -11,7 +11,7 @@ import { ensureParty, exclGst, importFile, learnAliases, markImported } from '..
 import DriveImport from '../driveui.jsx'
 import { partyError, dateError, editPurchaseError } from '../lib/rules.js'
 
-const blank = () => ({ sup: '', date: today(), pay: 'later', incl: 'excl', lines: [blankLine()] })
+const blank = () => ({ sup: '', billNo: '', date: today(), pay: 'later', incl: 'excl', lines: [blankLine()] })
 
 export default function Purchases() {
   const { b, updB, getS } = useStore()
@@ -87,7 +87,7 @@ export default function Purchases() {
       }
       const { draft: d, issues } = r
       const [first, ...rest] = d.rows
-      const nf = { sup: d.party, billName: d.billName || '', date: d.date || today(), pay: 'later', incl: 'excl', lines: [first ? asLine(first) : blankLine()] }
+      const nf = { sup: d.party, billName: d.billName || '', billNo: d.billNo || '', date: d.date || today(), pay: 'later', incl: 'excl', lines: [first ? asLine(first) : blankLine()] }
       setF(nf)
       setNewSup(d.newParty)
       setQueue({ rows: rest, total: d.rows.length })
@@ -128,7 +128,7 @@ export default function Purchases() {
       const bad = editPurchaseError(b, cur, { party: f.sup, lines: priced })
       if (bad) return setErr(bad)
       setErr('')
-      updB((x) => Object.assign(find(x.pur, editId), { sup: f.sup, date: f.date, lines: priced }))
+      updB((x) => Object.assign(find(x.pur, editId), { sup: f.sup, billNo: f.billNo.trim(), date: f.date, lines: priced }))
       toast.push(`${cur.no} updated`, 'ok')
       setEditId(null)
       setF(blank())
@@ -143,7 +143,7 @@ export default function Purchases() {
       supId = ensureParty(x, 'sup', { party: f.sup, newParty: newSup })
       if (src || f.billName) learnAliases(x, 'purchase', { partyName: f.billName }, supId, f.lines)
       const id = uid()
-      const p = { id, no: nextNo(x.pur, 'PUR-'), date: f.date, sup: supId, lines: priced }
+      const p = { id, no: nextNo(x.pur, 'PUR-'), date: f.date, sup: supId, billNo: f.billNo.trim(), lines: priced }
       x.pur.push(p)
       if (src) markImported(x, src, 'purchase', p.no)
       if (f.pay !== 'later') x.tx.push({ id: uid(), date: f.date, kind: 'pay', party: supId, amt: purTot(x, p).total, acct: f.pay, ref: id })
@@ -165,7 +165,7 @@ export default function Purchases() {
   }
 
   const edit = (p) => {
-    setF({ sup: p.sup, date: p.date, pay: 'later', incl: 'excl', lines: p.lines.map((l) => ({ item: l.item, qty: l.qty, rate: l.rate })) })
+    setF({ sup: p.sup, billNo: p.billNo || '', date: p.date, pay: 'later', incl: 'excl', lines: p.lines.map((l) => ({ item: l.item, qty: l.qty, rate: l.rate })) })
     setNewSup(null)
     setSrc(null)
     setRid(null)
@@ -193,7 +193,7 @@ export default function Purchases() {
     if (flt === 'paid' && !r.isPaid) return false
     if (flt === 'person' && !r.person) return false
     if (!df.test(r.p.date, '')) return false
-    return !needle || (r.sp?.name || '').toLowerCase().includes(needle) || r.p.no.toLowerCase().includes(needle)
+    return !needle || (r.sp?.name || '').toLowerCase().includes(needle) || r.p.no.toLowerCase().includes(needle) || (r.p.billNo || '').toLowerCase().includes(needle)
   })
   const pg = usePaged(rows, flt + '|' + needle + '|' + df.key)
   const openReview = (x) => {
@@ -306,7 +306,7 @@ export default function Purchases() {
                           <b>{r.sp?.name}</b>
                           <div className="sub">{r.sp?.gstin || (r.person ? 'Person' : 'Firm')}</div>
                         </td>
-                        <td className="nw">{r.p.no}</td>
+                        <td className="nw">{r.p.no}{r.p.billNo ? <div className="sub">Bill {r.p.billNo}</div> : null}</td>
                         <td className="nw">{dmy(r.p.date)}</td>
                         <td className="r nw c-tax">{inr(r.t.taxable)}</td>
                         <td className="r nw c-gst">{inr(r.t.gst)}</td>
@@ -328,7 +328,7 @@ export default function Purchases() {
                       {badge(r)}
                     </div>
                     <div className="who">{r.sp?.name}</div>
-                    <div className="sub">{r.sp?.gstin || (r.person ? 'Person' : 'Firm')} · {dmy(r.p.date)}</div>
+                    <div className="sub">{r.sp?.gstin || (r.person ? 'Person' : 'Firm')} · {dmy(r.p.date)}{r.p.billNo ? ` · Bill ${r.p.billNo}` : ''}</div>
                     <div className="amt">{inr(r.t.total)}</div>
                     <div className="foot">
                       <span>GST {inr(r.t.gst)}</span>
@@ -394,6 +394,9 @@ export default function Purchases() {
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Supplier bill no.">
+                <input value={f.billNo || ''} onChange={(e) => setF({ ...f, billNo: e.target.value })} placeholder="As printed on the bill" />
               </Field>
               <Field label="Date">
                 <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
